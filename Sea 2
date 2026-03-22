@@ -1,0 +1,120 @@
+-- ========================================================
+-- [[ ⚡ GIACDZ ALL-IN-ONE: AUTO SEA 1 TO SEA 2 ]]
+-- ========================================================
+
+local player = game.Players.LocalPlayer
+local RS = game:GetService("ReplicatedStorage")
+
+-- 1. Lấy đúng đường dẫn Remote đã giúp bạn thành công
+local Remote = RS:FindFirstChild("CommF_", true) or (RS:FindFirstChild("Remotes") and RS.Remotes:FindFirstChild("CommF_"))
+
+-- 2. Hàm kiểm tra chìa khóa
+local function checkKey()
+    return player.Backpack:FindFirstChild("Library Key") or player.Character:FindFirstChild("Library Key")
+end
+
+-- 3. Hàm Tween tự thân (Noclip tích hợp)
+local function tweenTo(pos)
+    local char = player.Character or player.CharacterAdded:Wait()
+    local root = char:WaitForChild("HumanoidRootPart")
+    
+    -- Noclip xuyên vật thể khi đang bay
+    local noclip = game:GetService("RunService").Stepped:Connect(function()
+        for _, v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then v.CanCollide = false end
+        end
+    end)
+
+    local dist = (root.Position - pos.Position).Magnitude
+    local tween = game:GetService("TweenService"):Create(root, TweenInfo.new(dist/230, Enum.EasingStyle.Linear), {CFrame = pos})
+    tween:Play()
+    tween.Completed:Wait()
+    noclip:Disconnect()
+end
+
+-- [[ THỰC THI TOÀN BỘ QUY TRÌNH ]]
+task.spawn(function()
+    if player.Data.Level.Value < 700 then 
+        warn("Bạn chưa đủ Level 700 để sang Sea 2!")
+        return 
+    end
+
+    -- BƯỚC 1: LẤY KEY (Sử dụng logic bạn đã chạy được)
+    if not checkKey() then
+        print("--- Đang đi lấy Key (Logic thành công) ---")
+        tweenTo(CFrame.new(4852, 6, 712)) -- Bay tới Prison
+        task.wait(1)
+
+        for i = 1, 20 do -- Thử 20 lần cho chắc
+            if checkKey() then break end
+            task.wait(0.5)
+            
+            pcall(function()
+                -- Các lệnh ép lấy Key
+                Remote:InvokeServer("ConfirmIceAbel")
+                Remote:InvokeServer("DressrosaQuestProgress", "Detective")
+                Remote:InvokeServer("Talk", "Military Detective")
+            end)
+            
+            -- Nhích nhẹ nhân vật để nhận diện va chạm
+            player.Character.HumanoidRootPart.CFrame = CFrame.new(4852, 6, 712) * CFrame.new(math.random(-1,1), 0, math.random(-1,1))
+        end
+    end
+
+    -- BƯỚC 2: DIỆT BOSS ICE ADMIRAL
+    if checkKey() or (player.PlayerGui.Main.Quest.Visible and string.find(player.PlayerGui.Main.Quest.Container.QuestTitle.Title.Text, "Ice Admiral")) then
+        print("--- Đã có Key! Tiến hành diệt Boss ---")
+        
+        -- Bay tới cửa hang băng
+        local iceAdmiralPos = CFrame.new(1347.6, 37.97, -1325.47)
+        tweenTo(iceAdmiralPos)
+        task.wait(1)
+
+        -- Cầm chìa khóa ra để mở cửa (nếu có)
+local keyItem = player.Backpack:FindFirstChild("Library Key")
+        if keyItem then player.Character.Humanoid:EquipTool(keyItem) end
+        task.wait(1)
+
+        -- Bắt đầu đánh Boss
+        local battleTime = os.time()
+        while os.time() - battleTime < 60 do
+            local boss = workspace.Enemies:FindFirstChild("Ice Admiral") or workspace.Enemies:FindFirstChild("Ice Admiral [Lv. 700] [Boss]")
+            
+            if boss and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
+                -- Tự cầm Melee để đánh
+                for _, v in pairs(player.Backpack:GetChildren()) do
+                    if v:IsA("Tool") and v.ToolTip == "Melee" then
+                        player.Character.Humanoid:EquipTool(v) break
+                    end
+                end
+                -- Bay trên đầu Boss đánh
+                player.Character.HumanoidRootPart.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 20, 0)
+                RS.Modules.Net["RE/RegisterAttack"]:FireServer(0)
+                RS.Modules.Net["RE/RegisterHit"]:FireServer(boss.PrimaryPart, {{boss, boss.PrimaryPart}})
+            else
+                -- Nếu không thấy boss (có thể đã chết)
+                if not workspace.Enemies:FindFirstChild("Ice Admiral") and os.time() - battleTime > 5 then
+                    print("Boss đã bị tiêu diệt!")
+                    break
+                end
+            end
+            task.wait()
+        end
+    end
+
+    -- BƯỚC 3: SANG SEA 2 (MIDDLE TOWN)
+    print("--- Hoàn tất! Đang bay về Middle Town để sang Sea 2 ---")
+    tweenTo(CFrame.new(-455, 11, -311)) -- Tọa độ ông thuyền trưởng
+    task.wait(1)
+
+    -- Ép lệnh di chuyển sang Sea 2
+    for i = 1, 5 do
+        pcall(function()
+            Remote:InvokeServer("TravelMain")
+            Remote:InvokeServer("TravelDressrosa")
+        end)
+        task.wait(1)
+    end
+    
+    print("--- CHÚC MỪNG BẠN ĐÃ ĐẾN SEA 2! ---")
+end)
