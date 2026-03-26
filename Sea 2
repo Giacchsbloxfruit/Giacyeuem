@@ -1,19 +1,19 @@
 -- ========================================================
--- [[ ⚡ GIACDZ ALL-IN-ONE: FIX TRÌNH TỰ & TỌA ĐỘ ]]
+-- [[ ⚡ GIACDZ ALL-IN-ONE: AUTO SEA 1 TO SEA 2 (FINAL) ]]
 -- ========================================================
 
 local player = game.Players.LocalPlayer
 local RS = game:GetService("ReplicatedStorage")
-
--- 1. Giữ nguyên đường dẫn Remote thành công của bạn
 local Remote = RS:FindFirstChild("CommF_", true) or (RS:FindFirstChild("Remotes") and RS.Remotes:FindFirstChild("CommF_"))
 
--- 2. Hàm kiểm tra chìa khóa
+-- 1. Hàm kiểm tra Key (Dò cả "Key" và "Library Key")
 local function checkKey()
-    return player.Backpack:FindFirstChild("Library Key") or player.Character:FindFirstChild("Library Key")
+    local key = player.Backpack:FindFirstChild("Key") or player.Character:FindFirstChild("Key") or 
+                player.Backpack:FindFirstChild("Library Key") or player.Character:FindFirstChild("Library Key")
+    return key 
 end
 
--- 3. Hàm Tween tự thân
+-- 2. Hàm Tween mượt mà tích hợp Noclip
 local function tweenTo(pos)
     local char = player.Character or player.CharacterAdded:Wait()
     local root = char:WaitForChild("HumanoidRootPart")
@@ -30,11 +30,14 @@ local function tweenTo(pos)
 end
 
 task.spawn(function()
-    if player.Data.Level.Value < 700 then return end
+    if player.Data.Level.Value < 700 then 
+        warn("Chưa đủ Level 700 để sang Sea 2!")
+        return 
+    end
 
-    -- [[ BƯỚC 1: GIỮ NGUYÊN LOGIC LẤY KEY CỦA BẠN ]]
+    -- [[ BƯỚC 1: LẤY KEY ]]
     if not checkKey() then
-        print("--- Đang đi lấy Key (Logic thành công) ---")
+        print("--- Đang đi lấy Key tại Prison ---")
         tweenTo(CFrame.new(4852, 6, 712)) 
         task.wait(1)
 
@@ -46,38 +49,36 @@ task.spawn(function()
                 Remote:InvokeServer("DressrosaQuestProgress", "Detective")
                 Remote:InvokeServer("Talk", "Military Detective")
             end)
+            -- Nhích nhân vật để nhận diện
             player.Character.HumanoidRootPart.CFrame = CFrame.new(4852, 6, 712) * CFrame.new(math.random(-1,1), 0, math.random(-1,1))
         end
     end
 
-    -- ĐỢI ĐẾN KHI CHẮC CHẮN CÓ KEY TRÊN TAY/TÚI MỚI CHẠY TIẾP
+    -- Đợi chắc chắn túi đồ nhận diện được Key
     local keyWait = 0
     while not checkKey() and keyWait < 10 do
         task.wait(1)
         keyWait = keyWait + 1
-        print("Đang xác nhận Key trong túi đồ...")
     end
 
-    -- [[ BƯỚC 2: SỬA LẠI LOGIC DIỆT BOSS ]]
-    if checkKey() then
-        print("--- Đã có Key! Bay tới hang Băng ngay lập tức ---")
+    local myKey = checkKey()
+
+    -- [[ BƯỚC 2: DIỆT BOSS ]]
+    if myKey then
+        print("--- Đã lụm được Key! Bay tới hang Băng ngay lập tức ---")
         
-        -- Tọa độ hang Băng chuẩn Sea 1
         local iceAdmiralPos = CFrame.new(1347.6, 37.97, -1325.47)
         tweenTo(iceAdmiralPos)
         task.wait(1)
 
-        -- Trang bị chìa khóa để chạm mở cửa
-        local keyItem = player.Backpack:FindFirstChild("Library Key") or player.Character:FindFirstChild("Library Key")
-        if keyItem then 
-            player.Character.Humanoid:EquipTool(keyItem) 
-            task.wait(2) -- Đợi 2 giây cầm key chạm cửa
-        end
+        -- Cầm chìa khóa mở cửa
+        player.Character.Humanoid:EquipTool(myKey) 
+        task.wait(2) 
 
-        -- Bắt đầu đánh Boss
+        -- Farm Boss
         print("--- Đang diệt Boss Ice Admiral ---")
         local battleTime = os.time()
-        while os.time() - battleTime < 90 do -- Tăng thời gian đánh lên 90s cho chắc
+        while os.time() - battleTime < 90 do
             local boss = workspace.Enemies:FindFirstChild("Ice Admiral") or workspace.Enemies:FindFirstChild("Ice Admiral [Lv. 700] [Boss]")
             
             if boss and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
@@ -86,44 +87,43 @@ task.spawn(function()
                         player.Character.Humanoid:EquipTool(v) break
                     end
                 end
-                -- Bay đè lên đầu Boss
                 player.Character.HumanoidRootPart.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 20, 0)
                 RS.Modules.Net["RE/RegisterAttack"]:FireServer(0)
                 RS.Modules.Net["RE/RegisterHit"]:FireServer(boss.PrimaryPart, {{boss, boss.PrimaryPart}})
             else
-                if not workspace.Enemies:FindFirstChild("Ice Admiral") and os.time() - battleTime > 10 then
-                    print("Boss đã gục!")
+                if not workspace.Enemies:FindFirstChild("Ice Admiral") and os.time() - battleTime > 5 then
+                    print("Boss đã bị tiêu diệt!")
                     break
                 end
             end
             task.wait()
         end
         
-        -- QUAY LẠI BÁO CÁO (NPC bắt buộc phải nói chuyện sau khi diệt Boss)
+        -- Quay về báo cáo để mở khóa điều kiện sang Sea 2
         print("Quay lại Prison báo cáo...")
         tweenTo(CFrame.new(4852, 6, 712))
         task.wait(1)
         pcall(function() Remote:InvokeServer("ConfirmIceAbel") end)
     else
-        warn("Không có Key, dừng script để tránh bay lỗi!")
-        return
+        warn("Lỗi không lụm được Key!")
+        return 
     end
 
-    -- [[ BƯỚC 3: TELEPORT SEA 2 KHÔNG CẦN TWEEN (SỬA THEO Ý BẠN) ]]
-    print("--- DIỆT BOSS XONG! GỌI LỆNH TELEPORT SEA 2 TỨC THỜI ---")
+    -- [[ BƯỚC 3: DỊCH CHUYỂN SANG SEA 2 (DRESSROSA) ]]
+    print("--- HOÀN TẤT QUEST! ĐANG CHUYỂN SANG SEA 2 ---")
     
-    task.wait(1) -- Nghỉ 1 giây để game nhận diện boss chết
+    -- Bay về chỗ ông thuyền trưởng cho an toàn trước khi chuyển
+    tweenTo(CFrame.new(-455, 11, -311)) 
+    task.wait(1)
 
+    -- Thực hiện lệnh chuyển Sea dứt khoát
     pcall(function()
-        -- Lệnh Teleport trực tiếp không qua trung gian
         Remote:InvokeServer("TravelDressrosa")
     end)
     
-    -- Dự phòng lệnh 2
-    task.wait(1)
+    -- Dự phòng nếu lệnh trên ko chạy
+    task.wait(2)
     pcall(function()
         Remote:InvokeServer("TravelMain")
     end)
-
-    print("--- ĐANG SANG SEA 2! ---")
 end)
