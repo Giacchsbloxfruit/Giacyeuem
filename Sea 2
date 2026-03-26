@@ -1,129 +1,112 @@
 -- ========================================================
--- [[ ⚡ GIACDZ ALL-IN-ONE: AUTO SEA 1 TO SEA 2 (FINAL) ]]
+-- [[ ⚡ GIACDZ ULTIMATE: AUTO SEA 1-2 (FIXED ALL ERRORS) ]]
 -- ========================================================
 
 local player = game.Players.LocalPlayer
 local RS = game:GetService("ReplicatedStorage")
 local Remote = RS:FindFirstChild("CommF_", true) or (RS:FindFirstChild("Remotes") and RS.Remotes:FindFirstChild("CommF_"))
 
--- 1. Hàm kiểm tra Key (Dò cả "Key" và "Library Key")
+-- 1. Hàm kiểm tra Key/Library Key (Chống lỗi hop server)
 local function checkKey()
-    local key = player.Backpack:FindFirstChild("Key") or player.Character:FindFirstChild("Key") or 
-                player.Backpack:FindFirstChild("Library Key") or player.Character:FindFirstChild("Library Key")
-    return key 
+    return player.Backpack:FindFirstChild("Key") or player.Character:FindFirstChild("Key") or 
+           player.Backpack:FindFirstChild("Library Key") or player.Character:FindFirstChild("Library Key")
 end
 
--- 2. Hàm Tween mượt mà tích hợp Noclip
+-- 2. Hàm Tween mượt mà, chống rơi (Anti-Fall)
 local function tweenTo(pos)
     local char = player.Character or player.CharacterAdded:Wait()
     local root = char:WaitForChild("HumanoidRootPart")
+    
     local noclip = game:GetService("RunService").Stepped:Connect(function()
         for _, v in pairs(char:GetDescendants()) do
             if v:IsA("BasePart") then v.CanCollide = false end
         end
+        root.Velocity = Vector3.new(0, 0, 0) -- Giữ nhân vật không bị rơi khi bay qua biển
     end)
+
     local dist = (root.Position - pos.Position).Magnitude
-    local tween = game:GetService("TweenService"):Create(root, TweenInfo.new(dist/230, Enum.EasingStyle.Linear), {CFrame = pos})
+    local speed = 250 
+    local tween = game:GetService("TweenService"):Create(root, TweenInfo.new(dist/speed, Enum.EasingStyle.Linear), {CFrame = pos})
+    
     tween:Play()
     tween.Completed:Wait()
     noclip:Disconnect()
 end
 
 task.spawn(function()
-    if player.Data.Level.Value < 700 then 
-        warn("Chưa đủ Level 700 để sang Sea 2!")
-        return 
-    end
+    if player.Data.Level.Value < 700 then return end
 
-    -- [[ BƯỚC 1: LẤY KEY ]]
+    -- [[ BƯỚC 1: LẤY KEY (VỚI CHẾ ĐỘ THÔNG MINH) ]]
     if not checkKey() then
-        print("--- Đang đi lấy Key tại Prison ---")
-        tweenTo(CFrame.new(4852, 6, 712)) 
-        task.wait(1)
-
-        for i = 1, 20 do 
-            if checkKey() then break end
-            task.wait(0.5)
-            pcall(function()
-                Remote:InvokeServer("ConfirmIceAbel")
-                Remote:InvokeServer("DressrosaQuestProgress", "Detective")
-                Remote:InvokeServer("Talk", "Military Detective")
-            end)
-            -- Nhích nhân vật để nhận diện
-            player.Character.HumanoidRootPart.CFrame = CFrame.new(4852, 6, 712) * CFrame.new(math.random(-1,1), 0, math.random(-1,1))
-        end
-    end
-
-    -- Đợi chắc chắn túi đồ nhận diện được Key
-    local keyWait = 0
-    while not checkKey() and keyWait < 10 do
-        task.wait(1)
-        keyWait = keyWait + 1
-    end
-
-    local myKey = checkKey()
-
-    -- [[ BƯỚC 2: DIỆT BOSS ]]
-    if myKey then
-        print("--- Đã lụm được Key! Bay tới hang Băng ngay lập tức ---")
+        print("--- Đang tới Prison lấy Key ---")
+        tweenTo(CFrame.new(4852, 6, 712))
         
-        local iceAdmiralPos = CFrame.new(1347.6, 37.97, -1325.47)
-        tweenTo(iceAdmiralPos)
-        task.wait(1)
+        local startTime = os.time()
+        repeat
+            task.wait(1)
+            pcall(function()
+                Remote:InvokeServer("Talk", "Military Detective")
+                Remote:InvokeServer("DressrosaQuestProgress", "Detective")
+            end)
+            -- Nếu sau 15 giây mà không có Key, có thể là bạn đã mở cổng rồi hoặc NPC bị lỗi, thoát vòng lặp để đi tiếp
+            if os.time() - startTime > 15 then 
+                print("--- Timeout: Không lấy được Key, thử đi check hang Băng ---")
+                break 
+            end
+        until checkKey()
+    end
 
-        -- Cầm chìa khóa mở cửa
-        player.Character.Humanoid:EquipTool(myKey) 
-        task.wait(2) 
+    -- [[ BƯỚC 2: MỞ CỔNG & DIỆT BOSS ]]
+    print("--- Đang bay tới hang Băng ---")
+    tweenTo(CFrame.new(1347.6, 37.97, -1325.47))
+    task.wait(0.5)
 
-        -- Farm Boss
-        print("--- Đang diệt Boss Ice Admiral ---")
-        local battleTime = os.time()
-        while os.time() - battleTime < 90 do
-            local boss = workspace.Enemies:FindFirstChild("Ice Admiral") or workspace.Enemies:FindFirstChild("Ice Admiral [Lv. 700] [Boss]")
-            
-            if boss and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
-                for _, v in pairs(player.Backpack:GetChildren()) do
-                    if v:IsA("Tool") and v.ToolTip == "Melee" then
-                        player.Character.Humanoid:EquipTool(v) break
-                    end
-                end
-                player.Character.HumanoidRootPart.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 20, 0)
-                RS.Modules.Net["RE/RegisterAttack"]:FireServer(0)
-                RS.Modules.Net["RE/RegisterHit"]:FireServer(boss.PrimaryPart, {{boss, boss.PrimaryPart}})
-            else
-                if not workspace.Enemies:FindFirstChild("Ice Admiral") and os.time() - battleTime > 5 then
-                    print("Boss đã bị tiêu diệt!")
-                    break
+    -- Nếu có Key thì trang bị để chạm vào cửa
+    local myKey = checkKey()
+    if myKey then
+        if myKey.Parent ~= player.Character then
+            player.Character.Humanoid:EquipTool(myKey)
+        end
+        task.wait(2) -- Đợi chạm cửa
+    end
+
+    -- Bắt đầu farm Boss Ice Admiral
+    print("--- Đang diệt Boss ---")
+    local bossTimeout = os.time()
+    while os.time() - bossTimeout < 120 do
+        local boss = workspace.Enemies:FindFirstChild("Ice Admiral") or workspace.Enemies:FindFirstChild("Ice Admiral [Lv. 700] [Boss]")
+        
+        if boss and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
+            -- Equip Melee để đánh
+            for _, v in pairs(player.Backpack:GetChildren()) do
+                if v:IsA("Tool") and v.ToolTip == "Melee" then
+                    player.Character.Humanoid:EquipTool(v) break
                 end
             end
-            task.wait()
+            -- Đứng trên đầu Boss để farm
+            player.Character.HumanoidRootPart.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 20, 0)
+            RS.Modules.Net["RE/RegisterAttack"]:FireServer(0)
+            RS.Modules.Net["RE/RegisterHit"]:FireServer(boss.PrimaryPart, {{boss, boss.PrimaryPart}})
+        else
+            -- Check lại lần cuối trước khi báo hoàn thành
+            task.wait(2)
+            if not workspace.Enemies:FindFirstChild("Ice Admiral") then break end
         end
-        
-        -- Quay về báo cáo để mở khóa điều kiện sang Sea 2
-        print("Quay lại Prison báo cáo...")
-        tweenTo(CFrame.new(4852, 6, 712))
-        task.wait(1)
-        pcall(function() Remote:InvokeServer("ConfirmIceAbel") end)
-    else
-        warn("Lỗi không lụm được Key!")
-        return 
+        task.wait()
     end
 
-    -- [[ BƯỚC 3: DỊCH CHUYỂN SANG SEA 2 (DRESSROSA) ]]
-    print("--- HOÀN TẤT QUEST! ĐANG CHUYỂN SANG SEA 2 ---")
+    -- [[ BƯỚC 3: QUA SEA 2 SIÊU TỐC ]]
+    print("--- HOÀN TẤT! ĐANG DỊCH CHUYỂN QUA SEA 2 ---")
     
-    -- Bay về chỗ ông thuyền trưởng cho an toàn trước khi chuyển
-    tweenTo(CFrame.new(-455, 11, -311)) 
+    -- Tự động báo cáo hội thoại ẩn (Không cần quay về Prison)
+    pcall(function()
+        Remote:InvokeServer("ConfirmIceAbel")
+    end)
     task.wait(1)
 
-    -- Thực hiện lệnh chuyển Sea dứt khoát
-    pcall(function()
-        Remote:InvokeServer("TravelDressrosa")
-    end)
-    
-    -- Dự phòng nếu lệnh trên ko chạy
-    task.wait(2)
-    pcall(function()
-        Remote:InvokeServer("TravelMain")
-    end)
+    -- Ép chuyển Sea liên tục cho đến khi thành công
+    while task.wait(2) do
+        pcall(function() Remote:InvokeServer("TravelDressrosa") end)
+        pcall(function() Remote:InvokeServer("TravelMain") end)
+    end
 end)
