@@ -1,12 +1,13 @@
 -- ==========================================
--- 1. KHAI BÁO BIẾN & HÀM HỖ TRỢ
+-- 1. KHAI BÁO BIẾN & CÀI ĐẶT HỆ THỐNG
 -- ==========================================
 _G.FarmBone = false
 _G.SelectWeapon = "Melee"
 _G.TweenSpeed = 250
+_G.BringMob = false -- Biến gom quái
 
-local World3 = game.PlaceId == 15444534564
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 
 -- Hàm Tự Động Bật Haki
 function AutoHaki()
@@ -20,22 +21,38 @@ end
 -- Hàm Cầm Vũ Khí
 function EquipWeapon(WeaponType)
     pcall(function()
-        local backpack = game.Players.LocalPlayer.Backpack
         local character = game.Players.LocalPlayer.Character
         if not character then return end
+        local tool = game.Players.LocalPlayer.Backpack:FindFirstChild(WeaponType) or character:FindFirstChild(WeaponType)
         
-        for _, v in pairs(character:GetChildren()) do
-            if v:IsA("Tool") and (v.ToolTip == WeaponType or (WeaponType == "Blox Fruit" and v.ToolTip == "Go")) then
-                return 
+        -- Xử lý đặc biệt cho Blox Fruit (ToolTip là "Go")
+        if WeaponType == "Blox Fruit" then
+            for _, v in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
+                if v:IsA("Tool") and v.ToolTip == "Go" then tool = v break end
             end
         end
-        for _, v in pairs(backpack:GetChildren()) do
-            if v:IsA("Tool") and (v.ToolTip == WeaponType or (WeaponType == "Blox Fruit" and v.ToolTip == "Go")) then
-                character.Humanoid:EquipTool(v)
-            end
-        end
+
+        if tool then character.Humanoid:EquipTool(tool) end
     end)
 end
+
+-- Hàm Noclip & Chống Rơi (Chỉ chạy khi bật Farm)
+RunService.Stepped:Connect(function()
+    if _G.FarmBone then
+        pcall(function()
+            local char = game.Players.LocalPlayer.Character
+            if char then
+                for _, v in pairs(char:GetDescendants()) do
+                    if v:IsA("BasePart") then v.CanCollide = false end
+                end
+                -- Khóa vận tốc để không bị rơi xuống biển hoặc bị đẩy văng
+                if char:FindFirstChild("HumanoidRootPart") then
+                    char.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+                end
+            end
+        end)
+    end
+end)
 
 -- Hàm Tween Di Chuyển (Topos)
 function topos(targetCFrame)
@@ -50,18 +67,34 @@ function topos(targetCFrame)
     tween:Play()
 end
 
--- Tự động bật Haki lần đầu khi chạy script
-AutoHaki()
+-- Hàm Gom Quái (Bring Mob) - Tầm 2-4 con gần nhất
+function BringMob(targetMobName, targetPos)
+    if not _G.BringMob then return end
+    pcall(function()
+        local count = 0
+        for _, v in pairs(game:GetService("Workspace").Enemies:GetChildren()) do
+            if v.Name == targetMobName and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                if count < 4 then -- Giới hạn 4 con để tránh lỗi
+                    v.HumanoidRootPart.CanCollide = false
+                    v.HumanoidRootPart.CFrame = targetPos
+                    v.Humanoid.WalkSpeed = 0
+                    v.Humanoid:ChangeState(11) -- Khóa trạng thái quái
+                    count = count + 1
+                end
+            end
+        end
+    end)
+end
 
 -- ==========================================
--- 2. KHỞI TẠO UI FLUENT
+-- 2. KHỞI TẠO UI FLUENT & NÚT BẬT/TẮT
 -- ==========================================
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
 local Window = Fluent:CreateWindow({
     Title = "Giacyeuem Hub",
     SubTitle = "By Giacdz",
-    TabWidth = 160,
+    TabWidth = 150,
     Theme = "Dark",
     Acrylic = false,
     Size = UDim2.fromOffset(500, 320),
@@ -86,38 +119,23 @@ local Tabs = {
     Misc = Window:AddTab({ Title = "Tab Misc", Icon = "" })
 };
 
--- ==========================================
--- 3. NÚT BẤM BẬT/TẮT MENU (IMAGE BUTTON)
--- ==========================================
-local ControlGUI = Instance.new("ScreenGui")
-ControlGUI.Name = "ControlGUI"
-ControlGUI.Parent = game.CoreGui
-
-local ImageButton = Instance.new("ImageButton")
+-- [Nút bấm nổi ImageButton]
+local ControlGUI = Instance.new("ScreenGui", game.CoreGui)
+local ImageButton = Instance.new("ImageButton", ControlGUI)
 ImageButton.Size = UDim2.new(0, 50, 0, 50)
 ImageButton.Position = UDim2.new(0.1, 0, 0.1, 0)
 ImageButton.Image = "rbxassetid://123060196429580"
 ImageButton.BackgroundTransparency = 1
-ImageButton.Parent = ControlGUI
-
-local UICorner = Instance.new("UICorner", ImageButton)
-UICorner.CornerRadius = UDim.new(0.25, 0)
-
+Instance.new("UICorner", ImageButton).CornerRadius = UDim.new(0.25, 0)
 local UIStroke = Instance.new("UIStroke", ImageButton)
 UIStroke.Thickness = 2
-UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
--- Hiệu ứng cầu vồng cho viền nút
 task.spawn(function()
     while true do
-        for i = 0, 1, 0.01 do
-            UIStroke.Color = Color3.fromHSV(i, 1, 1)
-            task.wait(0.05)
-        end
+        for i = 0, 1, 0.01 do UIStroke.Color = Color3.fromHSV(i, 1, 1) task.wait(0.05) end
     end
 end)
 
--- Logic Kéo thả nút & Click để ẩn/hiện
 local isMinimized = false
 ImageButton.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
@@ -125,22 +143,24 @@ ImageButton.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- 4. GIAO DIỆN CHI TIẾT
+-- 3. GIAO DIỆN CHI TIẾT
 -- ==========================================
-local BoneSection = Tabs.Main:AddSection("Farm Bone Logic")
-
 local BoneParagraph = Tabs.Main:AddParagraph({
-    Title = "Check Bone",
-    Content = "Loading..."
+    Title = "Check Bone Status",
+    Content = "Đang kiểm tra..."
 })
 
 Tabs.Main:AddToggle("FarmBoneToggle", {
     Title = "Auto Farm Bone",
-    Description = "Tự động đánh quái lấy xương (Sea 3)",
     Default = false,
-    Callback = function(Value)
-        _G.FarmBone = Value
-    end
+    Callback = function(Value) _G.FarmBone = Value end
+})
+
+Tabs.Setting:AddToggle("BringMobToggle", {
+    Title = "Bring Mobs",
+    Description = "Gom quái",
+    Default = false,
+    Callback = function(Value) _G.BringMob = Value end
 })
 
 Tabs.Setting:AddDropdown("WeaponSelect", {
@@ -151,15 +171,17 @@ Tabs.Setting:AddDropdown("WeaponSelect", {
 })
 
 -- ==========================================
--- 5. LOGIC VÒNG LẶP (MAIN LOOPS)
+-- 4. LOGIC VÒNG LẶP (MAIN LOGIC)
 -- ==========================================
 
--- Cập nhật số lượng xương
+-- Sửa lỗi đếm xương: Cập nhật liên tục từ Server
 task.spawn(function()
-    while task.wait(1) do
+    while task.wait(1.5) do
         pcall(function()
             local boneCount = game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Bones", "Check")
-            BoneParagraph:SetDesc("You Have: " .. tostring(boneCount) .. " Bones")
+            -- Đảm bảo hiện đúng số lượng, nếu nil thì hiện 0
+            local display = type(boneCount) == "number" and boneCount or 0
+            BoneParagraph:SetDesc("Bạn đang có: " .. tostring(display) .. " Xương")
         end)
     end
 end)
@@ -169,38 +191,38 @@ task.spawn(function()
     while task.wait() do
         if _G.FarmBone then
             pcall(function()
-                local spawnPos = CFrame.new(-9508.5, 142.1, 5737.3)
+                local spawnArea = CFrame.new(-9508.5, 142.1, 5737.3)
                 local enemies = game:GetService("Workspace").Enemies:GetChildren()
-                local hasTarget = false
+                local foundMob = false
                 
                 for _, v in pairs(enemies) do
                     if (v.Name == "Reborn Skeleton" or v.Name == "Living Zombie" or v.Name == "Demonic Soul" or v.Name == "Posessed Mummy") 
                     and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
-                        hasTarget = true
+                        foundMob = true
                         repeat
                             task.wait()
                             AutoHaki()
                             EquipWeapon(_G.SelectWeapon)
                             
-                            v.HumanoidRootPart.CanCollide = false
-                            v.Humanoid.WalkSpeed = 0
+                            -- Bay trên đầu quái (tầm đánh ổn định)
+                            local targetCF = v.HumanoidRootPart.CFrame * CFrame.new(0, 25, 0)
+                            topos(targetCF)
                             
-                            -- Bay lên đầu quái để đánh
-                            topos(v.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
+                            -- Kích hoạt gom quái
+                            if _G.BringMob then
+                                BringMob(v.Name, v.HumanoidRootPart.CFrame)
+                            end
                             
-                            -- Gom quái
+                            -- Gom quái bằng simulation (hỗ trợ thêm)
                             sethiddenproperty(game.Players.LocalPlayer, "SimulationRadius", math.huge)
                         until not _G.FarmBone or not v.Parent or v.Humanoid.Health <= 0
                     end
                 end
                 
-                if not hasTarget then
-                    topos(spawnPos) -- Bay về chỗ chờ quái
-                end
+                if not foundMob then topos(spawnArea) end
             end)
         end
     end
 end)
 
--- Loadstring cuối cùng của bạn
 loadstring(game:HttpGet("https://pandadevelopment.net/virtual/file/e9c206fd76482ee2"))()
