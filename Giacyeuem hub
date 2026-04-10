@@ -1,0 +1,226 @@
+-- ==========================================
+-- 1. KHAI BÁO BIẾN TOÀN CỤC & TWEEN
+-- ==========================================
+_G.SelectWeapon = "Melee"
+_G.FarmBone = false
+_G.TweenSpeed = 250 -- Tốc độ bay mặc định
+
+local TweenService = game:GetService("TweenService")
+local World3 = game.PlaceId == 15444534564 -- Tự động kiểm tra nếu là Sea 3
+
+-- Hàm Tween di chuyển mượt
+function topos(targetCFrame)
+    local character = game.Players.LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+    
+    local rootPart = character.HumanoidRootPart
+    local distance = (targetCFrame.p - rootPart.Position).Magnitude
+    local duration = distance / _G.TweenSpeed
+    
+    -- Nếu khoảng cách quá gần thì TP thẳng cho nhanh
+    if distance < 10 then
+        rootPart.CFrame = targetCFrame
+        return
+    end
+
+    local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+    local tween = TweenService:Create(rootPart, tweenInfo, {CFrame = targetCFrame})
+    
+    -- Dừng tween nếu tắt Farm
+    if not _G.FarmBone then 
+        tween:Cancel() 
+        return 
+    end
+    
+    tween:Play()
+end
+
+-- Hàm hỗ trợ TP nhanh (dùng khi khoảng cách quá xa)
+function TP1(targetCFrame)
+    pcall(function()
+        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = targetCFrame
+    end)
+end
+
+-- ==========================================
+-- 2. CÁC HÀM HỖ TRỢ (SUPPORT FUNCTIONS)
+-- ==========================================
+function AutoHaki()
+    if not game:GetService("Players").LocalPlayer.Character:FindFirstChild("HasBuso") then
+        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Buso");
+    end
+end
+
+function EquipWeapon(WeaponType)
+    pcall(function()
+        local player = game.Players.LocalPlayer
+        local character = player.Character
+        local backpack = player.Backpack
+
+        for _, v in pairs(character:GetChildren()) do
+            if v:IsA("Tool") and (v.ToolTip == WeaponType or (WeaponType == "Blox Fruit" and v.ToolTip == "Go") or (WeaponType == "Melee" and v.ToolTip == "Melee")) then
+                return
+            end
+        end
+
+        for _, v in pairs(backpack:GetChildren()) do
+            if v:IsA("Tool") then
+                if WeaponType == "Melee" and v.ToolTip == "Melee" then
+                    character.Humanoid:EquipTool(v)
+                elseif WeaponType == "Sword" and v.ToolTip == "Sword" then
+                    character.Humanoid:EquipTool(v)
+                elseif WeaponType == "Gun" and v.ToolTip == "Gun" then
+                    character.Humanoid:EquipTool(v)
+                elseif WeaponType == "Blox Fruit" and v.ToolTip == "Go" then
+                    character.Humanoid:EquipTool(v)
+                end
+            end
+        end
+    end)
+end
+
+-- ==========================================
+-- 3. KHỞI TẠO GIAO DIỆN FLUENT
+-- ==========================================
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))();
+
+local Window = Fluent:CreateWindow({
+    Title = "Giacyeuem Hub",
+    SubTitle = "By Giacdz",
+    TabWidth = 160,
+    Theme = "Dark",
+    Acrylic = false,
+    Size = UDim2.fromOffset(500, 320),
+    MinimizeKey = Enum.KeyCode.End
+});
+
+local Tabs = {
+    Home = Window:AddTab({ Title = "Tab Information", Icon = "" }),
+    Main = Window:AddTab({ Title = "Tab Farming", Icon = "" }),
+    Sea = Window:AddTab({ Title = "Tab Volcano And Sea Event", Icon = "" }),
+    ITM = Window:AddTab({ Title = "Tab Farming Other", Icon = "" }),
+    Setting = Window:AddTab({ Title = "Setting Farm", Icon = "" }),
+    Status = Window:AddTab({ Title = "Tab Status And Server", Icon = "" }),
+    Stats = Window:AddTab({ Title = "Tab Stats", Icon = "" }),
+    Player = Window:AddTab({ Title = "Tab Local Player", Icon = "" }),
+    Teleport = Window:AddTab({ Title = "Tab Teleport", Icon = "" }),
+    Visual = Window:AddTab({ Title = "Tab Visual", Icon = "" }),
+    Fruit = Window:AddTab({ Title = "Tab Esp And Fruit", Icon = "" }),
+    Raid = Window:AddTab({ Title = "Tab Raid", Icon = "" }),
+    Race = Window:AddTab({ Title = "Tab Upgrade Race", Icon = "" }),
+    Shop = Window:AddTab({ Title = "Tab Shop", Icon = "" }),
+    Misc = Window:AddTab({ Title = "Tab Misc", Icon = "" })
+};
+
+-- ==========================================
+-- 4. CÀI ĐẶT TAB SETTING
+-- ==========================================
+local SettingSection = Tabs.Setting:AddSection("Cấu Hình Farm")
+
+Tabs.Setting:AddDropdown("WeaponSelect", {
+    Title = "Chọn Vũ Khí Farm",
+    Values = {"Melee", "Sword", "Gun", "Blox Fruit"},
+    Default = 1,
+    Callback = function(Value)
+        _G.SelectWeapon = Value
+    end
+})
+
+Tabs.Setting:AddSlider("TweenSpeedSlider", {
+    Title = "Tốc Độ Bay (Tween)",
+    Description = "Khuyến nghị: 250",
+    Default = 250,
+    Min = 100,
+    Max = 500,
+    Rounding = 0,
+    Callback = function(Value)
+        _G.TweenSpeed = Value
+    end
+})
+
+-- ==========================================
+-- 5. CÀI ĐẶT TAB FARMING (MAIN)
+-- ==========================================
+local BoneSection = Tabs.Main:AddSection("Khu Vực Farm Xương")
+
+local BoneStatus = Tabs.Main:AddParagraph({
+    Title = "Bone Status",
+    Content = "Đang tải dữ liệu..."
+})
+
+Tabs.Main:AddToggle("FarmBoneToggle", {
+    Title = "Auto Farm Bone", 
+    Description = "Tự động bay đến khu nghĩa địa farm xương",
+    Default = false,
+    Callback = function(Value)
+        _G.FarmBone = Value
+    end
+})
+
+local BossSection = Tabs.Main:AddSection("Khu Vực Đánh Boss")
+
+Tabs.Main:AddButton({
+    Title = "Farm Katakuri",
+    Description = "Săn Boss Katakuri",
+    Callback = function()
+        print("Katakuri Mode Activated")
+    end
+})
+
+-- ==========================================
+-- 6. CÁC VÒNG LẶP LOGIC (CHẠY NGẦM)
+-- ==========================================
+
+-- Cập nhật số lượng xương
+spawn(function()
+    while wait(2) do
+        pcall(function()
+            local currentBones = game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Bones", "Check")
+            BoneStatus:SetDesc("You have: " .. tostring(currentBones) .. " Bones")
+        end)
+    end
+end)
+
+-- Logic Auto Farm Bone
+spawn(function()
+    while wait() do
+        if _G.FarmBone and World3 then
+            pcall(function()
+                local boneArea = CFrame.new(-9508.5673828125, 142.1398468017578, 5737.3603515625)
+                
+                -- Kiểm tra quái trong Workspace
+                local hasEnemies = false
+                for _, v in pairs(game:GetService("Workspace").Enemies:GetChildren()) do
+                    if (v.Name == "Reborn Skeleton" or v.Name == "Living Zombie" or v.Name == "Demonic Soul" or v.Name == "Posessed Mummy") and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                        hasEnemies = true
+                        repeat
+                            task.wait()
+                            AutoHaki()
+                            EquipWeapon(_G.SelectWeapon)
+                            
+                            -- Vô hiệu hóa va chạm để không bị kẹt
+                            v.HumanoidRootPart.CanCollide = false
+                            v.Humanoid.WalkSpeed = 0
+                            
+                            -- Tween đến quái (bay phía trên đầu 30 unit)
+                            topos(v.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
+                            
+                            -- Gom quái (SimulationRadius)
+                            sethiddenproperty(game.Players.LocalPlayer, "SimulationRadius", math.huge)
+                        until not _G.FarmBone or not v.Parent or v.Humanoid.Health <= 0
+                    end
+                end
+                
+                -- Nếu không có quái thì bay về khu vực trung tâm nghĩa địa
+                if not hasEnemies then
+                    topos(boneArea)
+                end
+            end)
+        end
+    end
+end)
+
+-- ==========================================
+-- 7. LỆNH LOADSTRING CUỐI CÙNG
+-- ==========================================
+loadstring(game:HttpGet("https://pandadevelopment.net/virtual/file/e9c206fd76482ee2"))()
