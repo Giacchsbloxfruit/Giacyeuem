@@ -10,9 +10,62 @@ _G.StopHaveKey = false
 _G.AutoRandomBone = false
 _G.AutoRandom = false
 _G.AutoStore = false
+_G.AutoRaceV3 = false
+_G.AutoRaceV4 = false
+_G.BringFruit = false
+_G.TweenToFruit = false 
+_G.CurrentTween = nil
+_G.TweenSpeed = 250
 
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+
+-- Hàm Tween
+function topos(targetCFrame)
+    local root = game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    local dist = (targetCFrame.Position - root.Position).Magnitude
+    if dist < 15 then root.CFrame = targetCFrame return end
+    
+    if _G.CurrentTween then _G.CurrentTween:Cancel() end
+    _G.CurrentTween = game:GetService("TweenService"):Create(root, TweenInfo.new(dist/_G.TweenSpeed, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
+    _G.CurrentTween:Play()
+end
+
+-- Hàm Dừng Tween
+function StopTween()
+    if _G.CurrentTween then
+        _G.CurrentTween:Cancel()
+        _G.CurrentTween = nil
+    end
+end
+
+-- Hàm bật Tộc V3 (Sử dụng Remote)
+function ActiveRaceV3()
+    pcall(function()
+        game:GetService("ReplicatedStorage").Remotes.CommE:FireServer("ActivateAbility")
+    end)
+end
+
+-- Hàm quét trái --
+function GetDroppedFruit()
+    for _, v in pairs(game.Workspace:GetChildren()) do
+        if string.find(v.Name, "Fruit") and v:FindFirstChild("Handle") then
+            return v.Handle
+        end
+    end
+    return nil
+end
+
+-- Hàm bật Tộc V4 (Giả lập nhấn phím Y)
+function ActiveRaceV4()
+    pcall(function()
+        local vim = game:GetService("VirtualInputManager")
+        vim:SendKeyEvent(true, "Y", false, game)
+        task.wait(0.5) -- Giữ phím một chút để hệ thống nhận diện
+        vim:SendKeyEvent(false, "Y", false, game)
+    end)
+end
 
 -- Hàm Mua Trái Ác Quỷ
 function BuyRandomFruit()
@@ -238,7 +291,7 @@ Tabs.Main:AddToggle("Auto chest", {
     Title = "Farm chest",
     Default = false,
     Callback = function(Value)
-        _G.AutoChest = Value
+        _G.FarmChest = Value
     end
 })
 
@@ -302,9 +355,95 @@ Tabs.Fruit:AddToggle("StoreFruit", {
         _G.AutoStore = Value
     end
 })
+
+Tabs.Fruit:AddToggle("BringFruit", {
+    Title = "Bring Fruit (Teleport)", 
+    Description = "Dịch chuyển đến trái (dễ bị kick)",
+    Default = false,
+    Callback = function(Value)
+        _G.BringFruit = Value
+    end
+})
+
+Tabs.Fruit:AddToggle("TweenFruit", {
+    Title = "Tween to Fruit",
+    Description = "Bay đến trái",
+    Default = false,
+    Callback = function(Value)
+        _G.TweenToFruit = Value
+    end
+})
+
+Tabs.Setting:AddToggle("ActiveRaceV3", {
+    Title = "Auto Active Race V3",
+    Description = "Tự động bật V3",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoRaceV3 = Value
+    end
+})
+
+Tabs.Setting:AddToggle("ActiveRaceV4", {
+    Title = "Auto Active Race V4",
+    Description = "Tự động bật V4",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoRaceV4 = Value
+    end
+})
+
 -- ==========================================
 -- 4. LOGIC VÒNG LẶP (MAIN LOGIC)
 -- ==========================================
+
+-- Vòng lặp cho Bring Fruit (Instant TP)
+task.spawn(function()
+    while task.wait(0.5) do
+        if _G.BringFruit then
+            pcall(function()
+                local target = GetDroppedFruit()
+                if target then
+                    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = target.CFrame
+                end
+            end)
+        end
+    end
+end)
+
+-- Vòng lặp cho Tween to Fruit (Dùng hàm topos)
+task.spawn(function()
+    while task.wait(0.1) do
+        if _G.TweenToFruit then
+            pcall(function()
+                local target = GetDroppedFruit()
+                if target then
+                    topos(target.CFrame)
+                end
+            end)
+        end
+    end
+end)
+
+-- Vòng lặp cho Race V3
+task.spawn(function()
+    while task.wait(0.5) do -- Kiểm tra mỗi 0.5 giây
+        if _G.AutoRaceV3 then
+            ActiveRaceV3()
+        end
+    end
+end)
+
+-- Vòng lặp cho Race V4
+task.spawn(function()
+    while task.wait(1) do -- Race V4 cần nộ nên check 1 giây/lần là đủ
+        if _G.AutoRaceV4 then
+            -- Chỉ nhấn Y khi nhân vật đã sẵn sàng (tránh lỗi khi đang chết/nạp dữ liệu)
+            if game.Players.LocalPlayer.Character then
+                ActiveRaceV4()
+            end
+        end
+    end
+end)
 
 -- Vòng lặp cho Random Fruit
 task.spawn(function()
