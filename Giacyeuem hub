@@ -5,9 +5,29 @@ _G.FarmBone = false
 _G.SelectWeapon = "Melee"
 _G.TweenSpeed = 250
 _G.BringMob = false -- Biến gom quái
+_G.AutoChest = false
+_G.StopHaveKey = false
 
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+
+-- Hàm chest --
+function CollectChests()
+    -- Duyệt qua tất cả các vật thể trong Workspace
+    for _, v in pairs(game:GetService("Workspace"):GetChildren()) do
+        -- Kiểm tra nếu vật thể đó là một Part và tên của nó có chữ "Chest"
+        if v:IsA("BasePart") and v.Name:find("Chest") then
+            -- Nếu đang bật AutoChest thì mới bay đến
+            if _G.AutoChest then
+                -- Kiểm tra xem rương còn tồn tại không (tránh lỗi khi người khác nhặt mất)
+                if v:FindFirstChild("TouchInterest") or v.Transparency < 1 then
+                    topos(v.CFrame) -- Bay đến rương
+                    task.wait(0.2)   -- Đợi 0.2 giây để game nhận rương
+                end
+            end
+        end
+    end
+end
 
 -- Hàm Tự Động Bật Haki
 function AutoHaki()
@@ -17,7 +37,7 @@ function AutoHaki()
         end
     end)
 end
-
+-- Hàm tool --
 function EquipWeapon(WeaponType)
     pcall(function()
         local backpack = game.Players.LocalPlayer.Backpack
@@ -146,6 +166,24 @@ end)
 -- ==========================================
 -- 3. GIAO DIỆN CHI TIẾT
 -- ==========================================
+Tabs.Main:AddSection("Auto farm chest")
+
+Tabs.Main:AddToggle("Auto chest", {
+    Title = "Farm chest",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoChest = Value
+    end
+})
+
+Tabs.Main:AddToggle("Stop when get item", {
+    Title = "dừng khi có key",
+    Default = false,
+    Callback = function(Value)
+        _G.StopHaveKey = Value
+    end
+})
+
 local BoneParagraph = Tabs.Main:AddParagraph({
     Title = "Check Bone Status",
     Content = "Đang kiểm tra..."
@@ -174,6 +212,16 @@ Tabs.Setting:AddDropdown("WeaponSelect", {
 -- ==========================================
 -- 4. LOGIC VÒNG LẶP (MAIN LOGIC)
 -- ==========================================
+-- Farm chest --
+task.spawn(function()
+    while task.wait(1) do
+        if _G.AutoChest then
+            pcall(function()
+                CollectChests()
+            end)
+        end
+    end
+end)
 
 -- Sửa lỗi đếm xương: Cập nhật liên tục từ Server
 task.spawn(function()
