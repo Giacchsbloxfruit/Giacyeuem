@@ -5,28 +5,96 @@ _G.FarmBone = false
 _G.SelectWeapon = "Melee"
 _G.TweenSpeed = 250
 _G.BringMob = false -- Biến gom quái
-_G.AutoChest = false
+_G.FarmChest = false
 _G.StopHaveKey = false
+_G.AutoRandomBone = false
+_G.AutoRandom = false
+_G.AutoStore = false
 
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 
+-- Hàm Mua Trái Ác Quỷ
+function BuyRandomFruit()
+    pcall(function()
+        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Cousin", "Buy")
+    end)
+end
+
+-- Hàm Cất Trái Ác Quỷ
+function StoreFruit()
+    pcall(function()
+        local player = game.Players.LocalPlayer
+        local char = player.Character or player.CharacterAdded:Wait()
+        local backpack = player:WaitForChild("Backpack")
+        
+        local fruitList = {
+            {"Rocket Fruit", "Rocket-Rocket"}, {"Spin Fruit", "Spin-Spin"},
+            {"Blade Fruit", "Blade-Blade"}, {"Spring Fruit", "Spring-Spring"},
+            {"Bomb Fruit", "Bomb-Bomb"}, {"Smoke Fruit", "Smoke-Smoke"},
+            {"Spike Fruit", "Spike-Spike"}, {"Flame Fruit", "Flame-Flame"},
+            {"Eagle Fruit", "Eagle-Eagle"}, {"Ice Fruit", "Ice-Ice"},
+            {"Sand Fruit", "Sand-Sand"}, {"Dark Fruit", "Dark-Dark"},
+            {"Diamond Fruit", "Diamond-Diamond"}, {"Light Fruit", "Light-Light"},
+            {"Rubber Fruit", "Rubber-Rubber"}, {"Creation Fruit", "Creation-Creation"},
+            {"Ghost Fruit", "Ghost-Ghost"}, {"Magma Fruit", "Magma-Magma"},
+            {"Quake Fruit", "Quake-Quake"}, {"Buddha Fruit", "Buddha-Buddha"},
+            {"Love Fruit", "Love-Love"}, {"Spider Fruit", "Spider-Spider"},
+            {"Sound Fruit", "Sound-Sound"}, {"Phoenix Fruit", "Phoenix-Phoenix"},
+            {"Portal Fruit", "Portal-Portal"}, {"Lightning Fruit", "Lightning-Lightning"},
+            {"Pain Fruit", "Pain-Pain"}, {"Blizzard Fruit", "Blizzard-Blizzard"},
+            {"Gravity Fruit", "Gravity-Gravity"}, {"Mammoth Fruit", "Mammoth-Mammoth"},
+            {"T-Rex Fruit", "T-Rex-T-Rex"}, {"Dough Fruit", "Dough-Dough"},
+            {"Shadow Fruit", "Shadow-Shadow"}, {"Venom Fruit", "Venom-Venom"},
+            {"Gas Fruit", "Gas-Gas"}, {"Control Fruit", "Control-Control"},
+            {"Spirit Fruit", "Spirit-Spirit"}, {"Leopard Fruit", "Leopard-Leopard"},
+            {"Yeti Fruit", "Yeti-Yeti"}, {"Kitsune Fruit", "Kitsune-Kitsune"},
+            {"Dragon Fruit", "Dragon-Dragon"}
+        }
+        
+        for _, fruitData in ipairs(fruitList) do
+            local fruitName = fruitData[1]
+            local fruitId = fruitData[2]
+            
+            local foundFruit = backpack:FindFirstChild(fruitName) or char:FindFirstChild(fruitName)
+            
+            if foundFruit then
+                game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StoreFruit", fruitId, foundFruit)
+                break 
+            end
+        end
+    end)
+end
+
+-- Hàm random bone --
+function RandomBone()
+    pcall(function()
+        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Bones", "Buy", 1, 1)
+    end)
+end
+
 -- Hàm chest --
-function CollectChests()
-    -- Duyệt qua tất cả các vật thể trong Workspace
-    for _, v in pairs(game:GetService("Workspace"):GetChildren()) do
-        -- Kiểm tra nếu vật thể đó là một Part và tên của nó có chữ "Chest"
-        if v:IsA("BasePart") and v.Name:find("Chest") then
-            -- Nếu đang bật AutoChest thì mới bay đến
-            if _G.AutoChest then
-                -- Kiểm tra xem rương còn tồn tại không (tránh lỗi khi người khác nhặt mất)
-                if v:FindFirstChild("TouchInterest") or v.Transparency < 1 then
-                    topos(v.CFrame) -- Bay đến rương
-                    task.wait(0.2)   -- Đợi 0.2 giây để game nhận rương
-                end
+function GetClosestChest()
+    local player = game.Players.LocalPlayer
+    local char = player.Character
+    if not char then return nil end
+    
+    local rootPos = char:GetPivot().Position
+    local chests = game:GetService("CollectionService"):GetTagged("_ChestTagged")
+    local closestChest = nil
+    local shortestDistance = math.huge
+
+    for i = 1, #chests do
+        local chest = chests[i]
+        if not chest:GetAttribute("IsDisabled") then
+            local dist = (chest:GetPivot().Position - rootPos).Magnitude
+            if dist < shortestDistance then
+                shortestDistance = dist
+                closestChest = chest
             end
         end
     end
+    return closestChest
 end
 
 -- Hàm Tự Động Bật Haki
@@ -128,16 +196,14 @@ local Tabs = {
     Sea = Window:AddTab({ Title = "Tab Volcano And Sea Event", Icon = "" }),
     ITM = Window:AddTab({ Title = "Tab Farming Other", Icon = "" }),
     Setting = Window:AddTab({ Title = "Setting Farm", Icon = "" }),
-    Status = Window:AddTab({ Title = "Tab Status And Server", Icon = "" }),
     Stats = Window:AddTab({ Title = "Tab Stats", Icon = "" }),
     Player = Window:AddTab({ Title = "Tab Local Player", Icon = "" }),
     Teleport = Window:AddTab({ Title = "Tab Teleport", Icon = "" }),
     Visual = Window:AddTab({ Title = "Tab Visual", Icon = "" }),
-    Fruit = Window:AddTab({ Title = "Tab Esp And Fruit", Icon = "" }),
-    Raid = Window:AddTab({ Title = "Tab Raid", Icon = "" }),
+    Fruit = Window:AddTab({ Title = "Tab Fruit And Raid", Icon = "" }),
     Race = Window:AddTab({ Title = "Tab Upgrade Race", Icon = "" }),
     Shop = Window:AddTab({ Title = "Tab Shop", Icon = "" }),
-    Misc = Window:AddTab({ Title = "Tab Misc", Icon = "" })
+    Server = Window:AddTab({ Title = "Tab Server", Icon = "" })
 };
 
 -- [Nút bấm nổi ImageButton]
@@ -177,16 +243,24 @@ Tabs.Main:AddToggle("Auto chest", {
 })
 
 Tabs.Main:AddToggle("Stop when get item", {
-    Title = "dừng khi có key",
+    Title = "Stop when get item",
     Default = false,
     Callback = function(Value)
         _G.StopHaveKey = Value
     end
 })
 
+Tabs.Main:AddSection("Farm Bones")
+
 local BoneParagraph = Tabs.Main:AddParagraph({
     Title = "Check Bone Status",
     Content = "Đang kiểm tra..."
+})
+
+Tabs.Main:AddToggle("RandomBoneToggle", {
+    Title = "Auto Random Bone",
+    Default = false,
+    Callback = function(Value) _G.AutoRandomBone = Value end
 })
 
 Tabs.Main:AddToggle("FarmBoneToggle", {
@@ -209,16 +283,67 @@ Tabs.Setting:AddDropdown("WeaponSelect", {
     Callback = function(Value) _G.SelectWeapon = Value end
 })
 
+Tabs.Fruit:AddSection("Fruits")
+
+Tabs.Fruit:AddToggle("RandomFruit", {
+    Title = "Auto Random Fruit",
+    Description = "Quay trái",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoRandom = Value
+    end
+})
+
+Tabs.Fruit:AddToggle("StoreFruit", {
+    Title = "Auto Store Fruit",
+    Description = "Cất trái",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoStore = Value
+    end
+})
 -- ==========================================
 -- 4. LOGIC VÒNG LẶP (MAIN LOGIC)
 -- ==========================================
--- Farm chest --
+
+-- Vòng lặp cho Random Fruit
+task.spawn(function()
+    while task.wait(5) do -- Random có thời gian hồi 2 tiếng, nên để 5 giây check 1 lần là cực kỳ an toàn
+        if _G.AutoRandom then
+            BuyRandomFruit()
+        end
+    end
+end)
+
+-- loop store fruit --
 task.spawn(function()
     while task.wait(1) do
-        if _G.AutoChest then
+        if _G.AutoStore then
+            StoreFruit()
+        end
+    end
+end)
+
+-- Farm chest --
+task.spawn(function()
+    while task.wait() do
+        if _G.FarmChest then
             pcall(function()
-                CollectChests()
+                local targetChest = GetClosestChest()
+                if targetChest then
+                    local targetCFrame = targetChest:GetPivot()
+                    topos(targetCFrame)
+                end
             end)
+        end
+    end
+end)
+
+-- loop random bone --
+task.spawn(function()
+    while task.wait(0.5) do -- Nghỉ 0.5 giây mỗi lần đổi để tránh lag/spam
+        if _G.AutoRandomBone then
+            RandomBone()
         end
     end
 end)
@@ -235,40 +360,72 @@ task.spawn(function()
     end
 end)
 
--- Vòng lặp Farm Bone
+-- Vòng lặp Farm Bone có kèm Auto Quest
 task.spawn(function()
     while task.wait() do
         if _G.FarmBone then
             pcall(function()
-                local spawnArea = CFrame.new(-9508.5, 142.1, 5737.3)
-                local enemies = game:GetService("Workspace").Enemies:GetChildren()
-                local foundMob = false
+                local player = game:GetService("Players").LocalPlayer
                 
-                for _, v in pairs(enemies) do
-                    if (v.Name == "Reborn Skeleton" or v.Name == "Living Zombie" or v.Name == "Demonic Soul" or v.Name == "Posessed Mummy") 
-                    and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
-                        foundMob = true
-                        repeat
-                            task.wait()
-                            AutoHaki()
-                            EquipWeapon(_G.SelectWeapon)
-                            
-                            -- Bay trên đầu quái (tầm đánh ổn định)
-                            local targetCF = v.HumanoidRootPart.CFrame * CFrame.new(0, 25, 0)
-                            topos(targetCF)
-                            
-                            -- Kích hoạt gom quái
-                            if _G.BringMob then
-                                BringMob(v.Name, v.HumanoidRootPart.CFrame)
-                            end
-                            
-                            -- Gom quái bằng simulation (hỗ trợ thêm)
-                            sethiddenproperty(game.Players.LocalPlayer, "SimulationRadius", math.huge)
-                        until not _G.FarmBone or not v.Parent or v.Humanoid.Health <= 0
+                -- 1. KIỂM TRA XEM ĐÃ CÓ QUEST CHƯA
+                -- Blox Fruits hiển thị Quest ở GUI, nếu UI Quest đang ẩn tức là chưa nhận
+                local hasQuest = player.PlayerGui.Main.Quest.Visible
+                
+                if not hasQuest then
+                    -- 2. LOGIC ĐI NHẬN QUEST
+                    local CFrameQuest = CFrame.new(-9516.99316, 172.017181, 6078.46533)
+                    
+                    -- Kiểm tra khoảng cách từ người chơi đến NPC Quest
+                    if (player.Character.HumanoidRootPart.Position - CFrameQuest.Position).Magnitude > 10 then
+                        -- Bay đến chỗ NPC trước
+                        topos(CFrameQuest)
+                    else
+                        -- Đứng gần rồi thì gửi lệnh nhận Quest
+                        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StartQuest", "HauntedQuest2", 2)
+                    end
+                else
+                    -- 3. LOGIC ĐI FARM (Khi đã có Quest)
+                    -- Đổi tọa độ chờ quái thành bãi của Posessed Mummy
+                    local spawnArea = CFrame.new(-9582.022, 6.251, 6205.478) 
+                    local enemies = game:GetService("Workspace").Enemies:GetChildren()
+                    local foundMob = false
+                    
+                    for _, v in pairs(enemies) do
+                        -- Giữ danh sách quái cũ, nhưng vì đang nhận Quest Mummy nên nó sẽ dọn dẹp khu vực này
+                        if (v.Name == "Reborn Skeleton" or v.Name == "Living Zombie" or v.Name == "Demonic Soul" or v.Name == "Posessed Mummy") 
+                        and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                            foundMob = true
+                            repeat
+                                task.wait()
+                                AutoHaki()
+                                
+                                -- Đảm bảo biến _G.SelectWeapon đã được khai báo ở UI
+                                if _G.SelectWeapon then
+                                    EquipWeapon(_G.SelectWeapon)
+                                end
+                                
+                                -- Bay trên đầu quái (tầm đánh ổn định)
+                                local targetCF = v.HumanoidRootPart.CFrame * CFrame.new(0, 25, 0)
+                                topos(targetCF)
+                                
+                                -- Kích hoạt gom quái
+                                if _G.BringMob then
+                                    BringMob(v.Name, v.HumanoidRootPart.CFrame)
+                                end
+                                
+                                -- Gom quái bằng simulation (hỗ trợ thêm)
+                                sethiddenproperty(player, "SimulationRadius", math.huge)
+                                
+                            -- Dừng đánh con này nếu: Tắt auto / Quái chết / Hoàn thành quest (mất UI)
+                            until not _G.FarmBone or not v.Parent or v.Humanoid.Health <= 0 or not player.PlayerGui.Main.Quest.Visible
+                        end
+                    end
+                    
+                    -- Nếu không tìm thấy quái thì bay về bãi chờ
+                    if not foundMob then 
+                        topos(spawnArea) 
                     end
                 end
-                
-                if not foundMob then topos(spawnArea) end
             end)
         end
     end
