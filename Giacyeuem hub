@@ -18,21 +18,22 @@ function AutoHaki()
     end)
 end
 
--- Hàm Cầm Vũ Khí
 function EquipWeapon(WeaponType)
     pcall(function()
+        local backpack = game.Players.LocalPlayer.Backpack
         local character = game.Players.LocalPlayer.Character
         if not character then return end
-        local tool = game.Players.LocalPlayer.Backpack:FindFirstChild(WeaponType) or character:FindFirstChild(WeaponType)
         
-        -- Xử lý đặc biệt cho Blox Fruit (ToolTip là "Go")
-        if WeaponType == "Blox Fruit" then
-            for _, v in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
-                if v:IsA("Tool") and v.ToolTip == "Go" then tool = v break end
+        for _, v in pairs(character:GetChildren()) do
+            if v:IsA("Tool") and (v.ToolTip == WeaponType or (WeaponType == "Blox Fruit" and v.ToolTip == "Go")) then
+                return 
             end
         end
-
-        if tool then character.Humanoid:EquipTool(tool) end
+        for _, v in pairs(backpack:GetChildren()) do
+            if v:IsA("Tool") and (v.ToolTip == WeaponType or (WeaponType == "Blox Fruit" and v.ToolTip == "Go")) then
+                character.Humanoid:EquipTool(v)
+            end
+        end
     end)
 end
 
