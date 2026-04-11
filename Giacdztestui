@@ -3664,7 +3664,8 @@ function CheckItemBPCRBPCR(v463)
         end
     end
 end
-local v466 = loadstring(game:HttpGet("https://raw.githubusercontent.com/Dev-NejiDepzai/UIRedzhub/refs/heads/main/UIRedz.lua"))():MakeWindow({
+local v466 = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+:MakeWindow({
     Title = " Giacdz Hub",
     SubTitle = "by Giac",
     SaveFolder = "BloxFruits.lua"
