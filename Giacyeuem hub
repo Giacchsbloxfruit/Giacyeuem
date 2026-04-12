@@ -16,9 +16,105 @@ _G.BringFruit = false
 _G.TweenToFruit = false 
 _G.CurrentTween = nil
 _G.TweenSpeed = 250
+_G.Hallow = false
 
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+
+-- Hàm soulreaper
+function AutoSoulReaper()
+    local enemies = game:GetService("Workspace").Enemies
+    local player = game.Players.LocalPlayer
+    local char = player.Character
+    local boss = enemies:FindFirstChild("Soul Reaper")
+
+    if not boss then
+        -- Kiểm tra xem có Hallow Essence không
+        local hasEssence = player.Backpack:FindFirstChild("Hallow Essence") or char:FindFirstChild("Hallow Essence")
+        
+        if hasEssence then
+            local summonPos = CFrame.new(-8932.322, 146.831, 6062.550)
+            topos(summonPos)
+            -- Nếu đã đứng trên bệ triệu hồi
+            if (char.HumanoidRootPart.Position - summonPos.Position).Magnitude <= 10 then
+                EquipWeapon("Hallow Essence")
+            end
+        else
+            -- Đứng chờ Boss xuất hiện
+            topos(CFrame.new(-8932.322, 146.831, 6062.550))
+        end
+    else
+        -- Đánh Boss
+        if boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
+            AutoHaki()
+            EquipWeapon(_G.SelectWeapon)
+            
+            boss.HumanoidRootPart.Size = Vector3.new(50, 50, 50)
+            boss.HumanoidRootPart.CanCollide = false
+            
+            -- Vị trí đứng đánh an toàn
+            topos(boss.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
+            
+            -- Click chuột
+            game:GetService("VirtualUser"):CaptureController()
+            game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 670))
+        end
+    end
+end
+
+-- Hàm hop server
+function HopServer()
+    local Http = game:GetService("HttpService")
+    local TPS = game:GetService("TeleportService")
+    local LP = game.Players.LocalPlayer
+    local Api = "https://games.roblox.com/v1/games/" .. tostring(game.PlaceId) .. "/servers/Public?sortOrder=Asc&limit=100"
+    
+    pcall(function()
+        local Raw = game:HttpGet(Api)
+        local Decode = Http:JSONDecode(Raw)
+        if Decode and Decode.data then
+            for _, s in pairs(Decode.data) do
+                if type(s) == "table" and s.id ~= game.JobId and s.playing ~= nil and s.maxPlayers ~= nil then
+                    -- Kiểm tra server còn chỗ trống (ít nhất 2 chỗ để tránh bị full khi đang vào)
+                    if s.playing < s.maxPlayers - 2 then
+                        TPS:TeleportToPlaceInstance(game.PlaceId, s.id, LP)
+                        break
+                    end
+                end
+            end
+        end
+    end)
+end
+
+-- Hàm code --
+function AutoRedeem()
+    local CodeList = {
+        "NOMOREHACK","BANEXPLOIT","WildDares","BossBuild","GetPranked","EARN_FRUITS","FIGHT4FRUIT",
+        "NOEXPLOITER","NOOB2ADMIN","CODESLIDE","ADMINHACKED","ADMINDARES","fruitconcepts","krazydares",
+        "TRIPLEABUSE","SEATROLLING","24NOADMIN","REWARDFUN","Chandler","NEWTROLL","KITT_RESET",
+        "Sub2CaptainMaui","kittgaming","Sub2Fer999","Enyu_is_Pro","Magicbus","JCWK","Starcodeheo",
+        "Bluxxy","fudd10_v2","SUB2GAMERROBOT_EXP1","Sub2NoobMaster123","Sub2UncleKizaru","Sub2Daigrock",
+        "Axiore","TantaiGaming","StrawHatMaine","Sub2OfficialNoobie","Fudd10","Bignews","TheGreatAce",
+        "SECRET_ADMIN","SUB2GAMERROBOT_RESET1","SUB2OFFICIALNOOBIE","AXIORE","BIGNEWS","BLUXXY",
+        "CHANDLER","ENYU_IS_PRO","FUDD10","FUDD10_V2","KITTGAMING","MAGICBUS","STARCODEHEO",
+        "STRAWHATMAINE","SUB2CAPTAINMAUI","SUB2DAIGROCK","SUB2FER999","SUB2NOOBMASTER123",
+        "SUB2UNCLEKIZARU","TANTAIGAMING","THEGREATACE","1LOSTADMIN","EASTEREXP","LIGHTNINGABUSE"
+    }
+    
+    local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Redeem")
+    
+    -- Chờ cho đến khi vào Team mới bắt đầu nhập
+    while task.wait(1) do
+        if game.Players.LocalPlayer.Team ~= nil then break end
+    end
+
+    for _, code in ipairs(CodeList) do
+        pcall(function()
+            remote:InvokeServer(code)
+        end)
+        task.wait(0.15) -- Delay nhẹ chống kick
+    end
+end
 
 -- Hàm Tween
 function topos(targetCFrame)
@@ -178,18 +274,28 @@ function EquipWeapon(WeaponType)
     end)
 end
 
--- Hàm Noclip & Chống Rơi (Chỉ chạy khi bật Farm)
+-- Hàm Noclip, Chống Rơi & Sửa lỗi Camera
 RunService.Stepped:Connect(function()
-    if _G.FarmBone then
+    -- Sẽ kích hoạt nếu đang bật Farm Bone HOẶC Farm Chest HOẶC Bay nhặt trái
+    if _G.FarmBone or _G.FarmChest or _G.TweenToFruit then
         pcall(function()
             local char = game.Players.LocalPlayer.Character
             if char then
-                for _, v in pairs(char:GetDescendants()) do
-                    if v:IsA("BasePart") then v.CanCollide = false end
+                local hum = char:FindFirstChild("Humanoid")
+                local root = char:FindFirstChild("HumanoidRootPart")
+                
+                if hum then
+                    hum.Sit = false -- [QUAN TRỌNG] Chống nhân vật vô tình ngồi lên ghế làm kẹt khung hình camera
                 end
-                -- Khóa vận tốc để không bị rơi xuống biển hoặc bị đẩy văng
-                if char:FindFirstChild("HumanoidRootPart") then
-                    char.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+                
+                for _, v in pairs(char:GetDescendants()) do
+                    if v:IsA("BasePart") then 
+                        v.CanCollide = false -- Đi xuyên vật thể, không bị vấp
+                    end
+                end
+                
+                if root then
+                    root.Velocity = Vector3.new(0, 0, 0) -- Giữ nhân vật lơ lửng, không bị rớt xuống biển
                 end
             end
         end)
@@ -312,6 +418,18 @@ Tabs.Main:AddToggle("FarmBoneToggle", {
     Callback = function(Value) _G.FarmBone = Value end
 })
 
+Tabs.ITM:AddToggle("AutoHallow", {
+    Title = "Auto Soul Reaper",
+    Description = "Triệu hồi và đánh Soul Reaper",
+    Default = false,
+    Callback = function(Value)
+        _G.Hallow = Value
+        if not Value then
+            StopTween()
+        end
+    end
+})
+
 Tabs.Setting:AddToggle("BringMobToggle", {
     Title = "Bring Mobs",
     Description = "Gom quái",
@@ -324,6 +442,15 @@ Tabs.Setting:AddDropdown("WeaponSelect", {
     Values = {"Melee", "Sword", "Gun", "Blox Fruit"},
     Default = 1,
     Callback = function(Value) _G.SelectWeapon = Value end
+})
+
+Tabs.Setting:AddButton({
+    Title = "Redeem All Codes",
+    Description = "Nhập codes",
+    Callback = function()
+        -- Chạy hàm trong task.spawn để không làm đứng Menu khi đang đợi Team
+        task.spawn(AutoRedeem)
+    end
 })
 
 Tabs.Fruit:AddSection("Fruits")
@@ -382,9 +509,26 @@ Tabs.Setting:AddToggle("ActiveRaceV4", {
     end
 })
 
+Tabs.Server:AddButton({
+    Title = "Server Hop",
+    Description = " ",
+    Callback = function()
+        -- Hiển thị thông báo nhỏ nếu muốn, hoặc chạy thẳng luôn
+        HopServer()
+    end
+})
+
 -- ==========================================
 -- 4. LOGIC VÒNG LẶP (MAIN LOGIC)
 -- ==========================================
+-- Loop SoulReaper --
+task.spawn(function()
+    while task.wait() do
+        if _G.Hallow then
+            pcall(AutoSoulReaper)
+        end
+    end
+end)
 
 -- Vòng lặp cho Bring Fruit (Instant TP)
 task.spawn(function()
