@@ -274,28 +274,27 @@ function EquipWeapon(WeaponType)
     end)
 end
 
--- Hàm Noclip, Chống Rơi & Sửa lỗi Camera
+-- Hàm Noclip & Chống rơi "Thông minh"
 RunService.Stepped:Connect(function()
-    -- Sẽ kích hoạt nếu đang bật Farm Bone HOẶC Farm Chest HOẶC Bay nhặt trái
-    if _G.FarmBone or _G.FarmChest or _G.TweenToFruit then
+    -- Chỉ hoạt động khi có Tween đang chạy (Farm, Đánh Boss, Nhặt trái...)
+    if _G.CurrentTween and (_G.CurrentTween.PlaybackState == Enum.PlaybackState.Playing or _G.CurrentTween.PlaybackState == Enum.PlaybackState.Delayed) then
         pcall(function()
             local char = game.Players.LocalPlayer.Character
             if char then
-                local hum = char:FindFirstChild("Humanoid")
                 local root = char:FindFirstChild("HumanoidRootPart")
-                
-                if hum then
-                    hum.Sit = false -- [QUAN TRỌNG] Chống nhân vật vô tình ngồi lên ghế làm kẹt khung hình camera
-                end
+                local hum = char:FindFirstChild("Humanoid")
+
+                if hum then hum.Sit = false end
                 
                 for _, v in pairs(char:GetDescendants()) do
                     if v:IsA("BasePart") then 
-                        v.CanCollide = false -- Đi xuyên vật thể, không bị vấp
+                        v.CanCollide = false 
                     end
                 end
                 
                 if root then
-                    root.Velocity = Vector3.new(0, 0, 0) -- Giữ nhân vật lơ lửng, không bị rớt xuống biển
+                    -- Triệt tiêu vận tốc rơi, giữ cố định trên đầu quái cực chuẩn
+                    root.Velocity = Vector3.new(0, 0, 0)
                 end
             end
         end)
