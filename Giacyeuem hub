@@ -17,9 +17,24 @@ _G.TweenToFruit = false
 _G.CurrentTween = nil
 _G.TweenSpeed = 250
 _G.Hallow = false
+_G.WalkWater = false
 
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+
+-- Hàm walk on water
+function AutoWalkWater()
+    pcall(function()
+        local water = game:GetService("Workspace").Map:FindFirstChild("WaterBase-Plane")
+        if water then
+            if _G.WalkWater then
+                water.Size = Vector3.new(1000, 112, 1000) -- Nâng nước lên
+            else
+                water.Size = Vector3.new(1000, 80, 1000)  -- Trả về mặc định
+            end
+        end
+    end)
+end
 
 -- Hàm soulreaper
 function AutoSoulReaper()
@@ -319,6 +334,44 @@ function BringMob(targetMobName, targetPos)
         end
     end)
 end
+-- hàm buy melee
+function InstantTP(TargetCFrame, MeleeName)
+    pcall(function()
+        local LP = game.Players.LocalPlayer
+        if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+            -- Dịch chuyển tức thời
+            LP.Character.HumanoidRootPart.CFrame = TargetCFrame
+            task.wait(0.1) 
+
+            local remote = game:GetService("ReplicatedStorage").Remotes.CommF_
+            
+            -- Kiểm tra đúng tên bạn đặt ở nút bấm
+            if MeleeName == "Black Leg" then 
+                remote:InvokeServer("BuyBlackLeg")
+            elseif MeleeName == "Electro" then 
+                remote:InvokeServer("BuyElectro")
+            elseif MeleeName == "Water Kung Fu" then 
+                remote:InvokeServer("BuyFishmanKarate")
+            elseif MeleeName == "Dragon Claw" then 
+                remote:InvokeServer("BlackbeardReward", "DragonClaw", "1")
+                remote:InvokeServer("BlackbeardReward", "DragonClaw", "2")
+            elseif MeleeName == "Superhuman" then 
+                remote:InvokeServer("BuySuperhuman")
+            elseif MeleeName == "Death Step" then 
+                remote:InvokeServer("BuyDeathStep")
+            elseif MeleeName == "Sharkman Karate" then 
+                remote:InvokeServer("BuySharkmanKarate", true)
+                remote:InvokeServer("BuySharkmanKarate")
+            elseif MeleeName == "Electric Claw" then 
+                remote:InvokeServer("BuyElectricClaw")
+            elseif MeleeName == "Dragon Talon" then 
+                remote:InvokeServer("BuyDragonTalon")
+            elseif MeleeName == "God Human" then 
+                remote:InvokeServer("BuyGodhuman")
+            end
+        end
+    end)
+end
 
 -- ==========================================
 -- 2. KHỞI TẠO UI FLUENT & NÚT BẬT/TẮT
@@ -508,6 +561,15 @@ Tabs.Setting:AddToggle("ActiveRaceV4", {
     end
 })
 
+Tabs.Setting:AddToggle("WalkWater", {
+    Title = "Walk on Water",
+    Description = " ",
+    Default = false,
+    Callback = function(Value)
+        _G.WalkWater = Value
+    end
+})
+
 Tabs.Server:AddButton({
     Title = "Server Hop",
     Description = " ",
@@ -517,9 +579,69 @@ Tabs.Server:AddButton({
     end
 })
 
+Tabs.Shop:AddSection("Buy Melee")
+
+Tabs.Shop:AddButton({
+    Title = "Buy Black Leg",
+    Callback = function() InstantTP(CFrame.new(-5045, 371, -3181), "BlackLeg") end
+})
+
+Tabs.Shop:AddButton({
+    Title = "Buy Electro",
+    Callback = function() InstantTP(CFrame.new(-4995, 314, -3200), "Electro") end
+})
+
+Tabs.Shop:AddButton({
+    Title = "Buy Water Kung Fu",
+    Callback = function() InstantTP(CFrame.new(-5023, 371, -3190), "Fishman") end
+})
+
+Tabs.Shop:AddButton({
+    Title = "Buy Dragon Claw",
+    Callback = function() InstantTP(CFrame.new(-4981, 371, -3205), "DragonV1") end
+})
+
+Tabs.Shop:AddButton({
+    Title = "TP & Buy Superhuman",
+    Callback = function() InstantTP(CFrame.new(-5002, 371, -3199), "Superhuman") end
+})
+
+Tabs.Shop:AddButton({
+    Title = "Buy Death Step",
+    Callback = function() InstantTP(CFrame.new(-5000, 314, -3220), "DeathStep") end
+})
+
+Tabs.Shop:AddButton({
+    Title = "Buy Sharkman Karate",
+    Callback = function() InstantTP(CFrame.new(-4971, 314, -3220), "Sharkman") end
+})
+
+Tabs.Shop:AddButton({
+    Title = "Buy Electric Claw",
+    Callback = function() InstantTP(CFrame.new(-10372, 331, -10129), "ElectricClaw") end
+})
+
+Tabs.Shop:AddButton({
+    Title = "Buy Dragon Talon",
+    Callback = function() InstantTP(CFrame.new(5663, 1211, 862), "DragonTalon") end
+})
+
+Tabs.Shop:AddButton({
+    Title = "Buy God Human",
+    Callback = function() InstantTP(CFrame.new(-13779, 334, -9879), "Godhuman") end
+})
+
 -- ==========================================
 -- 4. LOGIC VÒNG LẶP (MAIN LOGIC)
 -- ==========================================
+
+--Loop walk on water
+task.spawn(function()
+    while task.wait(1) do -- Để 1 giây để an toàn cho FPS của bạn
+        AutoWalkWater()
+    end
+end)
+
 -- Loop SoulReaper --
 task.spawn(function()
     while task.wait() do
