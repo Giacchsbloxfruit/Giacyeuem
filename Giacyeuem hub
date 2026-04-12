@@ -18,9 +18,36 @@ _G.CurrentTween = nil
 _G.TweenSpeed = 250
 _G.Hallow = false
 _G.WalkWater = false
+local ServerStatus = {
+    Mirage = "❌",
+    Kitsune = "❌",
+    Prehistoric = "❌",
+    Frozen = "❌",
+    Indra = "❌",
+    DoughKing = "❌",
+    Elite = "❌"
+}
 
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+
+-- Hàm Status server
+function UpdateServerStatus()
+    pcall(function()
+        -- Check Đảo
+        ServerStatus.Mirage = game.Workspace._WorldOrigin.Locations:FindFirstChild("Mirage Island") and "✅" or "❌"
+        ServerStatus.Kitsune = game.Workspace.Map:FindFirstChild("KitsuneIsland") and "✅" or "❌"
+        ServerStatus.Prehistoric = game.Workspace._WorldOrigin.Locations:FindFirstChild("Prehistoric Island") and "✅" or "❌"
+        ServerStatus.Frozen = game.Workspace._WorldOrigin.Locations:FindFirstChild("Frozen Dimension") and "✅" or "❌"
+        
+        -- Check Boss
+        ServerStatus.Indra = (game.ReplicatedStorage:FindFirstChild("rip_indra True Form") or game.Workspace.Enemies:FindFirstChild("rip_indra")) and "✅" or "❌"
+        ServerStatus.DoughKing = (game.ReplicatedStorage:FindFirstChild("Dough King") or game.Workspace.Enemies:FindFirstChild("Dough King")) and "✅" or "❌"
+        
+        -- Check Elite
+        ServerStatus.Elite = (game.Workspace.Enemies:FindFirstChild("Diablo") or game.Workspace.Enemies:FindFirstChild("Deandre") or game.Workspace.Enemies:FindFirstChild("Urban")) and "✅" or "❌"
+    end)
+end
 
 -- Hàm walk on water
 function AutoWalkWater()
@@ -334,39 +361,40 @@ function BringMob(targetMobName, targetPos)
         end
     end)
 end
+
 -- hàm buy melee
-function InstantTP(TargetCFrame, MeleeName)
+function InstantTPMelee(TargetCFrame, MeleeID)
     pcall(function()
         local LP = game.Players.LocalPlayer
         if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
-            -- Dịch chuyển tức thời
+            -- Dịch chuyển tức thời đến NPC
             LP.Character.HumanoidRootPart.CFrame = TargetCFrame
-            task.wait(0.1) 
+            task.wait(0.1) -- Đợi 0.1s để server nhận vị trí
 
             local remote = game:GetService("ReplicatedStorage").Remotes.CommF_
             
-            -- Kiểm tra đúng tên bạn đặt ở nút bấm
-            if MeleeName == "Black Leg" then 
+            -- Kiểm tra mã ID để gửi lệnh mua đúng
+            if MeleeID == "BlackLeg" then 
                 remote:InvokeServer("BuyBlackLeg")
-            elseif MeleeName == "Electro" then 
+            elseif MeleeID == "Electro" then 
                 remote:InvokeServer("BuyElectro")
-            elseif MeleeName == "Water Kung Fu" then 
+            elseif MeleeID == "WaterKungFu" then 
                 remote:InvokeServer("BuyFishmanKarate")
-            elseif MeleeName == "Dragon Claw" then 
+            elseif MeleeID == "DragonClaw" then 
                 remote:InvokeServer("BlackbeardReward", "DragonClaw", "1")
                 remote:InvokeServer("BlackbeardReward", "DragonClaw", "2")
-            elseif MeleeName == "Superhuman" then 
+            elseif MeleeID == "Superhuman" then 
                 remote:InvokeServer("BuySuperhuman")
-            elseif MeleeName == "Death Step" then 
+            elseif MeleeID == "DeathStep" then 
                 remote:InvokeServer("BuyDeathStep")
-            elseif MeleeName == "Sharkman Karate" then 
+            elseif MeleeID == "Sharkman" then 
                 remote:InvokeServer("BuySharkmanKarate", true)
                 remote:InvokeServer("BuySharkmanKarate")
-            elseif MeleeName == "Electric Claw" then 
+            elseif MeleeID == "ElectricClaw" then 
                 remote:InvokeServer("BuyElectricClaw")
-            elseif MeleeName == "Dragon Talon" then 
+            elseif MeleeID == "DragonTalon" then 
                 remote:InvokeServer("BuyDragonTalon")
-            elseif MeleeName == "God Human" then 
+            elseif MeleeID == "Godhuman" then 
                 remote:InvokeServer("BuyGodhuman")
             end
         end
@@ -392,9 +420,8 @@ local Tabs = {
     Home = Window:AddTab({ Title = "Tab Information", Icon = "" }),
     Main = Window:AddTab({ Title = "Tab Farming", Icon = "" }),
     Sea = Window:AddTab({ Title = "Tab Volcano And Sea Event", Icon = "" }),
-    ITM = Window:AddTab({ Title = "Tab Farming Other", Icon = "" }),
+    Item = Window:AddTab({ Title = "Tab Farming Other", Icon = "" }),
     Setting = Window:AddTab({ Title = "Setting Farm", Icon = "" }),
-    Stats = Window:AddTab({ Title = "Tab Stats", Icon = "" }),
     Player = Window:AddTab({ Title = "Tab Local Player", Icon = "" }),
     Teleport = Window:AddTab({ Title = "Tab Teleport", Icon = "" }),
     Visual = Window:AddTab({ Title = "Tab Visual", Icon = "" }),
@@ -430,6 +457,17 @@ end)
 -- ==========================================
 -- 3. GIAO DIỆN CHI TIẾT
 -- ==========================================
+Tabs.Home:AddSection("Status")
+
+local TimeZoneStatus = TabStatus:AddParagraph({Title = "Time Zone", Content = ""})
+local ServerUptime = TabStatus:AddParagraph({Title = "Time", Content = ""})
+local MirageStatus = TabStatus:AddParagraph({Title = "Mirage Island", Content = "Status: ❌"})
+local KitsuneStatus = TabStatus:AddParagraph({Title = "Kitsune Island", Content = "Status: ❌"})
+local PrehistoricStatus = TabStatus:AddParagraph({Title = "Prehistoric Island", Content = "Status: ❌"})
+local FrozenStatus = TabStatus:AddParagraph({Title = "Frozen Dimension", Content = "Status: ❌"})
+local IndraStatus = TabStatus:AddParagraph({Title = "Rip_Indra", Content = "Status: ❌"})
+local DoughKingStatus = TabStatus:AddParagraph({Title = "Dough King", Content = "Status: ❌"})
+
 Tabs.Main:AddSection("Auto farm chest")
 
 Tabs.Main:AddToggle("Auto chest", {
@@ -470,7 +508,7 @@ Tabs.Main:AddToggle("FarmBoneToggle", {
     Callback = function(Value) _G.FarmBone = Value end
 })
 
-Tabs.ITM:AddToggle("AutoHallow", {
+Tabs.Main:AddToggle("AutoHallow", {
     Title = "Auto Soul Reaper",
     Description = "Triệu hồi và đánh Soul Reaper",
     Default = false,
@@ -581,59 +619,86 @@ Tabs.Server:AddButton({
 
 Tabs.Shop:AddSection("Buy Melee")
 
-Tabs.Shop:AddButton({
-    Title = "Buy Black Leg",
-    Callback = function() InstantTP(CFrame.new(-5045, 371, -3181), "BlackLeg") end
+TabBuy:AddButton({
+    Title = "Black Leg", 
+    Callback = function() InstantTPMelee(CFrame.new(-5045, 371, -3181), "BlackLeg") end
 })
 
-Tabs.Shop:AddButton({
-    Title = "Buy Electro",
-    Callback = function() InstantTP(CFrame.new(-4995, 314, -3200), "Electro") end
+TabBuy:AddButton({
+    Title = "Electro ", 
+    Callback = function() InstantTPMelee(CFrame.new(-4995, 314, -3200), "Electro") end
 })
 
-Tabs.Shop:AddButton({
-    Title = "Buy Water Kung Fu",
-    Callback = function() InstantTP(CFrame.new(-5023, 371, -3190), "Fishman") end
+TabBuy:AddButton({
+    Title = "Water Kung Fu ", 
+    Callback = function() InstantTPMelee(CFrame.new(-5023, 371, -3190), "WaterKungFu") end
 })
 
-Tabs.Shop:AddButton({
-    Title = "Buy Dragon Claw",
-    Callback = function() InstantTP(CFrame.new(-4981, 371, -3205), "DragonV1") end
+TabBuy:AddButton({
+    Title = "Dragon Claw ", 
+    Callback = function() InstantTPMelee(CFrame.new(-4981, 371, -3205), "DragonClaw") end
 })
 
-Tabs.Shop:AddButton({
-    Title = "TP & Buy Superhuman",
-    Callback = function() InstantTP(CFrame.new(-5002, 371, -3199), "Superhuman") end
+TabBuy:AddSection("Melee V2")
+
+TabBuy:AddButton({
+    Title = "Superhuman ", 
+    Callback = function() InstantTPMelee(CFrame.new(-5002, 371, -3199), "Superhuman") end
 })
 
-Tabs.Shop:AddButton({
-    Title = "Buy Death Step",
-    Callback = function() InstantTP(CFrame.new(-5000, 314, -3220), "DeathStep") end
+TabBuy:AddButton({
+    Title = "Death Step ", 
+    Callback = function() InstantTPMelee(CFrame.new(-5000, 314, -3220), "DeathStep") end
 })
 
-Tabs.Shop:AddButton({
-    Title = "Buy Sharkman Karate",
-    Callback = function() InstantTP(CFrame.new(-4971, 314, -3220), "Sharkman") end
+TabBuy:AddButton({
+    Title = "Sharkman Karate ", 
+    Callback = function() InstantTPMelee(CFrame.new(-4971, 314, -3220), "Sharkman") end
 })
 
-Tabs.Shop:AddButton({
-    Title = "Buy Electric Claw",
-    Callback = function() InstantTP(CFrame.new(-10372, 331, -10129), "ElectricClaw") end
+TabBuy:AddButton({
+    Title = "Electric Claw ", 
+    Callback = function() InstantTPMelee(CFrame.new(-10372, 331, -10129), "ElectricClaw") end
 })
 
-Tabs.Shop:AddButton({
-    Title = "Buy Dragon Talon",
-    Callback = function() InstantTP(CFrame.new(5663, 1211, 862), "DragonTalon") end
+TabBuy:AddButton({
+    Title = "Dragon Talon ", 
+    Callback = function() InstantTPMelee(CFrame.new(5663, 1211, 862), "DragonTalon") end
 })
 
-Tabs.Shop:AddButton({
-    Title = "Buy God Human",
-    Callback = function() InstantTP(CFrame.new(-13779, 334, -9879), "Godhuman") end
+TabBuy:AddButton({
+    Title = "God Human", 
+    Callback = function() InstantTPMelee(CFrame.new(-13779, 334, -9879), "Godhuman") end
 })
 
 -- ==========================================
 -- 4. LOGIC VÒNG LẶP (MAIN LOGIC)
 -- ==========================================
+
+--Loop status server
+task.spawn(function()
+    while task.wait(1) do
+        UpdateServerStatus() -- Chạy hàm check
+        
+        -- Cập nhật Time Zone
+        local date = os.date("*t")
+        local timeStr = string.format("%02d/%02d/%04d - %02d:%02d:%02d", date.day, date.month, date.year, date.hour, date.min, date.sec)
+        TimeZoneStatus:SetTitle("Time Zone")
+        TimeZoneStatus:SetContent(timeStr .. " [VN]")
+
+        -- Cập nhật trạng thái Đảo & Boss bằng SetContent
+        MirageStatus:SetContent("Status: " .. ServerStatus.Mirage)
+        KitsuneStatus:SetContent("Status: " .. ServerStatus.Kitsune)
+        PrehistoricStatus:SetContent("Status: " .. ServerStatus.Prehistoric)
+        FrozenStatus:SetContent("Status: " .. ServerStatus.Frozen)
+        IndraStatus:SetContent("Status: " .. ServerStatus.Indra)
+        DoughKingStatus:SetContent("Status: " .. ServerStatus.DoughKing)
+        
+        -- Cập nhật Uptime
+        local up = math.floor(workspace.DistributedGameTime)
+        ServerUptime:SetContent(string.format("%d Hour (h) %d Minute (m) %d Second (s)", math.floor(up/3600), math.floor(up/60)%60, up%60))
+    end
+end)
 
 --Loop walk on water
 task.spawn(function()
