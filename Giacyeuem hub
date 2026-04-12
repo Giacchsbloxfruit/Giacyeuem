@@ -459,14 +459,14 @@ end)
 -- ==========================================
 Tabs.Home:AddSection("Status")
 
-local TimeZoneStatus = TabStatus:AddParagraph({Title = "Time Zone", Content = ""})
-local ServerUptime = TabStatus:AddParagraph({Title = "Time", Content = ""})
-local MirageStatus = TabStatus:AddParagraph({Title = "Mirage Island", Content = "Status: ❌"})
-local KitsuneStatus = TabStatus:AddParagraph({Title = "Kitsune Island", Content = "Status: ❌"})
-local PrehistoricStatus = TabStatus:AddParagraph({Title = "Prehistoric Island", Content = "Status: ❌"})
-local FrozenStatus = TabStatus:AddParagraph({Title = "Frozen Dimension", Content = "Status: ❌"})
-local IndraStatus = TabStatus:AddParagraph({Title = "Rip_Indra", Content = "Status: ❌"})
-local DoughKingStatus = TabStatus:AddParagraph({Title = "Dough King", Content = "Status: ❌"})
+local TimeZoneStatus = Tabs.Home:AddParagraph({Title = "Time Zone", Content = ""})
+local ServerUptime = Tabs.Home:AddParagraph({Title = "Time", Content = ""})
+local MirageStatus = Tabs.Home:AddParagraph({Title = "Mirage Island", Content = "Status: ❌"})
+local KitsuneStatus = Tabs.Home:AddParagraph({Title = "Kitsune Island", Content = "Status: ❌"})
+local PrehistoricStatus = Tabs.Home:AddParagraph({Title = "Prehistoric Island", Content = "Status: ❌"})
+local FrozenStatus = Tabs.Home:AddParagraph({Title = "Frozen Dimension", Content = "Status: ❌"})
+local IndraStatus = Tabs.Home:AddParagraph({Title = "Rip_Indra", Content = "Status: ❌"})
+local DoughKingStatus = Tabs.Home:AddParagraph({Title = "Dough King", Content = "Status: ❌"})
 
 Tabs.Main:AddSection("Auto farm chest")
 
