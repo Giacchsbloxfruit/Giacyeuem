@@ -335,38 +335,38 @@ function BringMob(targetMobName, targetPos)
     end)
 end
 -- hàm buy melee
-function InstantTP(TargetCFrame, MeleeName)
+function InstantTPMelee(TargetCFrame, MeleeID)
     pcall(function()
         local LP = game.Players.LocalPlayer
         if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
-            -- Dịch chuyển tức thời
+            -- Dịch chuyển tức thời đến NPC
             LP.Character.HumanoidRootPart.CFrame = TargetCFrame
-            task.wait(0.1) 
+            task.wait(0.1) -- Đợi 0.1s để server nhận vị trí
 
             local remote = game:GetService("ReplicatedStorage").Remotes.CommF_
             
-            -- Kiểm tra đúng tên bạn đặt ở nút bấm
-            if MeleeName == "Black Leg" then 
+            -- Kiểm tra mã ID để gửi lệnh mua đúng
+            if MeleeID == "BlackLeg" then 
                 remote:InvokeServer("BuyBlackLeg")
-            elseif MeleeName == "Electro" then 
+            elseif MeleeID == "Electro" then 
                 remote:InvokeServer("BuyElectro")
-            elseif MeleeName == "Water Kung Fu" then 
+            elseif MeleeID == "WaterKungFu" then 
                 remote:InvokeServer("BuyFishmanKarate")
-            elseif MeleeName == "Dragon Claw" then 
+            elseif MeleeID == "DragonClaw" then 
                 remote:InvokeServer("BlackbeardReward", "DragonClaw", "1")
                 remote:InvokeServer("BlackbeardReward", "DragonClaw", "2")
-            elseif MeleeName == "Superhuman" then 
+            elseif MeleeID == "Superhuman" then 
                 remote:InvokeServer("BuySuperhuman")
-            elseif MeleeName == "Death Step" then 
+            elseif MeleeID == "DeathStep" then 
                 remote:InvokeServer("BuyDeathStep")
-            elseif MeleeName == "Sharkman Karate" then 
+            elseif MeleeID == "Sharkman" then 
                 remote:InvokeServer("BuySharkmanKarate", true)
                 remote:InvokeServer("BuySharkmanKarate")
-            elseif MeleeName == "Electric Claw" then 
+            elseif MeleeID == "ElectricClaw" then 
                 remote:InvokeServer("BuyElectricClaw")
-            elseif MeleeName == "Dragon Talon" then 
+            elseif MeleeID == "DragonTalon" then 
                 remote:InvokeServer("BuyDragonTalon")
-            elseif MeleeName == "God Human" then 
+            elseif MeleeID == "Godhuman" then 
                 remote:InvokeServer("BuyGodhuman")
             end
         end
@@ -582,53 +582,53 @@ Tabs.Server:AddButton({
 Tabs.Shop:AddSection("Buy Melee")
 
 Tabs.Shop:AddButton({
-    Title = "Buy Black Leg",
-    Callback = function() InstantTP(CFrame.new(-5045, 371, -3181), "BlackLeg") end
+    Title = "Black Leg", 
+    Callback = function() InstantTPMelee(CFrame.new(-5045, 371, -3181), "BlackLeg") end
 })
 
 Tabs.Shop:AddButton({
-    Title = "Buy Electro",
-    Callback = function() InstantTP(CFrame.new(-4995, 314, -3200), "Electro") end
+    Title = "Electro ", 
+    Callback = function() InstantTPMelee(CFrame.new(-4995, 314, -3200), "Electro") end
 })
 
 Tabs.Shop:AddButton({
-    Title = "Buy Water Kung Fu",
-    Callback = function() InstantTP(CFrame.new(-5023, 371, -3190), "Fishman") end
+    Title = "Water Kung Fu ", 
+    Callback = function() InstantTPMelee(CFrame.new(-5023, 371, -3190), "WaterKungFu") end
 })
 
 Tabs.Shop:AddButton({
-    Title = "Buy Dragon Claw",
-    Callback = function() InstantTP(CFrame.new(-4981, 371, -3205), "DragonV1") end
+    Title = "Dragon Claw ", 
+    Callback = function() InstantTPMelee(CFrame.new(-4981, 371, -3205), "DragonClaw") end
 })
 
 Tabs.Shop:AddButton({
-    Title = "TP & Buy Superhuman",
-    Callback = function() InstantTP(CFrame.new(-5002, 371, -3199), "Superhuman") end
+    Title = "Superhuman ", 
+    Callback = function() InstantTPMelee(CFrame.new(-5002, 371, -3199), "Superhuman") end
 })
 
 Tabs.Shop:AddButton({
-    Title = "Buy Death Step",
-    Callback = function() InstantTP(CFrame.new(-5000, 314, -3220), "DeathStep") end
+    Title = "Death Step ", 
+    Callback = function() InstantTPMelee(CFrame.new(-5000, 314, -3220), "DeathStep") end
 })
 
 Tabs.Shop:AddButton({
-    Title = "Buy Sharkman Karate",
-    Callback = function() InstantTP(CFrame.new(-4971, 314, -3220), "Sharkman") end
+    Title = "Sharkman Karate ", 
+    Callback = function() InstantTPMelee(CFrame.new(-4971, 314, -3220), "Sharkman") end
 })
 
 Tabs.Shop:AddButton({
-    Title = "Buy Electric Claw",
-    Callback = function() InstantTP(CFrame.new(-10372, 331, -10129), "ElectricClaw") end
+    Title = "Electric Claw ", 
+    Callback = function() InstantTPMelee(CFrame.new(-10372, 331, -10129), "ElectricClaw") end
 })
 
 Tabs.Shop:AddButton({
-    Title = "Buy Dragon Talon",
-    Callback = function() InstantTP(CFrame.new(5663, 1211, 862), "DragonTalon") end
+    Title = "Dragon Talon ", 
+    Callback = function() InstantTPMelee(CFrame.new(5663, 1211, 862), "DragonTalon") end
 })
 
 Tabs.Shop:AddButton({
-    Title = "Buy God Human",
-    Callback = function() InstantTP(CFrame.new(-13779, 334, -9879), "Godhuman") end
+    Title = "God Human", 
+    Callback = function() InstantTPMelee(CFrame.new(-13779, 334, -9879), "Godhuman") end
 })
 
 -- ==========================================
