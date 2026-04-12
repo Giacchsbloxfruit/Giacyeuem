@@ -196,19 +196,6 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Hàm Tween Di Chuyển (Topos)
-function topos(targetCFrame)
-    local root = game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-    
-    local dist = (targetCFrame.p - root.Position).Magnitude
-    if dist < 15 then root.CFrame = targetCFrame return end
-    
-    local tween = TweenService:Create(root, TweenInfo.new(dist/_G.TweenSpeed, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
-    if not _G.FarmBone then tween:Cancel() return end
-    tween:Play()
-end
-
 -- Hàm Gom Quái (Bring Mob) - Tầm 2-4 con gần nhất
 function BringMob(targetMobName, targetPos)
     if not _G.BringMob then return end
@@ -292,6 +279,9 @@ Tabs.Main:AddToggle("Auto chest", {
     Default = false,
     Callback = function(Value)
         _G.FarmChest = Value
+        if not Value then 
+            StopTween()
+        end
     end
 })
 
@@ -465,7 +455,7 @@ end)
 
 -- Farm chest --
 task.spawn(function()
-    while task.wait() do
+    while task.wait(0.3) do -- Thời gian chờ an toàn để bay không bị giật
         if _G.FarmChest then
             pcall(function()
                 local targetChest = GetClosestChest()
