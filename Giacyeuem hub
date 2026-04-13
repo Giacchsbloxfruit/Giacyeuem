@@ -1,6 +1,7 @@
 -- ==========================================
 -- 1. KHAI BÁO BIẾN & CÀI ĐẶT HỆ THỐNG
 -- ==========================================
+_G.CurrentBones = 0
 _G.FarmBone = false
 _G.SelectWeapon = "Melee"
 _G.TweenSpeed = 250
@@ -334,18 +335,39 @@ function BringMob(targetMobName, targetPos)
         end
     end)
 end
--- hàm buy melee
+
+-- hàm buy melee (Đã sửa lỗi chống giật ngược)
 function InstantTPMelee(TargetCFrame, MeleeID)
+    -- 1. TẮT TẤT CẢ AUTO & TWEEN ĐỂ KHÔNG BỊ KÉO LẠI
+    _G.FarmBone = false
+    _G.FarmChest = false
+    _G.Hallow = false
+    _G.BringFruit = false
+    _G.TweenToFruit = false
+    StopTween() -- Ngắt ngay lập tức tiến trình bay hiện tại
+    
     pcall(function()
         local LP = game.Players.LocalPlayer
-        if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
-            -- Dịch chuyển tức thời đến NPC
-            LP.Character.HumanoidRootPart.CFrame = TargetCFrame
-            task.wait(0.1) -- Đợi 0.1s để server nhận vị trí
+        local char = LP.Character
+        
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local root = char.HumanoidRootPart
+            
+            -- 2. Neo nhân vật lại để tránh rơi xuống biển khi map chưa kịp load
+            root.Anchored = true 
+            
+            -- 3. Dịch chuyển tức thời
+            root.CFrame = TargetCFrame
+            
+            -- 4. Đợi 0.5s để server Blox Fruits load Map (Rất quan trọng với đảo xa)
+            task.wait(0.5) 
+            
+            -- 5. Bỏ neo để nhân vật hoạt động bình thường
+            root.Anchored = false 
 
+            -- 6. Gửi lệnh mua Melee
             local remote = game:GetService("ReplicatedStorage").Remotes.CommF_
             
-            -- Kiểm tra mã ID để gửi lệnh mua đúng
             if MeleeID == "BlackLeg" then 
                 remote:InvokeServer("BuyBlackLeg")
             elseif MeleeID == "Electro" then 
@@ -372,6 +394,18 @@ function InstantTPMelee(TargetCFrame, MeleeID)
         end
     end)
 end
+
+-- Hàm check bone
+function GetMyBones()
+    local success, result = pcall(function()
+        return game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Bones", "Check")
+    end)
+    if success and type(result) == "number" then
+        _G.CurrentBones = result
+    end
+    return _G.CurrentBones
+end
+
 
 -- ==========================================
 -- 2. KHỞI TẠO UI FLUENT & NÚT BẬT/TẮT
@@ -454,7 +488,7 @@ Tabs.Main:AddToggle("Stop when get item", {
 Tabs.Main:AddSection("Farm Bones")
 
 local BoneParagraph = Tabs.Main:AddParagraph({
-    Title = "Check Bone Status",
+    Title = "Check Bone",
     Content = "Đang kiểm tra..."
 })
 
@@ -745,14 +779,17 @@ end)
 -- Sửa lỗi đếm xương: Cập nhật liên tục từ Server
 task.spawn(function()
     while task.wait(1.5) do
+        local count = GetMyBones() -- Gọi hàm lấy xương
+        
+        -- Kiểm tra nếu Paragraph tồn tại thì mới SetDesc để tránh lỗi trắng UI
         pcall(function()
-            local boneCount = game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Bones", "Check")
-            -- Đảm bảo hiện đúng số lượng, nếu nil thì hiện 0
-            local display = type(boneCount) == "number" and boneCount or 0
-            BoneParagraph:SetDesc("Bạn đang có: " .. tostring(display) .. " Xương")
+            if BoneParagraph then
+                BoneParagraph:SetDesc("Bạn đang có: " .. tostring(count) .. " Xương")
+            end
         end)
     end
 end)
+
 
 -- Vòng lặp Farm Bone có kèm Auto Quest
 task.spawn(function()
