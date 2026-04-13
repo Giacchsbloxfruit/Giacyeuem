@@ -22,6 +22,7 @@ _G.WalkWater = false
 
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local replicated = game:GetService("ReplicatedStorage")
 
 -- Hàm walk on water
 function AutoWalkWater()
@@ -336,61 +337,48 @@ function BringMob(targetMobName, targetPos)
     end)
 end
 
--- hàm buy melee (Đã sửa lỗi chống giật ngược)
+-- Hàm 1: Dành cho các món ở gần (Dịch chuyển tức thời)
 function InstantTPMelee(TargetCFrame, MeleeID)
-    -- 1. TẮT TẤT CẢ AUTO & TWEEN ĐỂ KHÔNG BỊ KÉO LẠI
     _G.FarmBone = false
-    _G.FarmChest = false
-    _G.Hallow = false
-    _G.BringFruit = false
-    _G.TweenToFruit = false
-    StopTween() -- Ngắt ngay lập tức tiến trình bay hiện tại
-    
+    StopTween()
     pcall(function()
-        local LP = game.Players.LocalPlayer
-        local char = LP.Character
+        local root = game.Players.LocalPlayer.Character.HumanoidRootPart
+        root.Anchored = true
+        root.CFrame = TargetCFrame
+        task.wait(0.3) -- Đợi 0.3s để server nhận diện
+        root.Anchored = false
         
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            local root = char.HumanoidRootPart
-            
-            -- 2. Neo nhân vật lại để tránh rơi xuống biển khi map chưa kịp load
-            root.Anchored = true 
-            
-            -- 3. Dịch chuyển tức thời
-            root.CFrame = TargetCFrame
-            
-            -- 4. Đợi 0.5s để server Blox Fruits load Map (Rất quan trọng với đảo xa)
-            task.wait(0.5) 
-            
-            -- 5. Bỏ neo để nhân vật hoạt động bình thường
-            root.Anchored = false 
+        -- Gửi lệnh mua (Dùng các ID Melee cũ của bạn)
+        local remote = game:GetService("ReplicatedStorage").Remotes.CommF_
+        if MeleeID == "BlackLeg" then remote:InvokeServer("BuyBlackLeg")
+        elseif MeleeID == "Electro" then remote:InvokeServer("BuyElectro")
+        elseif MeleeID == "WaterKungFu" then remote:InvokeServer("BuyFishmanKarate")
+        elseif MeleeID == "Superhuman" then remote:InvokeServer("BuySuperhuman")
+        elseif MeleeID == "DeathStep" then remote:InvokeServer("BuyDeathStep")
+        elseif MeleeID == "Sharkman" then 
+            remote:InvokeServer("BuySharkmanKarate", true)
+            remote:InvokeServer("BuySharkmanKarate")
+        end
+    end)
+end
 
-            -- 6. Gửi lệnh mua Melee
-            local remote = game:GetService("ReplicatedStorage").Remotes.CommF_
-            
-            if MeleeID == "BlackLeg" then 
-                remote:InvokeServer("BuyBlackLeg")
-            elseif MeleeID == "Electro" then 
-                remote:InvokeServer("BuyElectro")
-            elseif MeleeID == "WaterKungFu" then 
-                remote:InvokeServer("BuyFishmanKarate")
-            elseif MeleeID == "DragonClaw" then 
-                remote:InvokeServer("BlackbeardReward", "DragonClaw", "1")
-                remote:InvokeServer("BlackbeardReward", "DragonClaw", "2")
-            elseif MeleeID == "Superhuman" then 
-                remote:InvokeServer("BuySuperhuman")
-            elseif MeleeID == "DeathStep" then 
-                remote:InvokeServer("BuyDeathStep")
-            elseif MeleeID == "Sharkman" then 
-                remote:InvokeServer("BuySharkmanKarate", true)
-                remote:InvokeServer("BuySharkmanKarate")
-            elseif MeleeID == "ElectricClaw" then 
-                remote:InvokeServer("BuyElectricClaw")
-            elseif MeleeID == "DragonTalon" then 
-                remote:InvokeServer("BuyDragonTalon")
-            elseif MeleeID == "Godhuman" then 
-                remote:InvokeServer("BuyGodhuman")
-            end
+-- Hàm 2: Dành cho 3 món ở xa (Bay bằng Tween)
+function TweenBuyMelee(TargetCFrame, MeleeID)
+    _G.FarmBone = false
+    StopTween()
+    task.spawn(function()
+        local player = game.Players.LocalPlayer
+        -- Bay đến nơi
+        topos(TargetCFrame)
+        
+        -- Đợi đến khi đứng sát NPC (khoảng cách < 15)
+        repeat task.wait(0.5) until (player.Character.HumanoidRootPart.Position - TargetCFrame.Position).Magnitude < 15
+        
+        -- Gửi lệnh mua khi đã bay đến nơi an toàn
+        local remote = game:GetService("ReplicatedStorage").Remotes.CommF_
+        if MeleeID == "ElectricClaw" then remote:InvokeServer("BuyElectricClaw")
+        elseif MeleeID == "DragonTalon" then remote:InvokeServer("BuyDragonTalon")
+        elseif MeleeID == "Godhuman" then remote:InvokeServer("BuyGodhuman")
         end
     end)
 end
@@ -426,9 +414,8 @@ local Tabs = {
     Home = Window:AddTab({ Title = "Tab Information", Icon = "" }),
     Main = Window:AddTab({ Title = "Tab Farming", Icon = "" }),
     Sea = Window:AddTab({ Title = "Tab Volcano And Sea Event", Icon = "" }),
-    ITM = Window:AddTab({ Title = "Tab Farming Other", Icon = "" }),
+    Other = Window:AddTab({ Title = "Tab Farming Other", Icon = "" }),
     Setting = Window:AddTab({ Title = "Setting Farm", Icon = "" }),
-    Stats = Window:AddTab({ Title = "Tab Stats", Icon = "" }),
     Player = Window:AddTab({ Title = "Tab Local Player", Icon = "" }),
     Teleport = Window:AddTab({ Title = "Tab Teleport", Icon = "" }),
     Visual = Window:AddTab({ Title = "Tab Visual", Icon = "" }),
@@ -504,7 +491,7 @@ Tabs.Main:AddToggle("FarmBoneToggle", {
     Callback = function(Value) _G.FarmBone = Value end
 })
 
-Tabs.ITM:AddToggle("AutoHallow", {
+Tabs.Main:AddToggle("AutoHallow", {
     Title = "Auto Soul Reaper",
     Description = "Triệu hồi và đánh Soul Reaper",
     Default = false,
@@ -612,9 +599,8 @@ Tabs.Server:AddButton({
         HopServer()
     end
 })
-
+-- Section 1: Melee ở xa (Dùng Tween để chống giật lùi)
 Tabs.Shop:AddSection("Buy Melee")
-
 Tabs.Shop:AddButton({
     Title = "Black Leg", 
     Callback = function() InstantTPMelee(CFrame.new(-5045, 371, -3181), "BlackLeg") end
@@ -651,19 +637,56 @@ Tabs.Shop:AddButton({
 })
 
 Tabs.Shop:AddButton({
-    Title = "Electric Claw ", 
-    Callback = function() InstantTPMelee(CFrame.new(-10372, 331, -10129), "ElectricClaw") end
-})
-
-Tabs.Shop:AddButton({
-    Title = "Dragon Talon ", 
-    Callback = function() InstantTPMelee(CFrame.new(5663, 1211, 862), "DragonTalon") end
-})
-
-Tabs.Shop:AddButton({
     Title = "God Human", 
-    Callback = function() InstantTPMelee(CFrame.new(-13779, 334, -9879), "Godhuman") end
+    Callback = function() TweenBuyMelee(CFrame.new(-13779, 334, -9879), "Godhuman") end
 })
+Tabs.Shop:AddButton({
+    Title = "Electric Claw", 
+    Callback = function() TweenBuyMelee(CFrame.new(-10372, 331, -10129), "ElectricClaw") end
+})
+Tabs.Shop:AddButton({
+    Title = "Dragon Talon", 
+    Callback = function() TweenBuyMelee(CFrame.new(5663, 1211, 862), "DragonTalon") end
+})
+
+-- Section 2: Shop kỹ năng cơ bản (Snippet của bạn)
+Tabs.Shop:AddSection("Shop Options")
+Tabs.Shop:AddButton({
+    Title = "Buy Buso",
+    Callback = function() replicated.Remotes.CommF_:InvokeServer("BuyHaki", "Buso") end
+})
+Tabs.Shop:AddButton({
+    Title = "Buy Geppo",
+    Callback = function() replicated.Remotes.CommF_:InvokeServer("BuyHaki", "Geppo") end
+})
+Tabs.Shop:AddButton({
+    Title = "Buy Soru",
+    Callback = function() replicated.Remotes.CommF_:InvokeServer("BuyHaki", "Soru") end
+})
+Tabs.Shop:AddButton({
+    Title = "Buy Ken",
+    Callback = function() replicated.Remotes.CommF_:InvokeServer("KenTalk", "Buy") end
+})
+
+-- Section 3: Các dịch vụ khác (Snippet của bạn)
+Tabs.Shop:AddSection("Fragments Shop")
+Tabs.Shop:AddButton({
+    Title = "Buy Refund Stats",
+    Callback = function() replicated.Remotes.CommF_:InvokeServer("BlackbeardReward", "Refund", "2") end
+})
+Tabs.Shop:AddButton({
+    Title = "Buy Reroll Race",
+    Callback = function() replicated.Remotes.CommF_:InvokeServer("BlackbeardReward", "Reroll", "2") end
+})   
+Tabs.Shop:AddButton({
+    Title = "Buy Ghoul Race (2.5k)",
+    Callback = function() replicated.Remotes.CommF_:InvokeServer("Ectoplasm", " Change", 4) end
+})	
+Tabs.Shop:AddButton({
+    Title = "Buy Cyborg Race (2.5k)",
+    Callback = function() replicated.Remotes.CommF_:InvokeServer("CyborgTrainer", " Buy") end
+})
+
 
 -- ==========================================
 -- 4. LOGIC VÒNG LẶP (MAIN LOGIC)
