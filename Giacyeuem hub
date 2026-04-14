@@ -19,11 +19,58 @@ _G.CurrentTween = nil
 _G.TweenSpeed = 250
 _G.Hallow = false
 _G.WalkWater = false
+_G.AutoFarmLevel = false
+_G.FarmKatakuri = false
 
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local replicated = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer
+local replicated = game:GetService("ReplicatedStorage")
+local VirtualUser = game:GetService("VirtualUser")
 
+local NameQuest, LevelQuest, NameMon, CFrameQuest, CFrameMon
+
+local QuestList = {
+   {Min = 1500, Max = 1524, Name = "PiratePortQuest", Lv = 1, Mon = "Pirate Millionaire", NPC = CFrame.new(-712.8272705078125, 98.5770492553711, 5711.9541015625), MonPos = CFrame.new(-712.8272705078125, 98.5770492553711, 5711.9541015625)},
+    {Min = 1525, Max = 1574, Name = "PiratePortQuest", Lv = 2, Mon = "Pistol Billionaire", NPC = CFrame.new(-723.4331665039062, 147.42906188964844, 5931.9931640625), MonPos = CFrame.new(-723.4331665039062, 147.42906188964844, 5931.9931640625)},
+    {Min = 1575, Max = 1599, Name = "AmazonQuest", Lv = 1, Mon = "Dragon Crew Warrior", NPC = CFrame.new(6779.03271484375, 111.16865539550781, -801.2130737304688), MonPos = CFrame.new(6779.03271484375, 111.16865539550781, -801.2130737304688)},
+    {Min = 1600, Max = 1624, Name = "AmazonQuest", Lv = 2, Mon = "Dragon Crew Archer", NPC = CFrame.new(6955.8974609375, 546.6658935546875, 309.0401306152344), MonPos = CFrame.new(6955.8974609375, 546.6658935546875, 309.0401306152344)},
+    {Min = 1625, Max = 1649, Name = "VenomCrewQuest", Lv = 1, Mon = "Hydra Enforcer", NPC = CFrame.new(4620.61572265625, 1002.2954711914062, 399.0868835449219), MonPos = CFrame.new(4620.61572265625, 1002.2954711914062, 399.0868835449219)},
+    {Min = 1650, Max = 1699, Name = "VenomCrewQuest", Lv = 2, Mon = "Venomous Assailant", NPC = CFrame.new(4697.5918, 1100.65137, 946.401978, 0.579397917, -4.19689783e-10, 0.81504482, -1.49287818e-10, 1, 6.21053986e-10, -0.81504482, -4.81513662e-10, 0.579397917), MonPos = CFrame.new(4697.5918, 1100.65137, 946.401978, 0.579397917, -4.19689783e-10, 0.81504482, -1.49287818e-10, 1, 6.21053986e-10, -0.81504482, -4.81513662e-10, 0.579397917)},
+    {Min = 1700, Max = 1724, Name = "MarineTreeIsland", Lv = 1, Mon = "Marine Commodore", NPC = CFrame.new(2180.54126, 27.8156815, -6741.5498, -0.965929747, 0, 0.258804798, 0, 1, 0, -0.258804798, 0, -0.965929747), MonPos = CFrame.new(2286.0078125, 73.13391876220703, -7159.80908203125)},
+    {Min = 1725, Max = 1774, Name = "MarineTreeIsland", Lv = 2, Mon = "Marine Rear Admiral", NPC = CFrame.new(2179.98828125, 28.731239318848, -6740.0551757813), MonPos = CFrame.new(3656.773681640625, 160.52406311035156, -7001.5986328125)},
+    {Min = 1775, Max = 1799, Name = "DeepForestIsland3", Lv = 1, Mon = "Fishman Raider", NPC = CFrame.new(-10581.6563, 330.872955, -8761.18652, -0.882952213, 0, 0.469463557, 0, 1, 0, -0.469463557, 0, -0.882952213), MonPos = CFrame.new(-10407.5263671875, 331.76263427734375, -8368.5166015625)},
+    {Min = 1800, Max = 1824, Name = "DeepForestIsland3", Lv = 2, Mon = "Fishman Captain", NPC = CFrame.new(-10581.6563, 330.872955, -8761.18652, -0.882952213, 0, 0.469463557, 0, 1, 0, -0.469463557, 0, -0.882952213), MonPos = CFrame.new(-10994.701171875, 352.38140869140625, -9002.1103515625)},
+    {Min = 1825, Max = 1849, Name = "DeepForestIsland", Lv = 1, Mon = "Forest Pirate", NPC = CFrame.new(-13234.04, 331.488495, -7625.40137, 0.707134247, 0, -0.707079291, 0, 1, 0, 0.707079291, 0, 0.707134247), MonPos = CFrame.new(-13274.478515625, 332.3781433105469, -7769.58056640625)},
+    {Min = 1850, Max = 1899, Name = "DeepForestIsland", Lv = 2, Mon = "Mythological Pirate", NPC = CFrame.new(-13234.04, 331.488495, -7625.40137, 0.707134247, 0, -0.707079291, 0, 1, 0, 0.707079291, 0, 0.707134247), MonPos = CFrame.new(-13680.607421875, 501.08154296875, -6991.189453125)},
+    {Min = 1900, Max = 1924, Name = "DeepForestIsland2", Lv = 1, Mon = "Jungle Pirate", NPC = CFrame.new(-12680.3818, 389.971039, -9902.01953, -0.0871315002, 0, 0.996196866, 0, 1, 0, -0.996196866, 0, -0.0871315002), MonPos = CFrame.new(-12256.16015625, 331.73828125, -10485.8369140625)},
+    {Min = 1925, Max = 1974, Name = "DeepForestIsland2", Lv = 2, Mon = "Musketeer Pirate", NPC = CFrame.new(-12680.3818, 389.971039, -9902.01953, -0.0871315002, 0, 0.996196866, 0, 1, 0, -0.996196866, 0, -0.0871315002), MonPos = CFrame.new(-13457.904296875, 391.545654296875, -9859.177734375)},
+    {Min = 1975, Max = 1999, Name = "HauntedQuest1", Lv = 1, Mon = "Reborn Skeleton", NPC = CFrame.new(-9479.2168, 141.215088, 5566.09277, 0, 0, 1, 0, 1, 0, -1, 0, 0), MonPos = CFrame.new(-8763.7236328125, 165.72299194335938, 6159.86181640625)},
+    {Min = 2000, Max = 2024, Name = "HauntedQuest1", Lv = 2, Mon = "Living Zombie", NPC = CFrame.new(-9479.2168, 141.215088, 5566.09277, 0, 0, 1, 0, 1, 0, -1, 0, 0), MonPos = CFrame.new(-10144.1318359375, 138.62667846679688, 5838.0888671875)},
+    {Min = 2025, Max = 2049, Name = "HauntedQuest2", Lv = 1, Mon = "Demonic Soul", NPC = CFrame.new(-9516.99316, 172.017181, 6078.46533, 0, 0, -1, 0, 1, 0, 1, 0, 0), MonPos = CFrame.new(-9505.8720703125, 172.10482788085938, 6158.9931640625)},
+    {Min = 2050, Max = 2074, Name = "HauntedQuest2", Lv = 2, Mon = "Posessed Mummy", NPC = CFrame.new(-9516.99316, 172.017181, 6078.46533, 0, 0, -1, 0, 1, 0, 1, 0, 0), MonPos = CFrame.new(-9582.0224609375, 6.251527309417725, 6205.478515625)},
+    {Min = 2075, Max = 2099, Name = "NutsIslandQuest", Lv = 1, Mon = "Peanut Scout", NPC = CFrame.new(-2104.3908691406, 38.104167938232, -10194.21875, 0, 0, -1, 0, 1, 0, 1, 0, 0), MonPos = CFrame.new(-2143.241943359375, 47.72198486328125, -10029.9951171875)},
+    {Min = 2100, Max = 2124, Name = "NutsIslandQuest", Lv = 2, Mon = "Peanut President", NPC = CFrame.new(-2104.3908691406, 38.104167938232, -10194.21875, 0, 0, -1, 0, 1, 0, 1, 0, 0), MonPos = CFrame.new(-1859.35400390625, 38.10316848754883, -10422.4296875)},
+    {Min = 2125, Max = 2149, Name = "IceCreamIslandQuest", Lv = 1, Mon = "Ice Cream Chef", NPC = CFrame.new(-820.64825439453, 65.819526672363, -10965.795898438, 0, 0, -1, 0, 1, 0, 1, 0, 0), MonPos = CFrame.new(-872.24658203125, 65.81957244873047, -10919.95703125)},
+    {Min = 2150, Max = 2199, Name = "IceCreamIslandQuest", Lv = 2, Mon = "Ice Cream Commander", NPC = CFrame.new(-820.64825439453, 65.819526672363, -10965.795898438, 0, 0, -1, 0, 1, 0, 1, 0, 0), MonPos = CFrame.new(-558.06103515625, 112.04895782470703, -11290.7744140625)},
+    {Min = 2200, Max = 2224, Name = "CakeQuest1", Lv = 1, Mon = "Cookie Crafter", NPC = CFrame.new(-2021.32007, 37.7982254, -12028.7295, 0.957576931, -8.80302053e-08, 0.288177818, 6.9301187e-08, 1, 7.51931211e-08, -0.288177818, -5.2032135e-08, 0.957576931), MonPos = CFrame.new(-2374.13671875, 37.79826354980469, -12125.30859375)},
+    {Min = 2225, Max = 2249, Name = "CakeQuest1", Lv = 2, Mon = "Cake Guard", NPC = CFrame.new(-2021.32007, 37.7982254, -12028.7295, 0.957576931, -8.80302053e-08, 0.288177818, 6.9301187e-08, 1, 7.51931211e-08, -0.288177818, -5.2032135e-08, 0.957576931), MonPos = CFrame.new(-1598.3070068359375, 43.773197174072266, -12244.5810546875)},
+    {Min = 2250, Max = 2274, Name = "CakeQuest2", Lv = 1, Mon = "Baking Staff", NPC = CFrame.new(-1927.91602, 37.7981339, -12842.5391, -0.96804446, 4.22142143e-08, 0.250778586, 4.74911062e-08, 1, 1.49904711e-08, -0.250778586, 2.64211941e-08, -0.96804446), MonPos = CFrame.new(-1887.8099365234375, 77.6185073852539, -12998.3505859375)},
+    {Min = 2275, Max = 2299, Name = "CakeQuest2", Lv = 2, Mon = "Head Baker", NPC = CFrame.new(-1927.91602, 37.7981339, -12842.5391, -0.96804446, 4.22142143e-08, 0.250778586, 4.74911062e-08, 1, 1.49904711e-08, -0.250778586, 2.64211941e-08, -0.96804446), MonPos = CFrame.new(-2216.188232421875, 82.884521484375, -12869.2939453125)},
+    {Min = 2300, Max = 2324, Name = "ChocQuest1", Lv = 1, Mon = "Cocoa Warrior", NPC = CFrame.new(233.22836303710938, 29.876001358032227, -12201.2333984375), MonPos = CFrame.new(-21.55328369140625, 80.57499694824219, -12352.3876953125)},
+    {Min = 2325, Max = 2349, Name = "ChocQuest1", Lv = 2, Mon = "Chocolate Bar Battler", NPC = CFrame.new(233.22836303710938, 29.876001358032227, -12201.2333984375), MonPos = CFrame.new(582.590576171875, 77.18809509277344, -12463.162109375)},
+    {Min = 2350, Max = 2374, Name = "ChocQuest2", Lv = 1, Mon = "Sweet Thief", NPC = CFrame.new(150.5066375732422, 30.693693161010742, -12774.5029296875), MonPos = CFrame.new(165.1884765625, 76.05885314941406, -12600.8369140625)},
+    {Min = 2375, Max = 2399, Name = "ChocQuest2", Lv = 2, Mon = "Candy Rebel", NPC = CFrame.new(150.5066375732422, 30.693693161010742, -12774.5029296875), MonPos = CFrame.new(134.86563110351562, 77.2476806640625, -12876.5478515625)},
+    {Min = 2400, Max = 2449, Name = "CandyQuest1", Lv = 1, Mon = "Candy Pirate", NPC = CFrame.new(-1150.0400390625, 20.378934860229492, -14446.3349609375), MonPos = CFrame.new(-1310.5003662109375, 26.016523361206055, -14562.404296875)},
+    {Min = 2450, Max = 2474, Name = "TikiQuest1", Lv = 1, Mon = "Isle Outlaw", NPC = CFrame.new(-16548.8164, 55.6059914, -172.8125, 0.213092566, 0, -0.977032006, 0, 1, 0, 0.977032006, 0, 0.213092566), MonPos = CFrame.new(-16479.900390625, 226.6117401123047, -300.3114318847656)},
+    {Min = 2475, Max = 2499, Name = "TikiQuest1", Lv = 2, Mon = "Island Boy", NPC = CFrame.new(-16548.8164, 55.6059914, -172.8125, 0.213092566, 0, -0.977032006, 0, 1, 0, 0.977032006, 0, 0.213092566), MonPos = CFrame.new(-16849.396484375, 192.86505126953125, -150.7853240966797)},
+    {Min = 2500, Max = 2524, Name = "TikiQuest2", Lv = 1, Mon = "Sun-kissed Warrior", NPC = CFrame.new(-16538, 55, 1049), MonPos = CFrame.new(-16347, 64, 984)},
+    {Min = 2525, Max = 2550, Name = "TikiQuest2", Lv = 2, Mon = "Isle Champion", NPC = CFrame.new(-16541.0215, 57.3082275, 1051.46118, 0.0410757065, 0, -0.999156058, 0, 1, 0, 0.999156058, 0, 0.0410757065), MonPos = CFrame.new(-16602.1015625, 130.38734436035156, 1087.24560546875)},
+    {Min = 2551, Max = 2574, Name = "TikiQuest3", Lv = 1, Mon = "Serpent Hunter", NPC = CFrame.new(-16679.478515625, 176.74737548828125, 1474.3995361328125), MonPos = CFrame.new(-16679.478515625, 176.74737548828125, 1474.3995361328125)},
+    {Min = 2575, Max = 9999, Name = "TikiQuest3", Lv = 2, Mon = "Skull Slayer", NPC = CFrame.new(-16759.58984375, 71.28376770019531, 1595.3399658203125), MonPos = CFrame.new(-16759.58984375, 71.28376770019531, 1595.3399658203125)}
+}
 -- Hàm walk on water
 function AutoWalkWater()
     pcall(function()
@@ -37,47 +84,86 @@ function AutoWalkWater()
         end
     end)
 end
-
--- Hàm soulreaper
-function AutoSoulReaper()
-    local enemies = game:GetService("Workspace").Enemies
-    local player = game.Players.LocalPlayer
-    local char = player.Character
-    local boss = enemies:FindFirstChild("Soul Reaper")
-
-    if not boss then
-        -- Kiểm tra xem có Hallow Essence không
-        local hasEssence = player.Backpack:FindFirstChild("Hallow Essence") or char:FindFirstChild("Hallow Essence")
-        
-        if hasEssence then
-            local summonPos = CFrame.new(-8932.322, 146.831, 6062.550)
-            topos(summonPos)
-            -- Nếu đã đứng trên bệ triệu hồi
-            if (char.HumanoidRootPart.Position - summonPos.Position).Magnitude <= 10 then
-                EquipWeapon("Hallow Essence")
-            end
-        else
-            -- Đứng chờ Boss xuất hiện
-            topos(CFrame.new(-8932.322, 146.831, 6062.550))
-        end
+-- Hàm check kill kata
+function GetKatakuriCount()
+    local success, result = pcall(function()
+        return game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("CakePrinceSpawner")
+    end)
+    if success and type(result) == "string" then
+        return result
     else
-        -- Đánh Boss
-        if boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
-            AutoHaki()
-            EquipWeapon(_G.SelectWeapon)
-            
-            boss.HumanoidRootPart.Size = Vector3.new(50, 50, 50)
-            boss.HumanoidRootPart.CanCollide = false
-            
-            -- Vị trí đứng đánh an toàn
-            topos(boss.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
-            
-            -- Click chuột
-            game:GetService("VirtualUser"):CaptureController()
-            game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 670))
+        return "Loading..."
+    end
+end
+
+-- Hàm check quest--
+function CheckQuest()
+    local myLv = LP.Data.Level.Value
+    for _, v in pairs(QuestList) do
+        if myLv >= v.Min and myLv <= v.Max then
+            NameQuest, LevelQuest, NameMon, CFrameQuest, CFrameMon = v.Name, v.Lv, v.Mon, v.NPC, v.MonPos
+            return
         end
     end
 end
+function IsQuestActive()
+    local qGui = LP.PlayerGui.Main:FindFirstChild("Quest")
+    return qGui and qGui.Visible and string.find(qGui.Container.QuestTitle.Title.Text, NameMon)
+end
+
+-- Hàm soulreaper
+task.spawn(function()
+    while task.wait(0.5) do -- Kiểm tra mỗi 0.5s để tiết kiệm tài nguyên
+        if _G.AutoSoulReaper then
+            pcall(function()
+                local player = game.Players.LocalPlayer
+                local char = player.Character
+                local enemies = game:GetService("Workspace").Enemies
+                local boss = enemies:FindFirstChild("Soul Reaper")
+                local hasEssence = player.Backpack:FindFirstChild("Hallow Essence") or char:FindFirstChild("Hallow Essence")
+
+                -- KIỂM TRA ĐIỀU KIỆN ƯU TIÊN
+                if boss or hasEssence then
+                    _G.AutoFarmLevel = false -- Chặn các farm khác
+                    _G.FarmBone = false
+                    _G.FarmChest = false
+                    if hasEssence then
+                        -- ƯU TIÊN 1: ĐI TRIỆU HỒI
+                        local summonPos = CFrame.new(-8932.322, 146.831, 6062.550)
+                        topos(summonPos)
+                        
+                        if (char.HumanoidRootPart.Position - summonPos.Position).Magnitude <= 10 then
+                            EquipWeapon("Hallow Essence")
+                            -- Lệnh triệu hồi có thể cần Click hoặc dùng Remote tùy bản game
+                            game:GetService("VirtualUser"):CaptureController()
+                            game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 670))
+                        end
+                    elseif boss and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
+                        -- ƯU TIÊN 2: ĐÁNH BOSS
+                        AutoHaki()
+                        EquipWeapon(_G.SelectWeapon)
+                        
+                        -- Phóng to hitbox Boss để đánh dễ hơn
+                        boss.HumanoidRootPart.Size = Vector3.new(50, 50, 50)
+                        boss.HumanoidRootPart.CanCollide = false
+                        
+                        -- Vị trí đánh an toàn (trên đầu boss)
+                        topos(boss.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
+                        
+                        game:GetService("VirtualUser"):CaptureController()
+                        game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 670))
+                    end
+                else
+                     _G.AutoFarmLevel = true -- Chặn các farm khác
+                    _G.FarmBone = true
+                    _G.FarmChest = true -- Trả lại quyền farm cho các hàm khác
+                end
+            end)
+        else
+            _G.PriorityActive = true
+        end
+    end
+end)
 
 -- Hàm hop server
 function HopServer()
@@ -262,15 +348,23 @@ function GetClosestChest()
     end
     return closestChest
 end
+-- Hàm auto buso
+task.spawn(function()
+    while task.wait(0.5) do
+        pcall(function()
+            local player = game.Players.LocalPlayer
+            -- Chỉ chạy khi đã chọn Team (Hải tặc/Hải quân)
+            if player.Team ~= nil then 
+                local char = player.Character
+                if char and not char:FindFirstChild("HasBuso") then
+                    -- Gửi lệnh bật Haki lên server
+                    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Buso")
+                end
+            end
+        end)
+    end
+end)
 
--- Hàm Tự Động Bật Haki
-function AutoHaki()
-    pcall(function()
-        if not game.Players.LocalPlayer.Character:FindFirstChild("HasBuso") then
-            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Buso")
-        end
-    end)
-end
 -- Hàm tool --
 function EquipWeapon(WeaponType)
     pcall(function()
@@ -337,34 +431,11 @@ function BringMob(targetMobName, targetPos)
     end)
 end
 
--- Hàm 1: Dành cho các món ở gần (Dịch chuyển tức thời)
-function InstantTPMelee(TargetCFrame, MeleeID)
-    _G.FarmBone = false
-    StopTween()
-    pcall(function()
-        local root = game.Players.LocalPlayer.Character.HumanoidRootPart
-        root.Anchored = true
-        root.CFrame = TargetCFrame
-        task.wait(0.3) -- Đợi 0.3s để server nhận diện
-        root.Anchored = false
-        
-        -- Gửi lệnh mua (Dùng các ID Melee cũ của bạn)
-        local remote = game:GetService("ReplicatedStorage").Remotes.CommF_
-        if MeleeID == "BlackLeg" then remote:InvokeServer("BuyBlackLeg")
-        elseif MeleeID == "Electro" then remote:InvokeServer("BuyElectro")
-        elseif MeleeID == "WaterKungFu" then remote:InvokeServer("BuyFishmanKarate")
-        elseif MeleeID == "Superhuman" then remote:InvokeServer("BuySuperhuman")
-        elseif MeleeID == "DeathStep" then remote:InvokeServer("BuyDeathStep")
-        elseif MeleeID == "Sharkman" then 
-            remote:InvokeServer("BuySharkmanKarate", true)
-            remote:InvokeServer("BuySharkmanKarate")
-        end
-    end)
-end
-
 -- Hàm 2: Dành cho 3 món ở xa (Bay bằng Tween)
 function TweenBuyMelee(TargetCFrame, MeleeID)
     _G.FarmBone = false
+    _G.AutoFarmLevel = false
+    _G.FarmChest = false
     StopTween()
     task.spawn(function()
         local player = game.Players.LocalPlayer
@@ -376,7 +447,15 @@ function TweenBuyMelee(TargetCFrame, MeleeID)
         
         -- Gửi lệnh mua khi đã bay đến nơi an toàn
         local remote = game:GetService("ReplicatedStorage").Remotes.CommF_
-        if MeleeID == "ElectricClaw" then remote:InvokeServer("BuyElectricClaw")
+        if MeleeID == "BlackLeg" then remote:InvokeServer("BuyBlackLeg")
+        elseif MeleeID == "Electro" then remote:InvokeServer("BuyElectro")
+        elseif MeleeID == "WaterKungFu" then remote:InvokeServer("BuyFishmanKarate")
+        elseif MeleeID == "Superhuman" then remote:InvokeServer("BuySuperhuman")
+        elseif MeleeID == "DeathStep" then remote:InvokeServer("BuyDeathStep")
+        elseif MeleeID == "Sharkman" then 
+            remote:InvokeServer("BuySharkmanKarate", true)
+            remote:InvokeServer("BuySharkmanKarate")
+        elseif MeleeID == "ElectricClaw" then remote:InvokeServer("BuyElectricClaw")
         elseif MeleeID == "DragonTalon" then remote:InvokeServer("BuyDragonTalon")
         elseif MeleeID == "Godhuman" then remote:InvokeServer("BuyGodhuman")
         end
@@ -451,6 +530,14 @@ end)
 -- ==========================================
 -- 3. GIAO DIỆN CHI TIẾT
 -- ==========================================
+Tabs.Farm:AddToggle("AutoFarmTgl", {
+    Title = "Auto Farm Level",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoFarmLevel = Value
+    end
+})
+
 Tabs.Main:AddSection("Auto farm chest")
 
 Tabs.Main:AddToggle("Auto chest", {
@@ -500,6 +587,22 @@ Tabs.Main:AddToggle("AutoHallow", {
         if not Value then
             StopTween()
         end
+    end
+})
+
+Tabs.Main:AddSection("Auto Katakuri")
+
+local KatakuriLabel = Tabs.Main:AddParagraph({
+    Title = "Check Cake Prince",
+    Content = "Đang kiểm tra..."
+})
+
+Tabs.Main:AddToggle("AutoKatakuriTgl", {
+    Title = "Auto Farm Katakuri",
+    Default = false,
+    Callback = function(Value)
+        _G.FarmKatakuri = Value
+        if not Value then StopTween() end
     end
 })
 
@@ -603,37 +706,37 @@ Tabs.Server:AddButton({
 Tabs.Shop:AddSection("Buy Melee")
 Tabs.Shop:AddButton({
     Title = "Black Leg", 
-    Callback = function() InstantTPMelee(CFrame.new(-5045, 371, -3181), "BlackLeg") end
+    Callback = function() TweenBuyMelee(CFrame.new(-5045, 371, -3181), "BlackLeg") end
 })
 
 Tabs.Shop:AddButton({
-    Title = "Electro ", 
-    Callback = function() InstantTPMelee(CFrame.new(-4995, 314, -3200), "Electro") end
+    Title = "Electro", 
+    Callback = function() TweenBuyMelee(CFrame.new(-4995, 314, -3200), "Electro") end
 })
 
 Tabs.Shop:AddButton({
-    Title = "Water Kung Fu ", 
-    Callback = function() InstantTPMelee(CFrame.new(-5023, 371, -3190), "WaterKungFu") end
+    Title = "Water Kung Fu", 
+    Callback = function() TweenBuyMelee(CFrame.new(-5023, 371, -3190), "WaterKungFu") end
 })
 
 Tabs.Shop:AddButton({
-    Title = "Dragon Claw ", 
-    Callback = function() InstantTPMelee(CFrame.new(-4981, 371, -3205), "DragonClaw") end
+    Title = "Dragon Claw", 
+    Callback = function() TweenBuyMelee(CFrame.new(-4981, 371, -3205), "DragonClaw") end
 })
 
 Tabs.Shop:AddButton({
-    Title = "Superhuman ", 
-    Callback = function() InstantTPMelee(CFrame.new(-5002, 371, -3199), "Superhuman") end
+    Title = "Superhuman", 
+    Callback = function() TweenBuyMelee(CFrame.new(-5002, 371, -3199), "Superhuman") end
 })
 
 Tabs.Shop:AddButton({
-    Title = "Death Step ", 
-    Callback = function() InstantTPMelee(CFrame.new(-5000, 314, -3220), "DeathStep") end
+    Title = "Death Step", 
+    Callback = function() TweenBuyMelee(CFrame.new(-5000, 314, -3220), "DeathStep") end
 })
 
 Tabs.Shop:AddButton({
-    Title = "Sharkman Karate ", 
-    Callback = function() InstantTPMelee(CFrame.new(-4971, 314, -3220), "Sharkman") end
+    Title = "Sharkman Karate", 
+    Callback = function() TweenBuyMelee(CFrame.new(-4971, 314, -3220), "Sharkman") end
 })
 
 Tabs.Shop:AddButton({
@@ -692,6 +795,59 @@ Tabs.Shop:AddButton({
 -- 4. LOGIC VÒNG LẶP (MAIN LOGIC)
 -- ==========================================
 
+-- Loop cập nhật thông báo số lượng quái
+task.spawn(function()
+    while task.wait(1) do
+        if KatakuriLabel then
+            KatakuriLabel:Set(GetKatakuriCount())
+        end
+    end
+end)
+
+-- Loop Farm Katakuri
+task.spawn(function()
+    while task.wait() do
+        if _G.FarmKatakuri then
+            pcall(function()
+                local Enemies = game:GetService("Workspace").Enemies
+                local Boss = Enemies:FindFirstChild("Cake Prince") or Enemies:FindFirstChild("Cake Prince [Lv. 2300] [Raid Boss]")
+
+                if Boss and Boss:FindFirstChild("Humanoid") and Boss.Humanoid.Health > 0 then
+                    EquipWeapon(_G.SelectWeapon)
+                    Boss.HumanoidRootPart.CanCollide = false
+                    Boss.HumanoidRootPart.Size = Vector3.new(50, 50, 50)
+                    
+                    local WorldOrigin = game:GetService("Workspace")._WorldOrigin
+                    if WorldOrigin:FindFirstChild("Ring") or WorldOrigin:FindFirstChild("Fist") or WorldOrigin:FindFirstChild("MochiSwirl") then
+                        topos(Boss.HumanoidRootPart.CFrame * CFrame.new(0, -40, 0))
+                    else
+                        topos(Boss.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
+                    end
+                else
+                    CheckQuest() 
+                    if not IsQuestActive() then
+                        topos(CFrameQuest)
+                        if (game.Players.LocalPlayer.Character.HumanoidRootPart.Position - CFrameQuest.Position).Magnitude < 10 then
+                            task.wait(0.2)
+                            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StartQuest", NameQuest, LevelQuest)
+                        end
+                    else
+                        local Target = Enemies:FindFirstChild(NameMon)
+                        if Target and Target:FindFirstChild("Humanoid") and Target.Humanoid.Health > 0 then
+                            EquipWeapon(_G.SelectWeapon)
+                            Target.HumanoidRootPart.CanCollide = false
+                            BringMob(NameMon, Target.HumanoidRootPart.CFrame)
+                            topos(Target.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
+                        else
+                            topos(CFrameMon)
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
 --Loop walk on water
 task.spawn(function()
     while task.wait(1) do -- Để 1 giây để an toàn cho FPS của bạn
@@ -730,6 +886,47 @@ task.spawn(function()
                 local target = GetDroppedFruit()
                 if target then
                     topos(target.CFrame)
+                end
+            end)
+        end
+    end
+end)
+
+-- Loop farm lv
+task.spawn(function()
+    while task.wait() do
+        if _G.AutoFarmLevel then
+            pcall(function()
+                CheckQuest()
+                
+                if not IsQuestActive() then
+                    -- 1. Nếu chưa có nhiệm vụ -> Dịch chuyển đến NPC và nhận Quest
+                    if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+                        LP.Character.HumanoidRootPart.CFrame = CFrameQuest
+                        task.wait(0.5)
+                        replicated.Remotes.CommF_:InvokeServer("StartQuest", NameQuest, LevelQuest)
+                    end
+                else
+                    -- 2. Nếu đã có nhiệm vụ -> Trang bị vũ khí và đánh quái
+                    EquipMelee()
+                    
+                    local foundMon = false
+                    for _, v in pairs(workspace.Enemies:GetChildren()) do
+                        if v.Name == NameMon and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                            foundMon = true
+                            -- Dịch chuyển ra sau lưng quái (trên cao 1 chút)
+                            LP.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
+                            
+                            -- Tự động Click đánh
+                            VirtualUser:CaptureController()
+                            VirtualUser:Button1Down(Vector2.new(0,0))
+                        end
+                    end
+                    
+                    -- Nếu không tìm thấy quái nào còn sống gần đó, quay về điểm spawn quái chờ
+                    if not foundMon and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+                        LP.Character.HumanoidRootPart.CFrame = CFrameMon
+                    end
                 end
             end)
         end
