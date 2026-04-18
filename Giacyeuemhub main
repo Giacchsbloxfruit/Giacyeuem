@@ -844,63 +844,53 @@ task.spawn(function()
             pcall(function()
                 local player = game:GetService("Players").LocalPlayer
                 
-                -- 1. KIỂM TRA XEM ĐÃ CÓ QUEST CHƯA
-                -- Blox Fruits hiển thị Quest ở GUI, nếu UI Quest đang ẩn tức là chưa nhận
+                -- 1. KIỂM TRA NHIỆM VỤ
                 local hasQuest = player.PlayerGui.Main.Quest.Visible
                 
                 if not hasQuest then
-                    -- 2. LOGIC ĐI NHẬN QUEST
+                    -- Bay đến NPC nhận Quest (HauntedQuest2 - Possessed Mummy)
                     local CFrameQuest = CFrame.new(-9516.99316, 172.017181, 6078.46533)
-                    
-                    -- Kiểm tra khoảng cách từ người chơi đến NPC Quest
                     if (player.Character.HumanoidRootPart.Position - CFrameQuest.Position).Magnitude > 10 then
-                        -- Bay đến chỗ NPC trước
                         topos(CFrameQuest)
                     else
-                        -- Đứng gần rồi thì gửi lệnh nhận Quest
+                        task.wait(0.2)
                         game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StartQuest", "HauntedQuest2", 2)
                     end
                 else
-                    -- 3. LOGIC ĐI FARM (Khi đã có Quest)
-                    -- Đổi tọa độ chờ quái thành bãi của Posessed Mummy
-                    local spawnArea = CFrame.new(-9582.022, 6.251, 6205.478) 
+                    -- 2. LOGIC TÌM VÀ DIỆT QUÁI
                     local enemies = game:GetService("Workspace").Enemies:GetChildren()
-                    local foundMob = false
+                    local targetMob = nil
                     
+                    -- Tìm con quái gần nhất hoặc đúng tên trong bãi
                     for _, v in pairs(enemies) do
-                        -- Giữ danh sách quái cũ, nhưng vì đang nhận Quest Mummy nên nó sẽ dọn dẹp khu vực này
-                        if (v.Name == "Reborn Skeleton" or v.Name == "Living Zombie" or v.Name == "Demonic Soul" or v.Name == "Posessed Mummy") 
+                        -- Sửa lỗi chính tả: "Possessed Mummy"
+                        if (v.Name == "Reborn Skeleton" or v.Name == "Living Zombie" or v.Name == "Demonic Soul" or v.Name == "Possessed Mummy") 
                         and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
-                            foundMob = true
-                            repeat
-                                task.wait()
-                                AutoHaki()
-                                
-                                -- Đảm bảo biến _G.SelectWeapon đã được khai báo ở UI
-                                if _G.SelectWeapon then
-                                    EquipWeapon(_G.SelectWeapon)
-                                end
-                                
-                                -- Bay trên đầu quái (tầm đánh ổn định)
-                                local targetCF = v.HumanoidRootPart.CFrame * CFrame.new(0, 25, 0)
-                                topos(targetCF)
-                                
-                                -- Kích hoạt gom quái
-                                if _G.BringMob then
-                                    BringMob(v.Name, v.HumanoidRootPart.CFrame)
-                                end
-                                
-                                -- Gom quái bằng simulation (hỗ trợ thêm)
-                                sethiddenproperty(player, "SimulationRadius", math.huge)
-                                
-                            -- Dừng đánh con này nếu: Tắt auto / Quái chết / Hoàn thành quest (mất UI)
-                            until not _G.FarmBone or not v.Parent or v.Humanoid.Health <= 0 or not player.PlayerGui.Main.Quest.Visible
+                            targetMob = v
+                            break -- Ưu tiên đánh từng con một để tránh lỗi loop
                         end
                     end
                     
-                    -- Nếu không tìm thấy quái thì bay về bãi chờ
-                    if not foundMob then 
-                        topos(spawnArea) 
+                    if targetMob then
+                        -- Nếu tìm thấy quái thì lao vào đánh
+                        EquipWeapon(_G.SelectWeapon)
+                        
+                        -- Vị trí farm: Bay trên đầu quái
+                        local targetCF = targetMob.HumanoidRootPart.CFrame * CFrame.new(0, 25, 0)
+                        topos(targetCF)
+                        
+                        -- Gom quái (Nếu bạn có hàm BringMob)
+                        if _G.BringMob then
+                            BringMob(targetMob.Name, targetMob.HumanoidRootPart.CFrame)
+                        end
+                        
+                        -- Tấn công (Nếu bạn có hàm Click/Attack)
+                        -- game:GetService("VirtualUser"):CaptureController()
+                        -- game:GetService("VirtualUser"):Button1Down(Vector2.new(0,1,0,1))
+                    else
+                        -- Nếu không có quái nào sống, bay về giữa bãi chờ quái hồi sinh
+                        local spawnArea = CFrame.new(-9582.022, 6.251, 6205.478) 
+                        topos(spawnArea)
                     end
                 end
             end)
