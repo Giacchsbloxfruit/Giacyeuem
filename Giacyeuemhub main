@@ -17,7 +17,7 @@ _G.BringFruit = false
 _G.TweenToFruit = false 
 _G.CurrentTween = nil
 _G.TweenSpeed = 250
-_G.Hallow = false
+_G.AutoSoulReaper = false
 _G.WalkWater = false
 
 local TweenService = game:GetService("TweenService")
@@ -39,44 +39,26 @@ function AutoWalkWater()
 end
 
 -- Hàm soulreaper
-function AutoSoulReaper()
-    local enemies = game:GetService("Workspace").Enemies
-    local player = game.Players.LocalPlayer
-    local char = player.Character
-    local boss = enemies:FindFirstChild("Soul Reaper")
-
-    if not boss then
-        -- Kiểm tra xem có Hallow Essence không
-        local hasEssence = player.Backpack:FindFirstChild("Hallow Essence") or char:FindFirstChild("Hallow Essence")
-        
-        if hasEssence then
-            local summonPos = CFrame.new(-8932.322, 146.831, 6062.550)
-            topos(summonPos)
-            -- Nếu đã đứng trên bệ triệu hồi
-            if (char.HumanoidRootPart.Position - summonPos.Position).Magnitude <= 10 then
-                EquipWeapon("Hallow Essence")
-            end
-        else
-            -- Đứng chờ Boss xuất hiện
-            topos(CFrame.new(-8932.322, 146.831, 6062.550))
-        end
-    else
-        -- Đánh Boss
-        if boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
-            AutoHaki()
-            EquipWeapon(_G.SelectWeapon)
-            
-            boss.HumanoidRootPart.Size = Vector3.new(50, 50, 50)
-            boss.HumanoidRootPart.CanCollide = false
-            
-            -- Vị trí đứng đánh an toàn
-            topos(boss.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
-            
-            -- Click chuột
-            game:GetService("VirtualUser"):CaptureController()
-            game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 670))
-        end
+-- Hàm trang bị vũ khí
+function EquipWeapon(ToolName)
+    if game.Players.LocalPlayer.Backpack:FindFirstChild(ToolName) then
+        local tool = game.Players.LocalPlayer.Backpack:FindFirstChild(ToolName)
+        wait(0.1)
+        game.Players.LocalPlayer.Character.Humanoid:EquipTool(tool)
     end
+end
+
+-- Hàm di chuyển (Bạn dùng topos hoặc TP1 tùy script của bạn)
+function topos(cf)
+    pcall(function()
+        if _G.AutoSoulReaper or _G.FarmBone then -- Chỉ bay khi một trong hai đang bật
+            local char = game.Players.LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                -- Logic tween của bạn ở đây (giả sử dùng hàm tween có sẵn)
+                -- Example: Tween(cf) 
+            end
+        end
+    end)
 end
 
 -- Hàm hop server
@@ -344,50 +326,56 @@ function BringMob(targetMobName, targetPos)
         end
     end)
 end
-
--- Hàm 1: Dành cho các món ở gần (Dịch chuyển tức thời)
-function InstantTPMelee(TargetCFrame, MeleeID)
-    _G.FarmBone = false
-    StopTween()
-    pcall(function()
-        local root = game.Players.LocalPlayer.Character.HumanoidRootPart
-        root.Anchored = true
-        root.CFrame = TargetCFrame
-        task.wait(0.3) -- Đợi 0.3s để server nhận diện
-        root.Anchored = false
+==== Hàm mua melee ====
+-- Hàm bay đến tọa độ chỉ định (Tween)
+function topos(targetCFrame)
+    local char = game.Players.LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        local root = char.HumanoidRootPart
+        local dist = (targetCFrame.Position - root.Position).Magnitude
+        local tweenTime = dist / _G.TweenSpeed
         
-        -- Gửi lệnh mua (Dùng các ID Melee cũ của bạn)
+        -- Dừng tween cũ nếu đang bay
+        if _G.CurrentTween then _G.CurrentTween:Cancel() end
+        
+        local info = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear)
+        _G.CurrentTween = game:GetService("TweenService"):Create(root, info, {CFrame = targetCFrame})
+        _G.CurrentTween:Play()
+    end
+end
+
+-- Hàm mua Melee (Chạy ngầm để không treo script)
+function BuyMeleeTween(TargetCFrame, MeleeID)
+    _G.FarmBone = false -- Tắt farm để đi mua đồ
+    
+    task.spawn(function()
+        local player = game.Players.LocalPlayer
         local remote = game:GetService("ReplicatedStorage").Remotes.CommF_
+        
+        -- Bắt đầu bay
+        topos(TargetCFrame)
+        
+        -- Đợi cho đến khi đứng sát NPC (khoảng cách < 15)
+        repeat 
+            task.wait(0.5) 
+        until (player.Character.HumanoidRootPart.Position - TargetCFrame.Position).Magnitude < 15 or not _G.CurrentTween
+        
+        -- Khi đã đến nơi, gửi lệnh mua tùy theo ID
         if MeleeID == "BlackLeg" then remote:InvokeServer("BuyBlackLeg")
         elseif MeleeID == "Electro" then remote:InvokeServer("BuyElectro")
         elseif MeleeID == "WaterKungFu" then remote:InvokeServer("BuyFishmanKarate")
+        elseif MeleeID == "DragonClaw" then remote:InvokeServer("BuyDragonClaw")
         elseif MeleeID == "Superhuman" then remote:InvokeServer("BuySuperhuman")
         elseif MeleeID == "DeathStep" then remote:InvokeServer("BuyDeathStep")
         elseif MeleeID == "Sharkman" then 
             remote:InvokeServer("BuySharkmanKarate", true)
             remote:InvokeServer("BuySharkmanKarate")
-        end
-    end)
-end
-
--- Hàm 2: Dành cho 3 món ở xa (Bay bằng Tween)
-function TweenBuyMelee(TargetCFrame, MeleeID)
-    _G.FarmBone = false
-    StopTween()
-    task.spawn(function()
-        local player = game.Players.LocalPlayer
-        -- Bay đến nơi
-        topos(TargetCFrame)
-        
-        -- Đợi đến khi đứng sát NPC (khoảng cách < 15)
-        repeat task.wait(0.5) until (player.Character.HumanoidRootPart.Position - TargetCFrame.Position).Magnitude < 15
-        
-        -- Gửi lệnh mua khi đã bay đến nơi an toàn
-        local remote = game:GetService("ReplicatedStorage").Remotes.CommF_
-        if MeleeID == "ElectricClaw" then remote:InvokeServer("BuyElectricClaw")
+        elseif MeleeID == "ElectricClaw" then remote:InvokeServer("BuyElectricClaw")
         elseif MeleeID == "DragonTalon" then remote:InvokeServer("BuyDragonTalon")
         elseif MeleeID == "Godhuman" then remote:InvokeServer("BuyGodhuman")
         end
+        
+        print("Đã mua thành công: " .. MeleeID)
     end)
 end
 
@@ -515,14 +503,13 @@ Tabs.Main:AddToggle("FarmBoneToggle", {
     Callback = function(Value) _G.FarmBone = Value end
 })
 
-Tabs.Main:AddToggle("AutoHallow", {
-    Title = "Auto Soul Reaper",
-    Description = "Triệu hồi và đánh Soul Reaper",
+Tabs.Main:-- Giả sử đây là Tab Main hoặc Tab Boss của bạn
+Tab:AddToggle({
+    Name = "Auto Soul Reaper",
     Default = false,
     Callback = function(Value)
-        _G.Hallow = Value
+        _G.AutoSoulReaper = Value
         if not Value then
-            StopTween()
         end
     end
 })
@@ -864,7 +851,7 @@ task.spawn(function()
                     -- Tìm con quái gần nhất hoặc đúng tên trong bãi
                     for _, v in pairs(enemies) do
                         -- Sửa lỗi chính tả: "Possessed Mummy"
-                        if (v.Name == "Reborn Skeleton" or v.Name == "Living Zombie" or v.Name == "Demonic Soul" or v.Name == "Possessed Mummy") 
+                        if (v.Name == "Reborn Skeleton" or v.Name == "Possessed Mummy" or v.Name == "Demonic Soul" or v.Name == "Living Zombie") 
                         and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
                             targetMob = v
                             break -- Ưu tiên đánh từng con một để tránh lỗi loop
@@ -894,6 +881,55 @@ task.spawn(function()
                     end
                 end
             end)
+        end
+    end
+end)
+
+--Loop soul reaper
+task.spawn(function()
+    while task.wait(0.5) do
+        if _G.AutoSoulReaper then
+            pcall(function()
+                local player = game:GetService("Players").LocalPlayer
+                local character = player.Character
+                local backpack = player.Backpack
+                
+                -- Tìm vật phẩm và Boss
+                local hasEssence = backpack:FindFirstChild("Hallow Essence") or character:FindFirstChild("Hallow Essence")
+                local boss = game:GetService("Workspace").Enemies:FindFirstChild("Soul Reaper")
+
+                if boss or hasEssence then
+                    -- BƯỚC 1: CÓ VIỆC ƯU TIÊN -> TẮT FARM XƯƠNG
+                    _G.FarmBone = false
+                    
+                    if boss and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
+                        -- ĐI ĐÁNH BOSS
+                        EquipWeapon(_G.SelectWeapon)
+                        boss.HumanoidRootPart.CanCollide = false
+                        boss.HumanoidRootPart.Size = Vector3.new(50, 50, 50)
+                        
+                        topos(boss.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
+                        
+                        -- Auto Click
+                        game:GetService("VirtualUser"):CaptureController()
+                        game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 670))
+                    elseif hasEssence then
+                        -- ĐI TRIỆU HỒI
+                        local summonPos = CFrame.new(-8932.322, 146.832, 6062.551)
+                        topos(summonPos)
+                        
+                        if (character.HumanoidRootPart.Position - summonPos.Position).Magnitude <= 10 then
+                            EquipWeapon("Hallow Essence")
+                            -- Đứng yên tại bục để game tự nhận vật phẩm
+                        end
+                    end
+                else
+                    -- BƯỚC 2: KHÔNG CÓ BOSS & LỬA -> TRẢ LẠI QUYỀN FARM XƯƠNG
+                    _G.FarmBone = true
+                end
+            end)
+        else
+            -- NẾU KHÔNG BẬT TOGGLE: Không làm gì cả, để mặc định FarmBone tự chạy theo UI của nó
         end
     end
 end)
