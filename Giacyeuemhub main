@@ -433,28 +433,44 @@ local Tabs = {
     Server = Window:AddTab({ Title = "Tab Server", Icon = "" })
 };
 
--- [Nút bấm nổi ImageButton]
-local ControlGUI = Instance.new("ScreenGui", game.CoreGui)
-local ImageButton = Instance.new("ImageButton", ControlGUI)
+-- ==========================================
+-- 3. NÚT BẤM BẬT/TẮT MENU (IMAGE BUTTON)
+-- ==========================================
+local ControlGUI = Instance.new("ScreenGui")
+ControlGUI.Name = "ControlGUI"
+ControlGUI.Parent = game.CoreGui
+
+local ImageButton = Instance.new("ImageButton")
 ImageButton.Size = UDim2.new(0, 50, 0, 50)
 ImageButton.Position = UDim2.new(0.1, 0, 0.1, 0)
 ImageButton.Image = "rbxassetid://123060196429580"
 ImageButton.BackgroundTransparency = 1
-Instance.new("UICorner", ImageButton).CornerRadius = UDim.new(0.25, 0)
+ImageButton.Parent = ControlGUI
+
+local UICorner = Instance.new("UICorner", ImageButton)
+UICorner.CornerRadius = UDim.new(0.25, 0)
+
 local UIStroke = Instance.new("UIStroke", ImageButton)
 UIStroke.Thickness = 2
+UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
+-- Hiệu ứng cầu vồng cho viền nút
 task.spawn(function()
     while true do
-        for i = 0, 1, 0.01 do UIStroke.Color = Color3.fromHSV(i, 1, 1) task.wait(0.05) end
+        for i = 0, 1, 0.01 do
+            UIStroke.Color = Color3.fromHSV(i, 1, 1)
+            task.wait(0.05)
+        end
     end
 end)
 
+-- Logic Kéo thả nút & Click để ẩn/hiện
 local isMinimized = false
 ImageButton.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     Window:Minimize(isMinimized) 
 end)
+
 
 -- ==========================================
 -- 3. GIAO DIỆN CHI TIẾT
@@ -592,7 +608,6 @@ Tabs.Setting:AddToggle("ActiveRaceV4", {
 
 Tabs.Setting:AddToggle("WalkWater", {
     Title = "Walk on Water",
-    Description = " ",
     Default = false,
     Callback = function(Value)
         _G.WalkWater = Value
