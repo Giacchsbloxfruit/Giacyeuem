@@ -425,7 +425,7 @@ ControlGUI.Parent = game.CoreGui
 local ImageButton = Instance.new("ImageButton")
 ImageButton.Size = UDim2.new(0, 50, 0, 50)
 ImageButton.Position = UDim2.new(0.1, 0, 0.1, 0)
-ImageButton.Image = "rbxassetid://123060196429580"
+ImageButton.Image = "rbxassetid://87799263418052"
 ImageButton.BackgroundTransparency = 1
 ImageButton.Parent = ControlGUI
 
@@ -714,9 +714,9 @@ Tabs.Shop:AddButton({
     Callback = function() replicated.Remotes.CommF_:InvokeServer("CyborgTrainer", " Buy") end
 })
 
-TeleTab:AddSection("Normal Travel (Tween)")
+Tabs.Teleport:AddSection("Travel Island")
 
-local IslandDrop = TeleTab:AddDropdown("IslandDrop", {
+local IslandDrop = Tabs.Teleport:AddDropdown("IslandDrop", {
     Title = "Chọn đảo muốn đến",
     Values = {"Port Town", "Hydra Island", "Floating Turtle", "Mansion", "Castle On The Sea", "Haunted Castle", "Ice Cream Island", "Peanut Island", "Cake Island", "Cocoa Island", "Candy Island", "Tiki Outpost", "Dragon Dojo"},
     Multi = false,
@@ -726,7 +726,7 @@ local IslandDrop = TeleTab:AddDropdown("IslandDrop", {
     end
 })
 
-local TweenToggle = TeleTab:AddToggle("TweenToggle", {
+local TweenToggle = Tabs.Teleport:AddToggle("TweenToggle", {
     Title = "Bật/Tắt Tween (Bay tới đảo)",
     Default = false,
     Callback = function(Value)
@@ -734,9 +734,9 @@ local TweenToggle = TeleTab:AddToggle("TweenToggle", {
     end
 })
 
-TeleTab:AddSection("Fast Travel (Portal)")
+Tabs.Teleport:AddSection("Travel Portal")
 
-local PortalDrop = TeleTab:AddDropdown("PortalDrop", {
+local PortalDrop = Tabs.Teleport:AddDropdown("PortalDrop", {
     Title = "Chọn cổng Portal",
     Values = {"Hydra Island (Portal)", "Mansion (Portal)", "Castle (Portal)"},
     Multi = false,
@@ -746,7 +746,7 @@ local PortalDrop = TeleTab:AddDropdown("PortalDrop", {
     end
 })
 
-local PortalToggle = TeleTab:AddToggle("PortalToggle", {
+local PortalToggle = Tabs.Teleport:AddToggle("PortalToggle", {
     Title = "Sử dụng Portal",
     Default = false,
     Callback = function(Value)
