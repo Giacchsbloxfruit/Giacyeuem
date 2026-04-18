@@ -19,6 +19,7 @@ _G.CurrentTween = nil
 _G.TweenSpeed = 250
 _G.AutoSoulReaper = false
 _G.WalkWater = false
+_G.Auto_Cake_Prince = false
 
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -487,6 +488,20 @@ Tabs.Main:AddToggle('SoulReaper',{
         end
     end
 })
+Tabs.Main:AddSection("Auto Katakuri")
+
+local MobKilled = Tabs.Main:AddParagraph({
+    Title = "Trạng thái Cake Prince:",
+    Content = "Đang tải dữ liệu..."
+})
+
+Tabs.Main:AddToggle("AutoCakePrinceToggle", {
+    Title = "Auto Farm & Summon Cake Prince",
+    Default = false,
+    Callback = function(Value)
+        _G.Auto_Cake_Prince = Value
+    end
+})
 
 Tabs.Setting:AddToggle("BringMobToggle", {
     Title = "Bring Mobs",
@@ -892,6 +907,88 @@ task.spawn(function()
                 else
                     -- Nếu bật toggle nhưng chưa có Boss/Vật phẩm thì quay lại Farm Bone [cite: 81]
                     _G.FarmBone = true 
+                end
+            end)
+        end
+    end
+end)
+
+-- Loop 1: Cập nhật UI hiển thị số quái
+task.spawn(function()
+    while task.wait(1) do
+        if _G.Auto_Cake_Prince then
+            pcall(function()
+                local countInfo = game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("CakePrinceSpawner")
+                if type(countInfo) == "string" then
+                    local num = string.match(countInfo, "%d+")
+                    if num then
+                        MobKilled:SetDesc("Đã giết: " .. (500 - tonumber(num)) .. "/500 con")
+                    else
+                        MobKilled:SetDesc("Trạng thái: Killed 500/500")
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- Loop 2: Logic Farm & Triệu hồi
+task.spawn(function()
+    while task.wait(0.5) do
+        if _G.Auto_Cake_Prince then
+            pcall(function()
+                local player = game.Players.LocalPlayer
+                local char = player.Character
+                if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+
+                local enemies = workspace.Enemies
+                local bigMirror = workspace.Map.CakeLoaf.BigMirror
+
+                -- BƯỚC 1: Nếu có Boss (Cake Prince hoặc Dough King) -> Bay lên đầu Boss
+                local boss = enemies:FindFirstChild("Cake Prince") or enemies:FindFirstChild("Dough King")
+                if boss and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
+                    topos(boss.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
+                    return -- Dừng lại để script Auto Attack riêng của bạn tự đấm Boss
+                end
+
+                -- BƯỚC 2: Nếu Gương đã mở -> Bay vào thẳng trong không gian Gương
+                if bigMirror and bigMirror:FindFirstChild("Other") and bigMirror.Other.Transparency == 0 then
+                    topos(CFrame.new(-2151.82, 149.32, -12404.91))
+                    return
+                end
+
+                -- BƯỚC 3: Lấy thông tin số lượng quái
+                local countStr = game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("CakePrinceSpawner")
+                local mobsLeft = 500
+                if type(countStr) == "string" then
+                    local match = string.match(countStr, "%d+")
+                    if match then mobsLeft = tonumber(match) end
+                end
+
+                -- BƯỚC 4: Logic Farm hoặc Triệu hồi
+                if mobsLeft > 0 then
+                    -- Nếu chưa đủ 500 con -> Tìm quái ở đảo Cake Loaf để TP tới
+                    local targetMob = nil
+                    local validMobs = {"Cookie Crafter", "Cake Guard", "Baking Staff", "Head Baker"}
+                    
+                    for _, mobName in ipairs(validMobs) do
+                        local mob = enemies:FindFirstChild(mobName)
+                        if mob and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+                            targetMob = mob
+                            break
+                        end
+                    end
+
+                    if targetMob then
+                        -- Bay đến trên đầu quái để Auto Attack đánh
+                        topos(targetMob.HumanoidRootPart.CFrame * CFrame.new(0, 15, 0))
+                    else
+                        -- Không thấy quái thì đứng giữa đảo chờ quái spawn
+                        topos(CFrame.new(-2077, 252, -12373))
+                    end
+                else
+                    -- BƯỚC 5: NẾU ĐÃ ĐỦ 500 CON -> Tự động mở cổng (Talk to NPC Drip Mama)
+                    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("CakePrinceSpawner", true)
                 end
             end)
         end
