@@ -38,7 +38,7 @@ function AutoWalkWater()
     end)
 end
 
--- Hàm soulreaper
+
 -- Hàm trang bị vũ khí
 function EquipWeapon(ToolName)
     if game.Players.LocalPlayer.Backpack:FindFirstChild(ToolName) then
@@ -503,13 +503,14 @@ Tabs.Main:AddToggle("FarmBoneToggle", {
     Callback = function(Value) _G.FarmBone = Value end
 })
 
-Tabs.Main:-- Giả sử đây là Tab Main hoặc Tab Boss của bạn
-Tab:AddToggle({
-    Name = "Auto Soul Reaper",
+Tabs.Main:AddToggle({
+    Title = "Auto Soul Reaper",
     Default = false,
     Callback = function(Value)
         _G.AutoSoulReaper = Value
         if not Value then
+            _G.FarmBone = true -- Tắt cái này thì bật cái kia
+            if _G.CurrentTween then _G.CurrentTween:Cancel() end
         end
     end
 })
@@ -889,51 +890,39 @@ task.spawn(function()
     end
 end)
 
---Loop soul reaper
 task.spawn(function()
     while task.wait(0.5) do
         if _G.AutoSoulReaper then
             pcall(function()
                 local player = game:GetService("Players").LocalPlayer
-                local character = player.Character
                 local backpack = player.Backpack
+                local char = player.Character
                 
-                -- Tìm vật phẩm và Boss
-                local hasEssence = backpack:FindFirstChild("Hallow Essence") or character:FindFirstChild("Hallow Essence")
+                local hasEssence = backpack:FindFirstChild("Hallow Essence") or char:FindFirstChild("Hallow Essence")
                 local boss = game:GetService("Workspace").Enemies:FindFirstChild("Soul Reaper")
-
+                
                 if boss or hasEssence then
-                    -- BƯỚC 1: CÓ VIỆC ƯU TIÊN -> TẮT FARM XƯƠNG
-                    _G.FarmBone = false
+                    _G.FarmBone = false -- Ưu tiên xử lý Boss
                     
                     if boss and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
-                        -- ĐI ĐÁNH BOSS
                         EquipWeapon(_G.SelectWeapon)
                         boss.HumanoidRootPart.CanCollide = false
                         boss.HumanoidRootPart.Size = Vector3.new(50, 50, 50)
-                        
                         topos(boss.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
                         
-                        -- Auto Click
                         game:GetService("VirtualUser"):CaptureController()
                         game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 670))
                     elseif hasEssence then
-                        -- ĐI TRIỆU HỒI
                         local summonPos = CFrame.new(-8932.322, 146.832, 6062.551)
                         topos(summonPos)
-                        
-                        if (character.HumanoidRootPart.Position - summonPos.Position).Magnitude <= 10 then
+                        if (char.HumanoidRootPart.Position - summonPos.Position).Magnitude <= 15 then
                             EquipWeapon("Hallow Essence")
-                            -- Đứng yên tại bục để game tự nhận vật phẩm
                         end
                     end
                 else
-                    -- BƯỚC 2: KHÔNG CÓ BOSS & LỬA -> TRẢ LẠI QUYỀN FARM XƯƠNG
-                    _G.FarmBone = true
+                    _G.FarmBone = true -- Không có boss thì trả lại farm xương
                 end
             end)
-        else
-            -- NẾU KHÔNG BẬT TOGGLE: Không làm gì cả, để mặc định FarmBone tự chạy theo UI của nó
         end
     end
 end)
