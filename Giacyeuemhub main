@@ -611,52 +611,56 @@ Tabs.Server:AddButton({
 })
 -- Section 1: Melee ở xa (Dùng Tween để chống giật lùi)
 Tabs.Shop:AddSection("Buy Melee")
+Tabs.Shop:AddSection("Buy Melee (Tween Mode)")
+
 Tabs.Shop:AddButton({
     Title = "Black Leg", 
-    Callback = function() InstantTPMelee(CFrame.new(-5045, 371, -3181), "BlackLeg") end
+    Callback = function() BuyMeleeTween(CFrame.new(-5045, 371, -3181), "BlackLeg") end
 })
 
 Tabs.Shop:AddButton({
-    Title = "Electro ", 
-    Callback = function() InstantTPMelee(CFrame.new(-4995, 314, -3200), "Electro") end
+    Title = "Electro", 
+    Callback = function() BuyMeleeTween(CFrame.new(-4995, 314, -3200), "Electro") end
 })
 
 Tabs.Shop:AddButton({
-    Title = "Water Kung Fu ", 
-    Callback = function() InstantTPMelee(CFrame.new(-5023, 371, -3190), "WaterKungFu") end
+    Title = "Water Kung Fu", 
+    Callback = function() BuyMeleeTween(CFrame.new(-5023, 371, -3190), "WaterKungFu") end
 })
 
 Tabs.Shop:AddButton({
-    Title = "Dragon Claw ", 
-    Callback = function() InstantTPMelee(CFrame.new(-4981, 371, -3205), "DragonClaw") end
+    Title = "Dragon Claw", 
+    Callback = function() BuyMeleeTween(CFrame.new(-4981, 371, -3205), "DragonClaw") end
 })
 
 Tabs.Shop:AddButton({
-    Title = "Superhuman ", 
-    Callback = function() InstantTPMelee(CFrame.new(-5002, 371, -3199), "Superhuman") end
+    Title = "Superhuman", 
+    Callback = function() BuyMeleeTween(CFrame.new(-5002, 371, -3199), "Superhuman") end
 })
 
 Tabs.Shop:AddButton({
-    Title = "Death Step ", 
-    Callback = function() InstantTPMelee(CFrame.new(-5000, 314, -3220), "DeathStep") end
+    Title = "Death Step", 
+    Callback = function() BuyMeleeTween(CFrame.new(-5000, 314, -3220), "DeathStep") end
 })
 
 Tabs.Shop:AddButton({
-    Title = "Sharkman Karate ", 
-    Callback = function() InstantTPMelee(CFrame.new(-4971, 314, -3220), "Sharkman") end
+    Title = "Sharkman Karate", 
+    Callback = function() BuyMeleeTween(CFrame.new(-4971, 314, -3220), "Sharkman") end
+})
+
+Tabs.Shop:AddButton({
+    Title = "Electric Claw", 
+    Callback = function() BuyMeleeTween(CFrame.new(-10372, 331, -10129), "ElectricClaw") end
+})
+
+Tabs.Shop:AddButton({
+    Title = "Dragon Talon", 
+    Callback = function() BuyMeleeTween(CFrame.new(5663, 1211, 862), "DragonTalon") end
 })
 
 Tabs.Shop:AddButton({
     Title = "God Human", 
-    Callback = function() TweenBuyMelee(CFrame.new(-13779, 334, -9879), "Godhuman") end
-})
-Tabs.Shop:AddButton({
-    Title = "Electric Claw", 
-    Callback = function() TweenBuyMelee(CFrame.new(-10372, 331, -10129), "ElectricClaw") end
-})
-Tabs.Shop:AddButton({
-    Title = "Dragon Talon", 
-    Callback = function() TweenBuyMelee(CFrame.new(5663, 1211, 862), "DragonTalon") end
+    Callback = function() BuyMeleeTween(CFrame.new(-13779, 334, -9879), "Godhuman") end
 })
 
 -- Section 2: Shop kỹ năng cơ bản (Snippet của bạn)
