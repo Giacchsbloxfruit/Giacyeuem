@@ -714,15 +714,6 @@ task.spawn(function()
     end
 end)
 
--- Loop SoulReaper --
-task.spawn(function()
-    while task.wait() do
-        if _G.Hallow then
-            pcall(AutoSoulReaper)
-        end
-    end
-end)
-
 -- Vòng lặp cho Bring Fruit (Instant TP)
 task.spawn(function()
     while task.wait(0.5) do
