@@ -20,6 +20,7 @@ _G.TweenSpeed = 250
 _G.AutoSoulReaper = false
 _G.WalkWater = false
 _G.Auto_Cake_Prince = false
+_G.OldFarmBoneStatus = false
 
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -479,15 +480,20 @@ Tabs.Main:AddToggle('SoulReaper',{
     Title = "Auto Soul Reaper",
     Default = false,
     Callback = function(Value)
-        _G.AutoSoulReaper = Value -- Cập nhật trạng thái bật/tắt 
+        _G.AutoSoulReaper = Value 
         
         if not Value then
-            -- Khi tắt: Dừng bay và trả lại quyền điều khiển cho Farm Bone [cite: 43]
-            _G.FarmBone = true 
+            -- Khi TẮT nút Soul Reaper bằng tay:
+            -- CHỈ trả lại farm bone NẾU trước đó bạn đang bật nó
+            if _G.OldFarmBoneStatus then
+                _G.FarmBone = true
+                _G.OldFarmBoneStatus = false -- Reset bộ nhớ
+            end
             if _G.CurrentTween then _G.CurrentTween:Cancel() end
         end
     end
 })
+
 Tabs.Main:AddSection("Auto Katakuri")
 
 local MobKilled = Tabs.Main:AddParagraph({
@@ -868,52 +874,42 @@ end)
 --Loop auto soul reaper
 task.spawn(function()
     while task.wait(0.5) do
-        if _G.AutoSoulReaper then -- Chỉ chạy logic khi nút được bật 
+        if _G.AutoSoulReaper then 
             pcall(function()
                 local player = game:GetService("Players").LocalPlayer
                 local char = player.Character
                 if not char or not char:FindFirstChild("HumanoidRootPart") then return end
                 
-                -- Kiểm tra vật phẩm và Boss (Chỉ check khi bật toggle) [cite: 75, 76]
                 local hasEssence = player.Backpack:FindFirstChild("Hallow Essence") or char:FindFirstChild("Hallow Essence")
                 local boss = game:GetService("Workspace").Enemies:FindFirstChild("Soul Reaper")
                 
                 if boss or hasEssence then
-                    -- NẾU CÓ BOSS HOẶC CÓ CÚP: DỪNG FARM BONE NGAY [cite: 76]
-                    _G.FarmBone = false 
+                    -- Nếu đang bật Farm Bone thì mới LƯU và TẮT để đánh boss
+                    if _G.FarmBone then
+                        _G.OldFarmBoneStatus = true
+                        _G.FarmBone = false 
+                    end
                     
-                    if boss and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
-                        -- Ưu tiên 1: Tiêu diệt Boss [cite: 77]
-                        EquipWeapon(_G.SelectWeapon) 
-                        boss.HumanoidRootPart.CanCollide = false
-                        boss.HumanoidRootPart.Size = Vector3.new(50, 50, 50)
-                        
-                        -- Bay phía trên đầu Boss để né chiêu [cite: 78]
+                    if boss and boss.Humanoid.Health > 0 then
+                        EquipWeapon(_G.SelectWeapon)
                         topos(boss.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
-                        
-                        -- Tự động nhấn chuột đánh Boss [cite: 79]
-                        game:GetService("VirtualUser"):CaptureController()
                         game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 670))
                     elseif hasEssence then
-                        -- Ưu tiên 2: Đi triệu hồi Boss nếu có Hallow Essence [cite: 79]
-                        local summonPos = CFrame.new(-8932.322, 146.832, 6062.551) 
-                        topos(summonPos)
-                        
-                        -- Khi đã sát điểm triệu hồi, cầm Essence lên [cite: 80]
-                        if (char.HumanoidRootPart.Position - summonPos.Position).Magnitude <= 15 then
-                            EquipWeapon("Hallow Essence")
-                        end
+                        topos(CFrame.new(-8932.322, 146.832, 6062.551))
                     end
                 else
-                    -- Nếu bật toggle nhưng chưa có Boss/Vật phẩm thì quay lại Farm Bone [cite: 81]
-                    _G.FarmBone = true 
+                    -- Khi hết Boss: Chỉ trả lại NẾU bộ nhớ đang giữ giá trị true
+                    if _G.OldFarmBoneStatus then
+                        _G.FarmBone = true
+                        _G.OldFarmBoneStatus = false
+                    end
                 end
             end)
         end
     end
 end)
 
--- Loop 1: Cập nhật UI hiển thị số quái
+-- Loop 1: Cập nhật UI hiển thị số quái katakuri
 task.spawn(function()
     while task.wait(1) do
         if _G.Auto_Cake_Prince then
