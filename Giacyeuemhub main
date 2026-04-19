@@ -626,7 +626,7 @@ Tabs.Main:AddSection("Auto Farm Level")
 
 local ToggleFarm = Tabs.Main:AddToggle("AutoFarmLevel", {
     Title = "Auto Farm Level",
-    Default = false,
+    Default = true,
     Callback = function(Value)
         _G.AutoFarmLevel = Value
         if not Value then
