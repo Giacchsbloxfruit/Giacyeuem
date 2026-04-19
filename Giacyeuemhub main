@@ -1,6 +1,7 @@
 -- ==========================================
 -- 1. KHAI BÁO BIẾN & CÀI ĐẶT HỆ THỐNG
 -- ==========================================
+_G.HighlightColor = "Rainbow"
 _G.SelectedIsland = "Port Town"      -- Đảo mặc định cho Tween
 _G.AutoTweenIsland = false           -- Trạng thái nút gạt Tween
 _G.SelectedPortal = "Mansion (Portal)" -- Cổng mặc định
@@ -25,7 +26,7 @@ _G.AutoSoulReaper = false
 _G.WalkWater = false
 _G.Auto_Cake_Prince = false
 _G.OldFarmBoneStatus = false
-_G.AutoFarmLevel = false
+_G.AutoFarmLevel = true
 
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -119,6 +120,48 @@ function HopServer()
         end
     end)
 end
+--Ham color
+local StaticColors = {
+    ["Red"] = Color3.fromRGB(255, 0, 0),
+    ["Orange"] = Color3.fromRGB(255, 128, 0),
+    ["Yellow"] = Color3.fromRGB(255, 255, 0),
+    ["Green"] = Color3.fromRGB(0, 255, 0),
+    ["Blue"] = Color3.fromRGB(0, 170, 255), -- Màu xanh biển sáng cho đẹp
+    ["Purple"] = Color3.fromRGB(170, 0, 255),
+    ["Pink"] = Color3.fromRGB(255, 105, 180),
+    ["White"] = Color3.fromRGB(255, 255, 255)
+}
+
+task.spawn(function()
+    local LP = game.Players.LocalPlayer
+    while task.wait() do
+        if _G.GoingToSea2 then continue end
+        
+        pcall(function()
+            local char = LP.Character
+            if char then
+                local hl = char:FindFirstChild("GiacdzHighlight") or Instance.new("Highlight", char)
+                hl.Name = "GiacdzHighlight"
+                hl.FillTransparency = 0.5
+                
+                -- Kiểm tra xem đang chọn màu gì
+                if _G.HighlightColor == "Rainbow" then
+                    -- Chế độ 7 màu (Rainbow)
+                    local hue = tick() % 3 / 3 
+                    hl.FillColor = Color3.fromHSV(hue, 1, 1) 
+                    hl.OutlineColor = Color3.fromHSV(hue, 1, 1) 
+                else
+                    -- Chế độ màu tĩnh
+                    local selectedColor = StaticColors[_G.HighlightColor]
+                    if selectedColor then
+                        hl.FillColor = selectedColor
+                        hl.OutlineColor = selectedColor
+                    end
+                end
+            end
+        end)
+    end
+end)
 
 -- Hàm code --
 function AutoRedeem()
@@ -596,6 +639,16 @@ Tabs.Main:AddToggle("AutoCakePrinceToggle", {
     Default = false,
     Callback = function(Value)
         _G.Auto_Cake_Prince = Value
+    end
+})
+
+Tabs.Setting:AddDropdown("ColorHighlightDrop", {
+    Title = "Highlight color",
+    Values = {"Rainbow", "Red", "Orange", "Yellow", "Green", "Blue", "Purple", "Pink", "White"},
+    Multi = false,
+    Default = "Rainbow",
+    Callback = function(Value)
+        _G.HighlightColor = Value
     end
 })
 
