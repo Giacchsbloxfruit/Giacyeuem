@@ -32,6 +32,76 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local replicated = game:GetService("ReplicatedStorage")
 
+--Hàm fps,ping,time
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+local Stats = game:GetService("Stats")
+
+-- Xóa cái cũ để tránh bị chồng đè khi chạy lại script
+if CoreGui:FindFirstChild("GiacdzStats") then
+    CoreGui.GiacdzStats:Destroy()
+end
+
+-- Lưu thời điểm bắt đầu chạy script
+local StartTime = tick()
+
+local ScreenGui = Instance.new("ScreenGui")
+local InfoLabel = Instance.new("TextLabel")
+
+ScreenGui.Name = "GiacdzStats"
+ScreenGui.Parent = CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+InfoLabel.Name = "InfoLabel"
+InfoLabel.Parent = ScreenGui
+InfoLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+InfoLabel.BackgroundTransparency = 1.000
+InfoLabel.Position = UDim2.new(0, 10, 0, 10) 
+InfoLabel.Size = UDim2.new(0, 400, 0, 30) -- Tăng độ rộng để chứa thêm Time
+InfoLabel.Font = Enum.Font.FredokaOne
+InfoLabel.Text = "FPS: 0 | Ping: 0 ms | Time: 00:00:00"
+InfoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+InfoLabel.TextSize = 17.000
+InfoLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Biến tính toán
+local TimeTable = {}
+local FrameUpdateDelay = 0.5 
+local LastUpdate = tick()
+
+-- Hàm đổi giây sang định dạng 00:00:00
+local function FormatTime(seconds)
+    local hours = math.floor(seconds / 3600)
+    local mins = math.floor((seconds % 3600) / 60)
+    local secs = math.floor(seconds % 60)
+    return string.format("%02d:%02d:%02d", hours, mins, secs)
+end
+
+RunService.RenderStepped:Connect(function()
+    -- Hiệu ứng Rainbow cho chữ
+    local hue = tick() % 3 / 3
+    InfoLabel.TextColor3 = Color3.fromHSV(hue, 1, 1)
+    
+    -- Tính FPS
+    local CurrentTime = tick()
+    for i = #TimeTable, 1, -1 do
+        if TimeTable[i] < CurrentTime - 1 then
+            table.remove(TimeTable, i)
+        end
+    end
+    table.insert(TimeTable, CurrentTime)
+    
+    -- Cập nhật nội dung mỗi 0.5 giây
+    if CurrentTime - LastUpdate >= FrameUpdateDelay then
+        local fps = #TimeTable
+        local ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+        local elapsed = CurrentTime - StartTime
+        
+        InfoLabel.Text = string.format("FPS: %d | Ping: %d ms | Time: %s", fps, ping, FormatTime(elapsed))
+        LastUpdate = CurrentTime
+    end
+end)
+
 -- Hàm walk on water
 function AutoWalkWater()
     pcall(function()
