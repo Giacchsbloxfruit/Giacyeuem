@@ -1,6 +1,7 @@
 -- ==========================================
 -- 1. KHAI BÁO BIẾN & CÀI ĐẶT HỆ THỐNG
 -- ==========================================
+_G.HighlightColor = "Rainbow"
 _G.SelectedIsland = "Port Town"      -- Đảo mặc định cho Tween
 _G.AutoTweenIsland = false           -- Trạng thái nút gạt Tween
 _G.SelectedPortal = "Mansion (Portal)" -- Cổng mặc định
@@ -25,10 +26,81 @@ _G.AutoSoulReaper = false
 _G.WalkWater = false
 _G.Auto_Cake_Prince = false
 _G.OldFarmBoneStatus = false
+_G.AutoFarmLevel = false
 
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local replicated = game:GetService("ReplicatedStorage")
+
+--Hàm fps,ping,time
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+local Stats = game:GetService("Stats")
+
+-- Xóa cái cũ để tránh bị chồng đè khi chạy lại script
+if CoreGui:FindFirstChild("GiacdzStats") then
+    CoreGui.GiacdzStats:Destroy()
+end
+
+-- Lưu thời điểm bắt đầu chạy script
+local StartTime = tick()
+
+local ScreenGui = Instance.new("ScreenGui")
+local InfoLabel = Instance.new("TextLabel")
+
+ScreenGui.Name = "GiacdzStats"
+ScreenGui.Parent = CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+InfoLabel.Name = "InfoLabel"
+InfoLabel.Parent = ScreenGui
+InfoLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+InfoLabel.BackgroundTransparency = 1.000
+InfoLabel.Position = UDim2.new(0, 10, 0, 10) 
+InfoLabel.Size = UDim2.new(0, 400, 0, 30) -- Tăng độ rộng để chứa thêm Time
+InfoLabel.Font = Enum.Font.FredokaOne
+InfoLabel.Text = "FPS: 0 | Ping: 0 ms | Time: 00:00:00"
+InfoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+InfoLabel.TextSize = 17.000
+InfoLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Biến tính toán
+local TimeTable = {}
+local FrameUpdateDelay = 0.5 
+local LastUpdate = tick()
+
+-- Hàm đổi giây sang định dạng 00:00:00
+local function FormatTime(seconds)
+    local hours = math.floor(seconds / 3600)
+    local mins = math.floor((seconds % 3600) / 60)
+    local secs = math.floor(seconds % 60)
+    return string.format("%02d:%02d:%02d", hours, mins, secs)
+end
+
+RunService.RenderStepped:Connect(function()
+    -- Hiệu ứng Rainbow cho chữ
+    local hue = tick() % 3 / 3
+    InfoLabel.TextColor3 = Color3.fromHSV(hue, 1, 1)
+    
+    -- Tính FPS
+    local CurrentTime = tick()
+    for i = #TimeTable, 1, -1 do
+        if TimeTable[i] < CurrentTime - 1 then
+            table.remove(TimeTable, i)
+        end
+    end
+    table.insert(TimeTable, CurrentTime)
+    
+    -- Cập nhật nội dung mỗi 0.5 giây
+    if CurrentTime - LastUpdate >= FrameUpdateDelay then
+        local fps = #TimeTable
+        local ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+        local elapsed = CurrentTime - StartTime
+        
+        InfoLabel.Text = string.format("FPS: %d | Ping: %d ms | Time: %s", fps, ping, FormatTime(elapsed))
+        LastUpdate = CurrentTime
+    end
+end)
 
 -- Hàm walk on water
 function AutoWalkWater()
@@ -42,6 +114,57 @@ function AutoWalkWater()
             end
         end
     end)
+end
+
+-- Bảng dữ liệu Farm Sea 3 cực kỳ thông minh
+local Sea3MobData = {
+    {Min = 1500, Max = 1524, Mon = "Pirate Millionaire", Qname = "PiratePortQuest", Qdata = 1, PosQ = CFrame.new(-712.8, 98.5, 5711.9), PosM = CFrame.new(-712.8, 98.5, 5711.9)},
+    {Min = 1525, Max = 1574, Mon = "Pistol Billionaire", Qname = "PiratePortQuest", Qdata = 2, PosQ = CFrame.new(-723.4, 147.4, 5931.9), PosM = CFrame.new(-723.4, 147.4, 5931.9)},
+    {Min = 1575, Max = 1599, Mon = "Dragon Crew Warrior", Qname = "AmazonQuest", Qdata = 1, PosQ = CFrame.new(6779.0, 111.1, -801.2), PosM = CFrame.new(6779.0, 111.1, -801.2)},
+    {Min = 1600, Max = 1624, Mon = "Dragon Crew Archer", Qname = "AmazonQuest", Qdata = 2, PosQ = CFrame.new(6955.8, 546.6, 309.0), PosM = CFrame.new(6955.8, 546.6, 309.0)},
+    {Min = 1625, Max = 1649, Mon = "Hydra Enforcer", Qname = "VenomCrewQuest", Qdata = 1, PosQ = CFrame.new(4620.6, 1002.2, 399.0), PosM = CFrame.new(4620.6, 1002.2, 399.0)},
+    {Min = 1650, Max = 1699, Mon = "Venomous Assailant", Qname = "VenomCrewQuest", Qdata = 2, PosQ = CFrame.new(4697.5, 1100.6, 946.4), PosM = CFrame.new(4697.5, 1100.6, 946.4)},
+    {Min = 1700, Max = 1724, Mon = "Marine Commodore", Qname = "MarineTreeIsland", Qdata = 1, PosQ = CFrame.new(2180.5, 27.8, -6741.5), PosM = CFrame.new(2286.0, 73.1, -7159.8)},
+    {Min = 1725, Max = 1774, Mon = "Marine Rear Admiral", Qname = "MarineTreeIsland", Qdata = 2, PosQ = CFrame.new(2179.9, 28.7, -6740.0), PosM = CFrame.new(3656.7, 160.5, -7001.5)},
+    {Min = 1775, Max = 1799, Mon = "Fishman Raider", Qname = "DeepForestIsland3", Qdata = 1, PosQ = CFrame.new(-10581.6, 330.8, -8761.1), PosM = CFrame.new(-10407.5, 331.7, -8368.5)},
+    {Min = 1800, Max = 1824, Mon = "Fishman Captain", Qname = "DeepForestIsland3", Qdata = 2, PosQ = CFrame.new(-10581.6, 330.8, -8761.1), PosM = CFrame.new(-10994.7, 352.3, -9002.1)},
+    {Min = 1825, Max = 1849, Mon = "Forest Pirate", Qname = "DeepForestIsland", Qdata = 1, PosQ = CFrame.new(-13234.0, 331.4, -7625.4), PosM = CFrame.new(-13274.4, 332.3, -7769.5)},
+    {Min = 1850, Max = 1899, Mon = "Mythological Pirate", Qname = "DeepForestIsland", Qdata = 2, PosQ = CFrame.new(-13234.0, 331.4, -7625.4), PosM = CFrame.new(-13680.6, 501.0, -6991.1)},
+    {Min = 1900, Max = 1924, Mon = "Jungle Pirate", Qname = "DeepForestIsland2", Qdata = 1, PosQ = CFrame.new(-12680.3, 389.9, -9902.0), PosM = CFrame.new(-12256.1, 331.7, -10485.8)},
+    {Min = 1925, Max = 1974, Mon = "Musketeer Pirate", Qname = "DeepForestIsland2", Qdata = 2, PosQ = CFrame.new(-12680.3, 389.9, -9902.0), PosM = CFrame.new(-13457.9, 391.5, -9859.1)},
+    {Min = 1975, Max = 1999, Mon = "Reborn Skeleton", Qname = "HauntedQuest1", Qdata = 1, PosQ = CFrame.new(-9479.2, 141.2, 5566.0), PosM = CFrame.new(-8763.7, 165.7, 6159.8)},
+    {Min = 2000, Max = 2024, Mon = "Living Zombie", Qname = "HauntedQuest1", Qdata = 2, PosQ = CFrame.new(-9479.2, 141.2, 5566.0), PosM = CFrame.new(-10144.1, 138.6, 5838.0)},
+    {Min = 2025, Max = 2049, Mon = "Demonic Soul", Qname = "HauntedQuest2", Qdata = 1, PosQ = CFrame.new(-9516.9, 172.0, 6078.4), PosM = CFrame.new(-9505.8, 172.1, 6158.9)},
+    {Min = 2050, Max = 2074, Mon = "Posessed Mummy", Qname = "HauntedQuest2", Qdata = 2, PosQ = CFrame.new(-9516.9, 172.0, 6078.4), PosM = CFrame.new(-9582.0, 6.2, 6205.4)},
+    {Min = 2075, Max = 2099, Mon = "Peanut Scout", Qname = "NutsIslandQuest", Qdata = 1, PosQ = CFrame.new(-2104.3, 38.1, -10194.2), PosM = CFrame.new(-2143.2, 47.7, -10029.9)},
+    {Min = 2100, Max = 2124, Mon = "Peanut President", Qname = "NutsIslandQuest", Qdata = 2, PosQ = CFrame.new(-2104.3, 38.1, -10194.2), PosM = CFrame.new(-1859.3, 38.1, -10422.4)},
+    {Min = 2125, Max = 2149, Mon = "Ice Cream Chef", Qname = "IceCreamIslandQuest", Qdata = 1, PosQ = CFrame.new(-820.6, 65.8, -10965.7), PosM = CFrame.new(-872.2, 65.8, -10919.9)},
+    {Min = 2150, Max = 2199, Mon = "Ice Cream Commander", Qname = "IceCreamIslandQuest", Qdata = 2, PosQ = CFrame.new(-820.6, 65.8, -10965.7), PosM = CFrame.new(-558.0, 112.0, -11290.7)},
+    {Min = 2200, Max = 2224, Mon = "Cookie Crafter", Qname = "CakeQuest1", Qdata = 1, PosQ = CFrame.new(-2021.3, 37.7, -12028.7), PosM = CFrame.new(-2374.1, 37.7, -12125.3)},
+    {Min = 2225, Max = 2249, Mon = "Cake Guard", Qname = "CakeQuest1", Qdata = 2, PosQ = CFrame.new(-2021.3, 37.7, -12028.7), PosM = CFrame.new(-1598.3, 43.7, -12244.5)},
+    {Min = 2250, Max = 2274, Mon = "Baking Staff", Qname = "CakeQuest2", Qdata = 1, PosQ = CFrame.new(-1927.9, 37.7, -12842.5), PosM = CFrame.new(-1887.8, 77.6, -12998.3)},
+    {Min = 2275, Max = 2299, Mon = "Head Baker", Qname = "CakeQuest2", Qdata = 2, PosQ = CFrame.new(-1927.9, 37.7, -12842.5), PosM = CFrame.new(-2216.1, 82.8, -12869.2)},
+    {Min = 2300, Max = 2324, Mon = "Cocoa Warrior", Qname = "ChocQuest1", Qdata = 1, PosQ = CFrame.new(233.2, 29.8, -12201.2), PosM = CFrame.new(-21.5, 80.5, -12352.3)},
+    {Min = 2325, Max = 2349, Mon = "Chocolate Bar Battler", Qname = "ChocQuest1", Qdata = 2, PosQ = CFrame.new(233.2, 29.8, -12201.2), PosM = CFrame.new(582.5, 77.1, -12463.1)},
+    {Min = 2350, Max = 2374, Mon = "Sweet Thief", Qname = "ChocQuest2", Qdata = 1, PosQ = CFrame.new(150.5, 30.6, -12774.5), PosM = CFrame.new(165.1, 76.0, -12600.8)},
+    {Min = 2375, Max = 2399, Mon = "Candy Rebel", Qname = "ChocQuest2", Qdata = 2, PosQ = CFrame.new(150.5, 30.6, -12774.5), PosM = CFrame.new(134.8, 77.2, -12876.5)},
+    {Min = 2400, Max = 2449, Mon = "Candy Pirate", Qname = "CandyQuest1", Qdata = 1, PosQ = CFrame.new(-1150.0, 20.3, -14446.3), PosM = CFrame.new(-1310.5, 26.0, -14562.4)},
+    {Min = 2450, Max = 2474, Mon = "Isle Outlaw", Qname = "TikiQuest1", Qdata = 1, PosQ = CFrame.new(-16548.8, 55.6, -172.8), PosM = CFrame.new(-16479.9, 226.6, -300.3)},
+    {Min = 2475, Max = 2499, Mon = "Island Boy", Qname = "TikiQuest1", Qdata = 2, PosQ = CFrame.new(-16548.8, 55.6, -172.8), PosM = CFrame.new(-16849.3, 192.8, -150.7)},
+    {Min = 2500, Max = 2524, Mon = "Sun-kissed Warrior", Qname = "TikiQuest2", Qdata = 1, PosQ = CFrame.new(-16538.0, 55.0, 1049.0), PosM = CFrame.new(-16347.0, 64.0, 984.0)},
+    {Min = 2525, Max = 2550, Mon = "Isle Champion", Qname = "TikiQuest2", Qdata = 2, PosQ = CFrame.new(-16541.0, 57.3, 1051.4), PosM = CFrame.new(-16602.1, 130.3, 1087.2)},
+    {Min = 2551, Max = 2574, Mon = "Serpent Hunter", Qname = "TikiQuest3", Qdata = 1, PosQ = CFrame.new(-16679.4, 176.7, 1474.3), PosM = CFrame.new(-16679.4, 176.7, 1474.3)},
+    {Min = 2575, Max = 10000, Mon = "Skull Slayer", Qname = "TikiQuest3", Qdata = 2, PosQ = CFrame.new(-16759.5, 71.2, 1595.3), PosM = CFrame.new(-16759.5, 71.2, 1595.3)}
+}
+
+-- Hàm tự động tìm quái theo Level
+local function GetMobByLevel(level)
+    for _, data in ipairs(Sea3MobData) do
+        if level >= data.Min and level <= data.Max then
+            return data
+        end
+    end
+    return nil
 end
 
 -- Hàm hop server
@@ -67,6 +190,48 @@ function HopServer()
         end
     end)
 end
+--Ham color
+local StaticColors = {
+    ["Red"] = Color3.fromRGB(255, 0, 0),
+    ["Orange"] = Color3.fromRGB(255, 128, 0),
+    ["Yellow"] = Color3.fromRGB(255, 255, 0),
+    ["Green"] = Color3.fromRGB(0, 255, 0),
+    ["Blue"] = Color3.fromRGB(0, 170, 255), -- Màu xanh biển sáng cho đẹp
+    ["Purple"] = Color3.fromRGB(170, 0, 255),
+    ["Pink"] = Color3.fromRGB(255, 105, 180),
+    ["White"] = Color3.fromRGB(255, 255, 255)
+}
+
+task.spawn(function()
+    local LP = game.Players.LocalPlayer
+    while task.wait() do
+        if _G.GoingToSea2 then continue end
+        
+        pcall(function()
+            local char = LP.Character
+            if char then
+                local hl = char:FindFirstChild("GiacdzHighlight") or Instance.new("Highlight", char)
+                hl.Name = "GiacdzHighlight"
+                hl.FillTransparency = 0.5
+                
+                -- Kiểm tra xem đang chọn màu gì
+                if _G.HighlightColor == "Rainbow" then
+                    -- Chế độ 7 màu (Rainbow)
+                    local hue = tick() % 3 / 3 
+                    hl.FillColor = Color3.fromHSV(hue, 1, 1) 
+                    hl.OutlineColor = Color3.fromHSV(hue, 1, 1) 
+                else
+                    -- Chế độ màu tĩnh
+                    local selectedColor = StaticColors[_G.HighlightColor]
+                    if selectedColor then
+                        hl.FillColor = selectedColor
+                        hl.OutlineColor = selectedColor
+                    end
+                end
+            end
+        end)
+    end
+end)
 
 -- Hàm code --
 function AutoRedeem()
@@ -317,23 +482,27 @@ RunService.Stepped:Connect(function()
 end)
 
 -- Hàm Gom Quái (Bring Mob) - Tầm 2-4 con gần nhất
-function BringMob(targetMobName, targetPos)
-    if not _G.BringMob then return end
+local function FixMob(mob, targetCFrame)
     pcall(function()
-        local count = 0
-        for _, v in pairs(game:GetService("Workspace").Enemies:GetChildren()) do
-            if v.Name == targetMobName and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
-                if count < 4 then -- Giới hạn 4 con để tránh lỗi
-                    v.HumanoidRootPart.CanCollide = false
-                    v.HumanoidRootPart.CFrame = targetPos
-                    v.Humanoid.WalkSpeed = 0
-                    v.Humanoid:ChangeState(11) -- Khóa trạng thái quái
-                    count = count + 1
-                end
-            end
+        -- Phóng to hitbox và chặn quái di chuyển
+        mob.HumanoidRootPart.Size = Vector3.new(60, 60, 60)
+        mob.HumanoidRootPart.CanCollide = false
+        mob.Humanoid.JumpPower = 0
+        mob.Humanoid.WalkSpeed = 0
+        
+        -- Chống quái ảo bằng State 14
+        mob.Humanoid:ChangeState(14)
+        
+        -- Xóa animation để quái đứng im một chỗ
+        if mob.Humanoid:FindFirstChild("Animator") then
+            mob.Humanoid.Animator:Destroy()
         end
+        
+        -- Kéo quái về vị trí đích
+        mob.HumanoidRootPart.CFrame = targetCFrame
     end)
 end
+
 
 -- Hàm dùng chung để bay đi mua Melee
 function BuyMeleeTween(TargetCFrame, MeleeID)
@@ -457,6 +626,23 @@ end)
 -- ==========================================
 -- 3. GIAO DIỆN CHI TIẾT
 -- ==========================================
+Tabs.Main:AddSection("Auto Farm Level")
+
+local ToggleFarm = Tabs.Main:AddToggle("AutoFarmLevel", {
+    Title = "Auto Farm Level",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoFarmLevel = Value
+        if not Value then
+            if _G.CurrentTween then _G.CurrentTween:Cancel() end
+        else
+            -- Tắt các Auto khác để chống giật
+            _G.FarmBone = false 
+            _G.OldFarmBoneStatus = false
+        end
+    end
+})
+
 Tabs.Main:AddSection("Auto farm chest")
 
 Tabs.Main:AddToggle("Auto chest", {
@@ -527,6 +713,16 @@ Tabs.Main:AddToggle("AutoCakePrinceToggle", {
     Default = false,
     Callback = function(Value)
         _G.Auto_Cake_Prince = Value
+    end
+})
+
+Tabs.Setting:AddDropdown("ColorHighlightDrop", {
+    Title = "Highlight color",
+    Values = {"Rainbow", "Red", "Orange", "Yellow", "Green", "Blue", "Purple", "Pink", "White"},
+    Multi = false,
+    Default = "Rainbow",
+    Callback = function(Value)
+        _G.HighlightColor = Value
     end
 })
 
@@ -611,7 +807,7 @@ Tabs.Setting:AddToggle("ActiveRaceV4", {
 
 Tabs.Setting:AddToggle("WalkWater", {
     Title = "Walk on Water",
-    Default = false,
+    Default = true,
     Callback = function(Value)
         _G.WalkWater = Value
     end
@@ -821,6 +1017,121 @@ Tabs.Teleport:AddButton({
 -- ==========================================
 -- 4. LOGIC VÒNG LẶP (MAIN LOGIC)
 -- ==========================================
+--Loop bringmob
+task.spawn(function()
+    local LP = game:GetService("Players").LocalPlayer
+    while task.wait() do
+        if _G.BringMob then
+            pcall(function()
+                local char = LP.Character
+                if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+                
+                -- Lấy quyền kiểm soát vật lý của quái xung quanh
+                sethiddenproperty(LP, "SimulationRadius", math.huge)
+                
+                local count = 0
+                local targetPos = char.HumanoidRootPart.CFrame * CFrame.new(0, 0, -5)
+                
+                for _, mob in pairs(game:GetService("Workspace").Enemies:GetChildren()) do
+                    -- Chỉ xử lý quái còn sống và có đủ bộ phận
+                    if mob:FindFirstChild("Humanoid") and mob:FindFirstChild("HumanoidRootPart") and mob.Humanoid.Health > 0 then
+                        
+                        local dist = (mob.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
+                        
+                        -- Chỉ gom quái trong tầm 250m để tránh quái ảo
+                        if dist < 200 then
+                            count = count + 1
+                            
+                            -- Gọi hàm fix và gom quái
+                            FixMob(mob, targetPos)
+                            
+                            -- GIỚI HẠN: Đủ 3 con thì dừng, không gom thêm nữa
+                            if count >= 3 then 
+                                break 
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+--Loop farmlv
+task.spawn(function()
+    while task.wait() do
+        if _G.AutoFarmLevel then
+            pcall(function()
+                local player = game.Players.LocalPlayer
+                local currentLevel = player.Data.Level.Value
+                local questData = GetMobByLevel(currentLevel)
+                
+                if questData then
+                    local questGui = player.PlayerGui.Main.Quest
+                    local hasQuest = questGui.Visible
+                    local currentQuestText = hasQuest and questGui.Container.QuestTitle.Title.Text or ""
+                    
+                    -- KIỂM TRA & NHẬN NHIỆM VỤ
+                    if not hasQuest or not string.find(currentQuestText, questData.Mon) then
+                        -- Đang nhận sai Quest thì Hủy
+                        if hasQuest then
+                            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("AbandonQuest")
+                        end
+                        
+                        -- Bay đến NPC giao Quest
+                        if (player.Character.HumanoidRootPart.Position - questData.PosQ.Position).Magnitude > 10 then
+                            topos(questData.PosQ)
+                        else
+                            -- Tới nơi thì nhận Quest
+                            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StartQuest", questData.Qname, questData.Qdata)
+                        end
+                    else
+                        -- ĐÃ CÓ QUEST -> ĐI FARM QUÁI
+                        local enemies = game:GetService("Workspace").Enemies
+                        local targetMob = nil
+                        
+                        -- Tìm con quái còn sống
+                        for _, mob in ipairs(enemies:GetChildren()) do
+                            if mob.Name == questData.Mon and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+                                targetMob = mob
+                                break
+                            end
+                        end
+                        
+                        if targetMob then
+                            -- Trang bị vũ khí
+                            EquipWeapon(_G.SelectWeapon)
+                            
+                            -- Bay đến đỉnh đầu quái, cố định cách 30m
+                            topos(targetMob.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
+                            
+                            -- Auto Click chém quái
+                            game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 670))
+                            
+                            -- Gom quái (Bring Mob)
+                            if _G.BringMob then
+                                for _, otherMob in ipairs(enemies:GetChildren()) do
+                                    if otherMob.Name == questData.Mon and otherMob:FindFirstChild("Humanoid") and otherMob.Humanoid.Health > 0 then
+                                        -- Nếu quái khác trong phạm vi 250m thì kéo nó tới
+                                        if (otherMob.HumanoidRootPart.Position - targetMob.HumanoidRootPart.Position).Magnitude < 250 then
+                                            otherMob.HumanoidRootPart.CFrame = targetMob.HumanoidRootPart.CFrame
+                                            otherMob.Humanoid.WalkSpeed = 0
+                                            otherMob.Humanoid.JumpPower = 0
+                                        end
+                                    end
+                                end
+                            end
+                        else
+                            -- Nếu hết quái hoặc chưa spawn, bay lơ lửng cách mặt đất bãi quái 30m để chờ
+                            topos(questData.PosM * CFrame.new(0, 30, 0))
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
 --Loop travel
 task.spawn(function()
     while task.wait(0.5) do
