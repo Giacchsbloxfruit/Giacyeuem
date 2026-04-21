@@ -482,28 +482,43 @@ RunService.Stepped:Connect(function()
 end)
 
 -- Hàm Gom Quái (Bring Mob) - Tầm 2-4 con gần nhất
-local function FixMob(mob, targetCFrame)
+function BringMob(targetMobName, targetPos)
+    if not _G.BringMob then return end
     pcall(function()
-        -- Phóng to hitbox và chặn quái di chuyển
-        mob.HumanoidRootPart.Size = Vector3.new(60, 60, 60)
-        mob.HumanoidRootPart.CanCollide = false
-        mob.Humanoid.JumpPower = 0
-        mob.Humanoid.WalkSpeed = 0
-        
-        -- Chống quái ảo bằng State 14
-        mob.Humanoid:ChangeState(14)
-        
-        -- Xóa animation để quái đứng im một chỗ
-        if mob.Humanoid:FindFirstChild("Animator") then
-            mob.Humanoid.Animator:Destroy()
+        local count = 0
+        -- QUAN TRỌNG 1: Chiếm quyền điều khiển mạng của quái để Server công nhận vị trí
+        sethiddenproperty(game.Players.LocalPlayer, "SimulationRadius", math.huge)
+
+        for _, v in pairs(workspace.Enemies:GetChildren()) do
+            if v.Name == targetMobName and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                if count < 4 then
+                    -- QUAN TRỌNG 2: Tắt va chạm toàn bộ cơ thể để không bị cấn đất (gây văng/bay)
+                    for _, part in pairs(v:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+
+                    v.HumanoidRootPart.CFrame = targetPos
+                    
+                    -- QUAN TRỌNG 3: Triệt tiêu mọi lực văng hiện có của quái
+                    v.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+                    
+                    v.Humanoid.WalkSpeed = 0
+                    v.Humanoid.JumpPower = 0 -- Khóa nhảy để quái không thoát khỏi CFrame
+
+                    -- QUAN TRỌNG 4: Đổi từ State 11 sang 14. 
+                    -- State 14 (Physics) giúp quái đứng im re tại vị trí CFrame mà không bị Server kéo lại
+                    if v.Humanoid:GetState() ~= Enum.HumanoidStateType.Physics then
+                        v.Humanoid:ChangeState(14)
+                    end
+
+                    count = count + 1
+                end
+            end
         end
-        
-        -- Kéo quái về vị trí đích
-        mob.HumanoidRootPart.CFrame = targetCFrame
     end)
 end
-
-
 -- Hàm dùng chung để bay đi mua Melee
 function BuyMeleeTween(TargetCFrame, MeleeID)
     _G.FarmBone = false -- Tắt farm xương ngay lập tức
@@ -1018,44 +1033,6 @@ Tabs.Teleport:AddButton({
 -- 4. LOGIC VÒNG LẶP (MAIN LOGIC)
 -- ==========================================
 --Loop bringmob
-task.spawn(function()
-    local LP = game:GetService("Players").LocalPlayer
-    while task.wait() do
-        if _G.BringMob then
-            pcall(function()
-                local char = LP.Character
-                if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-                
-                -- Lấy quyền kiểm soát vật lý của quái xung quanh
-                sethiddenproperty(LP, "SimulationRadius", math.huge)
-                
-                local count = 0
-                local targetPos = char.HumanoidRootPart.CFrame * CFrame.new(0, 0, -5)
-                
-                for _, mob in pairs(game:GetService("Workspace").Enemies:GetChildren()) do
-                    -- Chỉ xử lý quái còn sống và có đủ bộ phận
-                    if mob:FindFirstChild("Humanoid") and mob:FindFirstChild("HumanoidRootPart") and mob.Humanoid.Health > 0 then
-                        
-                        local dist = (mob.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
-                        
-                        -- Chỉ gom quái trong tầm 250m để tránh quái ảo
-                        if dist < 200 then
-                            count = count + 1
-                            
-                            -- Gọi hàm fix và gom quái
-                            FixMob(mob, targetPos)
-                            
-                            -- GIỚI HẠN: Đủ 3 con thì dừng, không gom thêm nữa
-                            if count >= 3 then 
-                                break 
-                            end
-                        end
-                    end
-                end
-            end)
-        end
-    end
-end)
 
 --Loop farmlv
 task.spawn(function()
