@@ -1,6 +1,7 @@
 -- ==========================================
 -- 1. KHAI BÁO BIẾN & CÀI ĐẶT HỆ THỐNG
 -- ==========================================
+_G.AutoAcceptQuest = false
 _G.HighlightColor = "Rainbow"
 _G.SelectedIsland = "Port Town"      -- Đảo mặc định cho Tween
 _G.AutoTweenIsland = false           -- Trạng thái nút gạt Tween
@@ -26,12 +27,23 @@ _G.AutoSoulReaper = false
 _G.WalkWater = false
 _G.Auto_Cake_Prince = false
 _G.OldFarmBoneStatus = false
-_G.AutoFarmLevel = true
+_G.AutoFarmLevel = false
+_G.FullBrightEnabled = false
 
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local replicated = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
 
+-- Lưu lại giá trị gốc của game để khi Tắt toggle thì mọi thứ quay về bình thường
+local OriginalSettings = {
+    Ambient = Lighting.Ambient,
+    ColorShift_Bottom = Lighting.ColorShift_Bottom,
+    ColorShift_Top = Lighting.ColorShift_Top,
+    GlobalShadows = Lighting.GlobalShadows,
+    Brightness = Lighting.Brightness,
+    FogEnd = Lighting.FogEnd
+}
 --Hàm fps,ping,time
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
@@ -115,6 +127,24 @@ function AutoWalkWater()
         end
     end)
 end
+--Ham bright
+local function ApplyFullBright()
+    if _G.FullBrightEnabled then
+        Lighting.Ambient = Color3.new(1, 1, 1)
+        Lighting.ColorShift_Bottom = Color3.new(1, 1, 1)
+        Lighting.ColorShift_Top = Color3.new(1, 1, 1)
+        Lighting.GlobalShadows = false
+        Lighting.Brightness = 2
+        if Lighting.FogEnd < 9e8 then
+            Lighting.FogEnd = 9e10
+        end
+    end
+end
+Lighting.Changed:Connect(function()
+    if _G.FullBrightEnabled then
+        ApplyFullBright()
+    end
+end)
 
 -- Bảng dữ liệu Farm Sea 3 cực kỳ thông minh
 local Sea3MobData = {
@@ -486,20 +516,39 @@ function BringMob(targetMobName, targetPos)
     if not _G.BringMob then return end
     pcall(function()
         local count = 0
-        for _, v in pairs(game:GetService("Workspace").Enemies:GetChildren()) do
+        -- QUAN TRỌNG 1: Chiếm quyền điều khiển mạng của quái để Server công nhận vị trí
+        sethiddenproperty(game.Players.LocalPlayer, "SimulationRadius", math.huge)
+
+        for _, v in pairs(workspace.Enemies:GetChildren()) do
             if v.Name == targetMobName and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
-                if count < 4 then -- Giới hạn 4 con để tránh lỗi
-                    v.HumanoidRootPart.CanCollide = false
+                if count < 4 then
+                    -- QUAN TRỌNG 2: Tắt va chạm toàn bộ cơ thể để không bị cấn đất (gây văng/bay)
+                    for _, part in pairs(v:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+
                     v.HumanoidRootPart.CFrame = targetPos
+                    
+                    -- QUAN TRỌNG 3: Triệt tiêu mọi lực văng hiện có của quái
+                    v.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+                    
                     v.Humanoid.WalkSpeed = 0
-                    v.Humanoid:ChangeState(11) -- Khóa trạng thái quái
+                    v.Humanoid.JumpPower = 0 -- Khóa nhảy để quái không thoát khỏi CFrame
+
+                    -- QUAN TRỌNG 4: Đổi từ State 11 sang 14. 
+                    -- State 14 (Physics) giúp quái đứng im re tại vị trí CFrame mà không bị Server kéo lại
+                    if v.Humanoid:GetState() ~= Enum.HumanoidStateType.Physics then
+                        v.Humanoid:ChangeState(14)
+                    end
+
                     count = count + 1
                 end
             end
         end
     end)
 end
-
 -- Hàm dùng chung để bay đi mua Melee
 function BuyMeleeTween(TargetCFrame, MeleeID)
     _G.FarmBone = false -- Tắt farm xương ngay lập tức
@@ -626,7 +675,7 @@ Tabs.Main:AddSection("Auto Farm Level")
 
 local ToggleFarm = Tabs.Main:AddToggle("AutoFarmLevel", {
     Title = "Auto Farm Level",
-    Default = true,
+    Default = false,
     Callback = function(Value)
         _G.AutoFarmLevel = Value
         if not Value then
@@ -677,6 +726,11 @@ Tabs.Main:AddToggle("FarmBoneToggle", {
     Title = "Auto Farm Bone",
     Default = false,
     Callback = function(Value) _G.FarmBone = Value end
+})
+Tabs.Main:AddToggle("QuestBones", {
+    Title = "Auto Accept quest",
+    Default = true,
+    Callback = function(Value) _G.AutoAcceptQuest = Value end
 })
 
 Tabs.Main:AddToggle('SoulReaper',{
@@ -744,6 +798,25 @@ Tabs.Setting:AddButton({
         task.spawn(AutoRedeem)
     end
 })
+Tabs.Setting:AddToggle("BrightToggle", {
+    Title = "Turn on Bright",
+    Description = " ",
+    Default = false,
+    Callback = function(Value) _G.FullBrightEnabled = Value
+        
+        if Value then
+            ApplyFullBright()
+        else
+            -- Khi tắt, khôi phục lại toàn bộ cài đặt gốc của game
+            Lighting.Ambient = OriginalSettings.Ambient
+            Lighting.ColorShift_Bottom = OriginalSettings.ColorShift_Bottom
+            Lighting.ColorShift_Top = OriginalSettings.ColorShift_Top
+            Lighting.GlobalShadows = OriginalSettings.GlobalShadows
+            Lighting.Brightness = OriginalSettings.Brightness
+            Lighting.FogEnd = OriginalSettings.FogEnd
+        end
+    end
+})
 
 Tabs.Fruit:AddSection("Fruits")
 
@@ -803,7 +876,7 @@ Tabs.Setting:AddToggle("ActiveRaceV4", {
 
 Tabs.Setting:AddToggle("WalkWater", {
     Title = "Walk on Water",
-    Default = false,
+    Default = true,
     Callback = function(Value)
         _G.WalkWater = Value
     end
@@ -1013,6 +1086,8 @@ Tabs.Teleport:AddButton({
 -- ==========================================
 -- 4. LOGIC VÒNG LẶP (MAIN LOGIC)
 -- ==========================================
+--Loop bringmob
+
 --Loop farmlv
 task.spawn(function()
     while task.wait() do
@@ -1158,7 +1233,33 @@ task.spawn(function()
         end
     end
 end)
-
+--Loop accecpt quest
+task.spawn(function()
+    while task.wait() do
+        if _G.AutoAcceptQuest then
+            pcall(function()
+                local player = game:GetService("Players").LocalPlayer
+                local hasQuest = player.PlayerGui.Main.Quest.Visible
+                
+                -- Nếu chưa có nhiệm vụ thì mới đi nhận
+                if not hasQuest then
+                    -- Kiểm tra xem bãi farm hiện tại đã được thiết lập tọa độ NPC chưa
+                    if _G.QuestPos and _G.QuestName and _G.QuestLevel then
+                        local dist = (player.Character.HumanoidRootPart.Position - _G.QuestPos.Position).Magnitude
+                        
+                        if dist > 15 then
+                            topos(_G.QuestPos) -- Bay tới NPC
+                        else
+                            -- Đợi một chút để NPC load rồi nhận quest
+                            task.wait(0.2)
+                            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StartQuest", _G.QuestName, _G.QuestLevel)
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
 -- Vòng lặp cho Tween to Fruit (Dùng hàm topos)
 task.spawn(function()
     while task.wait(0.1) do
@@ -1256,56 +1357,41 @@ task.spawn(function()
     while task.wait() do
         if _G.FarmBone then
             pcall(function()
-                local player = game:GetService("Players").LocalPlayer
+                -- THIẾT LẬP THÔNG TIN NHIỆM VỤ (Dùng cho Luồng 1)
+                _G.QuestPos = CFrame.new(-9516.993, 172.017, 6078.465) -- NPC Haunted Quest
+                _G.QuestName = "HauntedQuest2"
+                _G.QuestLevel = 1
                 
-                -- 1. KIỂM TRA NHIỆM VỤ
-                local hasQuest = player.PlayerGui.Main.Quest.Visible
+                -- LOGIC ĐÁNH QUÁI
+                local enemies = game:GetService("Workspace").Enemies:GetChildren()
+                local targetMob = nil
                 
-                if not hasQuest then
-                    -- Bay đến NPC nhận Quest (HauntedQuest2 - Possessed Mummy)
-                    local CFrameQuest = CFrame.new(-9516.99316, 172.017181, 6078.46533)
-                    if (player.Character.HumanoidRootPart.Position - CFrameQuest.Position).Magnitude > 10 then
-                        topos(CFrameQuest)
-                    else
-                        task.wait(0.2)
-                        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StartQuest", "HauntedQuest2", 1)
+                for _, v in pairs(enemies) do
+                    if (v.Name == "Reborn Skeleton" or v.Name == "Living Zombie" or v.Name == "Demonic Soul" or v.Name == "Possessed Mummy") 
+                    and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                        targetMob = v
+                        break 
                     end
+                end
+                
+                if targetMob then
+                    EquipWeapon(_G.SelectWeapon)
+                    
+                    -- Bay đến trên đầu quái
+                    local targetCF = targetMob.HumanoidRootPart.CFrame * CFrame.new(0, 25, 0)
+                    topos(targetCF)
+                    
+                    -- Gọi hàm BringMob (bản xịn đã fix quái ảo)
+                    if _G.BringMob then
+                        BringMob(targetMob.Name, targetMob.HumanoidRootPart.CFrame)
+                    end
+                    
+                    -- Tấn công
+                    game:GetService("VirtualUser"):CaptureController()
+                    game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 672))
                 else
-                    -- 2. LOGIC TÌM VÀ DIỆT QUÁI
-                    local enemies = game:GetService("Workspace").Enemies:GetChildren()
-                    local targetMob = nil
-                    
-                    -- Tìm con quái gần nhất hoặc đúng tên trong bãi
-                    for _, v in pairs(enemies) do
-                        -- Sửa lỗi chính tả: "Possessed Mummy"
-                        if (v.Name == "Reborn Skeleton" or v.Name == "Living Zombie" or v.Name == "Demonic Soul" or v.Name == "Possessed Mummy") 
-                        and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
-                            targetMob = v
-                            break -- Ưu tiên đánh từng con một để tránh lỗi loop
-                        end
-                    end
-                    
-                    if targetMob then
-                        -- Nếu tìm thấy quái thì lao vào đánh
-                        EquipWeapon(_G.SelectWeapon)
-                        
-                        -- Vị trí farm: Bay trên đầu quái
-                        local targetCF = targetMob.HumanoidRootPart.CFrame * CFrame.new(0, 25, 0)
-                        topos(targetCF)
-                        
-                        -- Gom quái (Nếu bạn có hàm BringMob)
-                        if _G.BringMob then
-                            BringMob(targetMob.Name, targetMob.HumanoidRootPart.CFrame)
-                        end
-                        
-                        -- Tấn công (Nếu bạn có hàm Click/Attack)
-                        -- game:GetService("VirtualUser"):CaptureController()
-                        -- game:GetService("VirtualUser"):Button1Down(Vector2.new(0,1,0,1))
-                    else
-                        -- Nếu không có quái nào sống, bay về giữa bãi chờ quái hồi sinh
-                        local spawnArea = CFrame.new(-9582.022, 6.251, 6205.478) 
-                        topos(spawnArea)
-                    end
+                    -- Không có quái thì bay ra giữa bãi đợi
+                    topos(CFrame.new(-9582.022, 6.251, 6205.478))
                 end
             end)
         end
@@ -1432,4 +1518,4 @@ task.spawn(function()
     end
 end)
 
-loadstring(game:HttpGet("https://pandadevelopment.net/virtual/file/e9c206fd76482ee2"))()
+loadstring(game:HttpGet("https://github.com/TlDinhKhoi/Util/raw/refs/heads/main/ThongBao/AttackFix"))()
