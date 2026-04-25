@@ -1,6 +1,7 @@
 -- ==========================================
 -- 1. KHAI BÁO BIẾN & CÀI ĐẶT HỆ THỐNG
 -- ==========================================
+_G.AutoTemple = false
 _G.AutoAcceptQuest = false
 _G.HighlightColor = "Rainbow"
 _G.SelectedIsland = "Port Town"      -- Đảo mặc định cho Tween
@@ -368,7 +369,8 @@ local Sea3Data = {
     Portals = {
         ["Hydra Island (Portal)"] = Vector3.new(5657.88, 1013.07, -335.49),
         ["Mansion (Portal)"] = Vector3.new(-12462, 375, -7552),
-        ["Castle (Portal)"] = Vector3.new(-5036, 315, -3179)
+        ["Castle (Portal)"] = Vector3.new(-5036, 315, -3179),
+        ["Temple of Time (Secret)"] = Vector3.new(28286.35, 14895.3, 102.6)
     }
 }
 
@@ -818,6 +820,24 @@ Tabs.Setting:AddToggle("BrightToggle", {
     end
 })
 
+Tabs.Race:AddButton({
+    Title = "Teleport to Temple of Time",
+    Description = "Bay đến Đền thờ thời gian ngay lập tức",
+    Callback = function()
+        pcall(function()
+            local lp = game.Players.LocalPlayer
+            local char = lp.Character
+            local templePos = CFrame.new(28286.35, 14895.3, 102.6)
+
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                -- Thực hiện bay tới tọa độ đền thờ
+                -- Nếu bạn có hàm topos xịn, hãy dùng topos(templePos)
+                char.HumanoidRootPart.CFrame = templePos
+            end
+        end)
+    end
+})
+
 Tabs.Fruit:AddSection("Fruits")
 
 Tabs.Fruit:AddToggle("RandomFruit", {
@@ -1003,7 +1023,7 @@ Tabs.Teleport:AddSection("Travel Portal")
 
 local PortalDrop = Tabs.Teleport:AddDropdown("PortalDrop", {
     Title = "Chọn cổng Portal",
-    Values = {"Hydra Island (Portal)", "Mansion (Portal)", "Castle (Portal)"},
+    Values = {"Hydra Island (Portal)", "Mansion (Portal)", "Castle (Portal)","Temple of Time (Secret)"},
     Multi = false,
     Default = "Mansion (Portal)",
     Callback = function(Value)
@@ -1515,6 +1535,18 @@ task.spawn(function()
                 end
             end)
         end
+    end
+end)
+-- Loop temple
+task.spawn(function()
+    while task.wait(5) do -- 5 giây kiểm tra một lần cho nhẹ máy
+        pcall(function()
+            -- Luôn đảm bảo map được load sẵn trong ReplicatedStorage
+            local temple = game:GetService("ReplicatedStorage"):FindFirstChild("Temple of Time", true)
+            if temple and temple.Parent ~= workspace.Map then
+                temple.Parent = workspace:FindFirstChild("Map") or workspace
+            end
+        end)
     end
 end)
 
