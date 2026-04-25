@@ -2,6 +2,8 @@
 -- 1. KHAI BÁO BIẾN & CÀI ĐẶT HỆ THỐNG
 -- ==========================================
 _G.AutoTemple = false
+_G.PullLever = false
+_G.Complete_Trials = false
 _G.AutoAcceptQuest = false
 _G.HighlightColor = "Rainbow"
 _G.SelectedIsland = "Port Town"      -- Đảo mặc định cho Tween
@@ -35,6 +37,7 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local replicated = game:GetService("ReplicatedStorage")
 local Lighting = game:GetService("Lighting")
+local TargetChest = nil
 
 -- Lưu lại giá trị gốc của game để khi Tắt toggle thì mọi thứ quay về bình thường
 local OriginalSettings = {
@@ -128,6 +131,22 @@ function AutoWalkWater()
         end
     end)
 end
+--Ham trial seabeast
+local function GetSeaBeastTrial()
+    if not workspace.Map:FindFirstChild("FishmanTrial") then return nil end
+    local waterTrial = workspace._WorldOrigin.Locations:FindFirstChild("Trial of Water")
+    if waterTrial then
+        for _, v in pairs(workspace.SeaBeasts:GetChildren()) do
+            if v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Health") and v.Health.Value > 0 then
+                if (v.HumanoidRootPart.Position - waterTrial.Position).Magnitude <= 1500 then
+                    return v
+                end
+            end
+        end
+    end
+    return nil
+end
+
 --Ham bright
 local function ApplyFullBright()
     if _G.FullBrightEnabled then
@@ -296,21 +315,53 @@ end
 
 -- Hàm Tween
 function topos(targetCFrame)
-    local root = game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local char = game.Players.LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
     if not root then return end
+
+    -- Lấy tốc độ mặc định nếu biến bị lỗi
+    local speed = _G.TweenSpeed or 250
     local dist = (targetCFrame.Position - root.Position).Magnitude
-    if dist < 15 then root.CFrame = targetCFrame return end
     
-    if _G.CurrentTween then _G.CurrentTween:Cancel() end
-    _G.CurrentTween = game:GetService("TweenService"):Create(root, TweenInfo.new(dist/_G.TweenSpeed, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
+    -- 1. Nếu đang bay đến mục tiêu cũ thì KHÔNG làm gì cả (Chống giật/khựng)
+    if _G.CurrentTween and _G.LastTargetPos then
+        local lech = (targetCFrame.Position - _G.LastTargetPos.Position).Magnitude
+        if lech < 5 then return end -- Nếu mục tiêu lệch ít hơn 5 unit thì cứ để nó bay tiếp
+    end
+
+    -- 2. Dừng cái cũ để chuyển mục tiêu mới
+    StopTween()
+
+    -- 3. Nếu khoảng cách quá gần (< 15) thì dịch chuyển thẳng luôn cho nhanh
+    if dist < 15 then 
+        root.CFrame = targetCFrame 
+        return 
+    end
+
+    -- 4. Tạo Tween mới
+    _G.LastTargetPos = targetCFrame
+    local info = TweenInfo.new(dist / speed, Enum.EasingStyle.Linear)
+    _G.CurrentTween = game:GetService("TweenService"):Create(root, info, {CFrame = targetCFrame})
+    
+    _G.CurrentTween.Completed:Connect(function()
+        _G.LastTargetPos = nil
+        _G.CurrentTween = nil
+    end)
+
     _G.CurrentTween:Play()
 end
 
--- Hàm Dừng Tween
 function StopTween()
     if _G.CurrentTween then
         _G.CurrentTween:Cancel()
         _G.CurrentTween = nil
+    end
+    _G.LastTargetPos = nil
+    
+    -- Ép nhân vật dừng lại ngay lập tức (Chống nhặt thêm rương)
+    local root = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if root then
+        root.Velocity = Vector3.new(0, 0, 0)
     end
 end
 
@@ -428,22 +479,21 @@ end
 
 -- Hàm chest --
 function GetClosestChest()
-    local player = game.Players.LocalPlayer
-    local char = player.Character
-    if not char then return nil end
-    
-    local rootPos = char:GetPivot().Position
-    local chests = game:GetService("CollectionService"):GetTagged("_ChestTagged")
     local closestChest = nil
     local shortestDistance = math.huge
+    local player = game.Players.LocalPlayer
+    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return nil end
 
-    for i = 1, #chests do
-        local chest = chests[i]
-        if not chest:GetAttribute("IsDisabled") then
-            local dist = (chest:GetPivot().Position - rootPos).Magnitude
+    local chests = game:GetService("CollectionService"):GetTagged("_ChestTagged")
+    
+    for _, v in pairs(chests) do
+        -- Kiểm tra rương còn tồn tại và chưa bị ai ăn (IsDisabled)
+        if v and v.Parent and not v:GetAttribute("IsDisabled") then
+            local dist = (v:GetPivot().Position - root.Position).Magnitude
             if dist < shortestDistance then
                 shortestDistance = dist
-                closestChest = chest
+                closestChest = v
             end
         end
     end
@@ -835,6 +885,156 @@ Tabs.Race:AddButton({
                 char.HumanoidRootPart.CFrame = templePos
             end
         end)
+    end
+})
+
+Tabs.Race:AddToggle("TglPullLever", {
+    Title = "Teleport to Pull Level",
+    Default = false,
+    Callback = function(Value)
+        _G.PullLever = Value
+        if not Value then StopTween() end
+    end
+})
+
+task.spawn(function()
+    while task.wait(0.1) do
+        if _G.PullLever then
+            pcall(function()
+                local root = game.Players.LocalPlayer.Character.HumanoidRootPart
+                local TargetPos = CFrame.new(28576, 14938, 76)
+                local dist = (TargetPos.Position - root.Position).Magnitude
+                
+                if dist < 10 then
+                    StopTween()
+                    _G.PullLever = false
+                    TglPullLever:SetValue(false) -- Tự tắt nút trên Menu
+                else
+                    topos(TargetPos)
+                end
+            end)
+        end
+    end
+end)
+
+Tabs.Race:AddToggle("TglAncientOne", {
+    Title = "Teleport to Ancient One",
+    Description = "Đến nơi tự tắt",
+    Default = false,
+    Callback = function(Value)
+        _G.TP_AncientOne = Value
+        if not Value then 
+            StopTween() 
+        else
+            task.spawn(function()
+                local target = CFrame.new(28981.552734375, 14888.426757812, -120.24584960938)
+                while _G.TP_AncientOne do
+                    local root = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if root then
+                        local dist = (target.Position - root.Position).Magnitude
+                        if dist < 10 then -- Khoảng cách đến đích dưới 10m
+                            StopTween()
+                            _G.TP_AncientOne = false
+                            -- Lệnh dưới đây để UI tự gạt nút về OFF
+                            TglAncientOne:SetValue(false) 
+                            break
+                        end
+                        topos(target)
+                    end
+                    task.wait(0.1)
+                end
+            end)
+        end
+    end
+})
+
+Tabs.Race:AddToggle("TglAncientClock", {
+    Title = "Teleport to Ancient Clock",
+    Description = "Đến nơi tự tắt",
+    Default = false,
+    Callback = function(Value)
+        _G.TP_AncientClock = Value
+        if not Value then 
+            StopTween() 
+        else
+            task.spawn(function()
+                local target = CFrame.new(29549, 15069, -88)
+                while _G.TP_AncientClock do
+                    local root = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if root then
+                        local dist = (target.Position - root.Position).Magnitude
+                        if dist < 10 then
+                            StopTween()
+                            _G.TP_AncientClock = false
+                            TglAncientClock:SetValue(false)
+                            break
+                        end
+                        topos(target)
+                    end
+                    task.wait(0.1)
+                end
+            end)
+        end
+    end
+})
+
+Tabs.Race:AddToggle("TglRaceDoor", {
+    Title = "Auto Teleport to Race Doors",
+    Description = "Tự động bay đến cửa Race của bạn",
+    Default = false,
+    Callback = function(Value)
+        _G.TPDoor = Value
+        if not Value then 
+            StopTween() 
+        end
+    end
+})
+
+task.spawn(function()
+    while task.wait(0.1) do
+        if _G.TPDoor then
+            pcall(function()
+                local root = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                -- Lấy Race hiện tại từ Data của bạn (giữ nguyên logic gốc)
+                local MyRace = tostring(game:GetService("Players").LocalPlayer.Data.Race.Value)
+                local DoorPos = nil
+
+                -- Xác định tọa độ theo Race
+                if MyRace == "Mink" then
+                    DoorPos = CFrame.new(29020.66, 14889.42, -379.26)
+                elseif MyRace == "Fishman" then
+                    DoorPos = CFrame.new(28224.05, 14889.42, -210.58)
+                elseif MyRace == "Cyborg" then
+                    DoorPos = CFrame.new(28492.41, 14894.42, -422.11)
+                elseif MyRace == "Skypiea" then
+                    DoorPos = CFrame.new(28967.40, 14918.07, 234.31)
+                elseif MyRace == "Ghoul" then
+                    DoorPos = CFrame.new(28672.72, 14889.12, 454.59)
+                elseif MyRace == "Human" then
+                    DoorPos = CFrame.new(29237.29, 14889.42, -206.94)
+                end
+
+                if DoorPos and root then
+                    local dist = (DoorPos.Position - root.Position).Magnitude
+                    if dist < 10 then
+                        StopTween()
+                        _G.TPDoor = false
+                        TglRaceDoor:SetValue(false) -- Tự tắt toggle khi đến nơi
+                    else
+                        topos(DoorPos)
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+Tabs.Race:AddToggle("AutoTrial", {
+    Title = "Auto Complete Trial Race",
+    Default = false,
+    Callback = function(Value)
+        _G.Complete_Trials = Value
+        if not Value then StopTween() end
     end
 })
 
@@ -1335,15 +1535,40 @@ end)
 
 -- Farm chest --
 task.spawn(function()
-    while task.wait(0.3) do -- Thời gian chờ an toàn để bay không bị giật
+    while task.wait(0.1) do
         if _G.FarmChest then
             pcall(function()
-                local targetChest = GetClosestChest()
-                if targetChest then
-                    local targetCFrame = targetChest:GetPivot()
-                    topos(targetCFrame)
+                local char = game.Players.LocalPlayer.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                if not root then return end
+
+                -- KHÓA MỤC TIÊU: Nếu rương mục tiêu cũ vẫn còn đó thì CỨ BAY TIẾP
+                if not TargetChest or not TargetChest.Parent or TargetChest:GetAttribute("IsDisabled") then
+                    TargetChest = GetClosestChest()
+                end
+
+                if TargetChest then
+                    local targetPos = TargetChest:GetPivot()
+                    local dist = (targetPos.Position - root.Position).Magnitude
+
+                    if dist > 3 then
+                        -- Tiếp tục bay mượt đến rương
+                        topos(targetPos)
+                    else
+                        -- Đã chạm rương: Dừng bay và reset mục tiêu để tìm rương mới
+                        StopTween()
+                        root.CFrame = targetPos -- Teleport thẳng vào lõi rương cho chắc ăn
+                        TargetChest = nil
+                        task.wait(0.1) -- Nghỉ cực ngắn để game nhận rương
+                    end
                 end
             end)
+        else
+            -- Nếu tắt nút Farm thì xóa mục tiêu ngay
+            if TargetChest then
+                TargetChest = nil
+                StopTween()
+            end
         end
     end
 end)
@@ -1547,6 +1772,53 @@ task.spawn(function()
                 temple.Parent = workspace:FindFirstChild("Map") or workspace
             end
         end)
+    end
+end)
+
+-- Loop trial
+task.spawn(function()
+    while task.wait(0.1) do
+        if _G.Complete_Trials then
+            pcall(function()
+                local MyRace = tostring(game.Players.LocalPlayer.Data.Race.Value)
+                local char = game.Players.LocalPlayer.Character
+                local root = char.HumanoidRootPart
+
+                -- LOGIC RIÊNG CHO TỪNG RACE
+                if MyRace == "Mink" then
+                    topos(workspace.Map.MinkTrial.Ceiling.CFrame * CFrame.new(0, -20, 0))
+                    
+                elseif MyRace == "Skypiea" then
+                    topos(workspace.Map.SkyTrial.Model.FinishPart.CFrame)
+
+                elseif MyRace == "Cyborg" then
+                    -- Bay lên cao để né sát thương
+                    topos(workspace.Map.CyborgTrial.Floor.CFrame * CFrame.new(0, 500, 0))
+
+                elseif MyRace == "Fishman" then
+                    local SB = GetSeaBeastTrial()
+                    if SB then
+                        -- Bay trên đầu Sea Beast
+                        local SBPos = SB.HumanoidRootPart.Position
+                        topos(CFrame.new(SBPos.X, workspace.Map["WaterBase-Plane"].Position.Y + 300, SBPos.Z))
+                        
+                        -- Tự động dùng skill (Thay "Melee" bằng vũ khí bạn muốn)
+                        game:GetService("VirtualUser"):CaptureController()
+                        game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 672))
+                    end
+
+                elseif MyRace == "Human" or MyRace == "Ghoul" then
+                    -- Tìm quái Trial
+                    for _, en in pairs(workspace.Enemies:GetChildren()) do
+                        if (en.Name == "Ancient Vampire" or en.Name == "Ancient Zombie") and en:FindFirstChild("Humanoid") and en.Humanoid.Health > 0 then
+                            topos(en.HumanoidRootPart.CFrame * CFrame.new(0, 15, 0))
+                            -- Bạn có thể thêm lệnh Auto Attack của bạn vào đây
+                            break
+                        end
+                    end
+                end
+            end)
+        end
     end
 end)
 
