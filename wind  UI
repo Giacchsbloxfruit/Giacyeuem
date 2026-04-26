@@ -36,18 +36,21 @@ local Window = WindUI:CreateWindow({
     },
 })
 
-local Main = Window:Tab({
-    Title = "Main Farm",
-    Icon = "house", -- optional
-    Locked = false,
-})
-
-local Setting = Window:Tab({
-    Title = "Setting Farm",
-    Icon = "settings", -- optional
-    Locked = false,
-})
-Main:Button({
+local Tabs = {
+    Home = Window:Tab({ Title = "Tab Information", Icon = "" }),
+    Main = Window:Tab({ Title = "Tab Farming", Icon = "" }),
+    Sea = Window:Tab({ Title = "Tab Volcano And Sea Event", Icon = "" }),
+    Other = Window:Tab({ Title = "Tab Farming Other", Icon = "" }),
+    Setting = Window:Tab({ Title = "Setting Farm", Icon = "" }),
+    Player = Window:Tab({ Title = "Tab Local Player", Icon = "" }),
+    Teleport = Window:Tab({ Title = "Tab Teleport", Icon = "" }),
+    Visual = Window:Tab({ Title = "Tab Visual", Icon = "" }),
+    Fruit = Window:Tab({ Title = "Tab Fruit And Raid", Icon = "" }),
+    Race = Window:Tab({ Title = "Tab Upgrade Race", Icon = "" }),
+    Shop = Window:Tab({ Title = "Tab Shop", Icon = "" }),
+    Server = Window:Tab({ Title = "Tab Server", Icon = "" })
+};
+Tabs.Main:Button({
     Title = "Nhận nhiệm vụ",
     Desc = "Tự động nhận nhiệm vụ gần nhất",
     Callback = function()
@@ -56,7 +59,7 @@ Main:Button({
     end
 })
 
-Main:Toggle({
+Tabs.Main:Toggle({
     Title = "Auto Farm Level",
     Value = false, -- Mặc định là Tắt
     Callback = function(state)
@@ -71,7 +74,7 @@ Main:Toggle({
     end
 })
 -- Thêm vào Tab "Setting Farm"
-Setting:Slider({
+Tabs.Setting:Slider({
     Title = "Tốc độ chạy",
     Desc = "Chỉnh tốc độ di chuyển của nhân vật",
     Step = 1, -- Đây là bước nhảy, nếu thiếu slider có thể bị đứng
@@ -88,13 +91,13 @@ Setting:Slider({
     end
 })
 
-local FarmSection = Main:Section({
+local FarmSection = Tabs.Main:Section({
     Title = "Cấu hình Auto Farm",
     Opened = true, -- Mặc định là mở ra
 })
 
 -- 2. Thêm Paragraph để hướng dẫn hoặc thông báo
-Main:Paragraph({
+Tabs.Main:Paragraph({
     Title = "Thông tin Script",
     Desc = "Chào mừng bạn đến với My Super Hub. Chúc bạn chơi game vui vẻ!",
     Image = "rbxassetid://12345678", -- Bạn có thể đổi ID icon
@@ -102,7 +105,7 @@ Main:Paragraph({
 })
 
 -- 3. Thêm Dropdown để chọn Vũ khí (Nằm trong Section)
-FarmSection:Dropdown({
+Tabs.Setting:Dropdown({
     Title = "Chọn Vũ Khí",
     Desc = "Chọn loại vũ khí bạn muốn dùng để Farm",
     Values = {"Combat", "Sword", "Fruit"},
@@ -114,7 +117,7 @@ FarmSection:Dropdown({
 })
 
 -- 4. Thêm Button để nhận tất cả code (Redeem All Codes)
-Main:Button({
+Tabs.Main:Button({
     Title = "Nhập Tất Cả Codes",
     Desc = "Tự động nhập toàn bộ mã quà tặng còn hạn",
     Callback = function()
@@ -127,7 +130,7 @@ Main:Button({
 -- ==========================================
 
 -- 5. Thêm Colorpicker để đổi màu giao diện
-Setting:Colorpicker({
+Tabs.Visual:Colorpicker({
     Title = "Màu chủ đạo",
     Desc = "Thay đổi màu sắc của Menu",
     Default = Color3.fromRGB(0, 255, 255),
@@ -137,7 +140,7 @@ Setting:Colorpicker({
 })
 
 -- 6. Thêm Slider (Đã sửa lỗi cấu trúc Value cho bạn)
-Setting:Slider({
+Tabs.Setting:Slider({
     Title = "Tốc độ chạy",
     Step = 1,
     Value = {
@@ -153,7 +156,7 @@ Setting:Slider({
 })
 
 -- 7. Thêm Code Element để hiển thị thông tin bản quyền hoặc script rời
-Setting:Code({
+Tabs.Setting:Code({
     Title = "Thông tin Developer",
     Code = [[
 -- Script được phát triển bởi: YourName
