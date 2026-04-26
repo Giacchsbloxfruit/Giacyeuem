@@ -161,3 +161,75 @@ Setting:Code({
 print("Cảm ơn bạn đã sử dụng!")
     ]]
 })
+
+-- ==========================================
+-- TẠO LOGO NỔI BẬT/TẮT UI (DRAGGABLE)
+-- ==========================================
+local CoreGui = game:GetService("CoreGui")
+local vim = game:GetService("VirtualInputManager")
+
+-- Tạo một Gui mới chứa nút
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "WindUIToggle"
+-- Dùng gethui() nếu executor hỗ trợ, nếu không thì dùng CoreGui để nút không mất khi reset nhân vật
+ScreenGui.Parent = (gethui and gethui()) or CoreGui 
+
+-- Tạo nút hình ảnh
+local ToggleBtn = Instance.new("ImageButton")
+ToggleBtn.Parent = ScreenGui
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30) -- Màu nền đen xám
+ToggleBtn.Position = UDim2.new(0, 50, 0, 50) -- Vị trí ban đầu
+ToggleBtn.Size = UDim2.new(0, 45, 0, 45) -- Kích thước nút
+ToggleBtn.Image = "rbxassetid://13527218679" -- Icon của nút (bạn có thể thay ID khác nếu muốn)
+
+-- Làm cho nút bo tròn
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(1, 0) -- 1 là bo tròn thành hình nón
+UICorner.Parent = ToggleBtn
+
+-- Thêm viền cho đẹp (Tùy chọn)
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(0, 255, 255) -- Viền màu xanh (hợp với màu theme của bạn)
+UIStroke.Thickness = 2
+UIStroke.Parent = ToggleBtn
+
+-- ==========================================
+-- LOGIC KÉO THẢ NÚT (DRAG)
+-- ==========================================
+local dragging, dragInput, dragStart, startPos
+
+ToggleBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = ToggleBtn.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+ToggleBtn.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        ToggleBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- ==========================================
+-- LOGIC BẬT/TẮT MENU (CLICK)
+-- ==========================================
+ToggleBtn.MouseButton1Click:Connect(function()
+    -- Nó sẽ mô phỏng việc bạn bấm phím LeftShift để đóng/mở Menu
+    vim:SendKeyEvent(true, Enum.KeyCode.LeftShift, false, game)
+    vim:SendKeyEvent(false, Enum.KeyCode.LeftShift, false, game)
+end)
