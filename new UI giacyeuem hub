@@ -1,0 +1,370 @@
+_G.FarmBone = false
+_G.TweenSpeed = 250
+_G.SelectWeapon = "Melee"
+
+local TweenService = game:GetService("TweenService")
+
+-- Hàm tool --
+function EquipWeapon(WeaponType)
+    pcall(function()
+        local backpack = game.Players.LocalPlayer.Backpack
+        local character = game.Players.LocalPlayer.Character
+        if not character then return end
+        
+        for _, v in pairs(character:GetChildren()) do
+            if v:IsA("Tool") and (v.ToolTip == WeaponType or (WeaponType == "Blox Fruit" and v.ToolTip == "Go")) then
+                return 
+            end
+        end
+        for _, v in pairs(backpack:GetChildren()) do
+            if v:IsA("Tool") and (v.ToolTip == WeaponType or (WeaponType == "Blox Fruit" and v.ToolTip == "Go")) then
+                character.Humanoid:EquipTool(v)
+            end
+        end
+    end)
+end
+
+-- Hàm Tween
+function topos(targetCFrame)
+    local char = game.Players.LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    -- Lấy tốc độ mặc định nếu biến bị lỗi
+    local speed = _G.TweenSpeed or 250
+    local dist = (targetCFrame.Position - root.Position).Magnitude
+    
+    -- 1. Nếu đang bay đến mục tiêu cũ thì KHÔNG làm gì cả (Chống giật/khựng)
+    if _G.CurrentTween and _G.LastTargetPos then
+        local lech = (targetCFrame.Position - _G.LastTargetPos.Position).Magnitude
+        if lech < 5 then return end -- Nếu mục tiêu lệch ít hơn 5 unit thì cứ để nó bay tiếp
+    end
+
+    -- 2. Dừng cái cũ để chuyển mục tiêu mới
+    StopTween()
+
+    -- 3. Nếu khoảng cách quá gần (< 15) thì dịch chuyển thẳng luôn cho nhanh
+    if dist < 15 then 
+        root.CFrame = targetCFrame 
+        return 
+    end
+
+    -- 4. Tạo Tween mới
+    _G.LastTargetPos = targetCFrame
+    local info = TweenInfo.new(dist / speed, Enum.EasingStyle.Linear)
+    _G.CurrentTween = game:GetService("TweenService"):Create(root, info, {CFrame = targetCFrame})
+    
+    _G.CurrentTween.Completed:Connect(function()
+        _G.LastTargetPos = nil
+        _G.CurrentTween = nil
+    end)
+
+    _G.CurrentTween:Play()
+end
+
+function StopTween()
+    if _G.CurrentTween then
+        _G.CurrentTween:Cancel()
+        _G.CurrentTween = nil
+    end
+    _G.LastTargetPos = nil
+    
+    -- Ép nhân vật dừng lại ngay lập tức (Chống nhặt thêm rương)
+    local root = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if root then
+        root.Velocity = Vector3.new(0, 0, 0)
+    end
+end
+
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+local Window = WindUI:CreateWindow({
+    Title = "Giacyeuem hub",
+    Icon = "door-open", -- lucide icon
+    Author = "by Giacdz",
+    Folder = "Giacyeuem",
+    
+    -- ↓ This all is Optional. You can remove it.
+    Size = UDim2.fromOffset(580, 460),
+    MinSize = Vector2.new(560, 350),
+    MaxSize = Vector2.new(850, 560),
+    ToggleKey = Enum.KeyCode.LeftShift,
+    Transparent = true,
+    Theme = "Dark",
+    Resizable = true,
+    SideBarWidth = 200,
+    BackgroundImageTransparency = 0.42,
+    HideSearchBar = true,
+    ScrollBarEnabled = false,
+    User = {
+        Enabled = true,
+        Anonymous = true,
+        Callback = function()
+            print("clicked")
+        end,
+    },
+})
+
+local Tabs = {
+    Home = Window:Tab({ Title = "Tab Information", Icon = "" }),
+    Main = Window:Tab({ Title = "Tab Farming", Icon = "" }),
+    Sea = Window:Tab({ Title = "Tab Volcano And Sea Event", Icon = "" }),
+    Other = Window:Tab({ Title = "Tab Farming Other", Icon = "" }),
+    Setting = Window:Tab({ Title = "Setting Farm", Icon = "" }),
+    Player = Window:Tab({ Title = "Tab Local Player", Icon = "" }),
+    Teleport = Window:Tab({ Title = "Tab Teleport", Icon = "" }),
+    Visual = Window:Tab({ Title = "Tab Visual", Icon = "" }),
+    Fruit = Window:Tab({ Title = "Tab Fruit And Raid", Icon = "" }),
+    Race = Window:Tab({ Title = "Tab Upgrade Race", Icon = "" }),
+    Shop = Window:Tab({ Title = "Tab Shop", Icon = "" }),
+    Server = Window:Tab({ Title = "Tab Server", Icon = "" })
+};
+Tabs.Main:Button({
+    Title = "Nhận nhiệm vụ",
+    Desc = "Tự động nhận nhiệm vụ gần nhất",
+    Callback = function()
+        print("Đã nhấn nút nhận nhiệm vụ!")
+        -- Code của bạn ở đây
+    end
+})
+Tabs.Setting:Dropdown({
+    Title = "Chọn Vũ Khí",
+    Values = {"Melee", "Sword", "Gun", "Blox Fruit"},
+    Default = 1,
+    Callback = function(Value) _G.SelectWeapon = Value end
+})
+
+Tabs.Setting:Toggle({
+    Title = "Walk on Water",
+    Default = true,
+    Callback = function(Value)
+        _G.FarmBone = Value
+    end
+})
+
+Tabs.Main:Toggle({
+    Title = "Auto Farm Level",
+    Value = false, -- Mặc định là Tắt
+    Callback = function(state)
+        _G.AutoFarm = state -- 'state' sẽ là true nếu bật, false nếu tắt
+        
+        if _G.AutoFarm then
+            print("Đã bật Farm!")
+            -- Chạy vòng lặp farm của bạn ở đây
+        else
+            print("Đã tắt Farm!")
+        end
+    end
+})
+-- Thêm vào Tab "Setting Farm"
+Tabs.Setting:Slider({
+    Title = "Tốc độ chạy",
+    Desc = "Chỉnh tốc độ di chuyển của nhân vật",
+    Step = 1, -- Đây là bước nhảy, nếu thiếu slider có thể bị đứng
+    Value = {
+        Min = 16,
+        Max = 300,
+        Default = 100
+    },
+    Callback = function(v)
+        -- 'v' là giá trị khi bạn kéo slider
+        if game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
+            game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = v
+        end
+    end
+})
+
+local FarmSection = Tabs.Main:Section({
+    Title = "Cấu hình Auto Farm",
+    Opened = true, -- Mặc định là mở ra
+})
+
+-- 2. Thêm Paragraph để hướng dẫn hoặc thông báo
+Tabs.Main:Paragraph({
+    Title = "Thông tin Script",
+    Desc = "Chào mừng bạn đến với My Super Hub. Chúc bạn chơi game vui vẻ!",
+    Image = "rbxassetid://12345678", -- Bạn có thể đổi ID icon
+    ImageSize = 25,
+})
+
+-- 3. Thêm Dropdown để chọn Vũ khí (Nằm trong Section)
+Tabs.Setting:Dropdown({
+    Title = "Chọn Vũ Khí",
+    Desc = "Chọn loại vũ khí bạn muốn dùng để Farm",
+    Values = {"Combat", "Sword", "Fruit"},
+    Value = {"Combat"}, -- Giá trị mặc định
+    Multi = false,
+    Callback = function(v)
+        print("Vũ khí đã chọn: " .. v[1])
+    end
+})
+
+-- 4. Thêm Button để nhận tất cả code (Redeem All Codes)
+Tabs.Main:Button({
+    Title = "Nhập Tất Cả Codes",
+    Desc = "Tự động nhập toàn bộ mã quà tặng còn hạn",
+    Callback = function()
+        print("Đang nhập codes...")
+    end
+})
+
+-- ==========================================
+-- TAB 2: SETTING FARM (Cài đặt & Giao diện)
+-- ==========================================
+
+-- 5. Thêm Colorpicker để đổi màu giao diện
+Tabs.Visual:Colorpicker({
+    Title = "Màu chủ đạo",
+    Desc = "Thay đổi màu sắc của Menu",
+    Default = Color3.fromRGB(0, 255, 255),
+    Callback = function(color)
+        print("Màu mới: " .. tostring(color))
+    end
+})
+
+-- 6. Thêm Slider (Đã sửa lỗi cấu trúc Value cho bạn)
+Tabs.Setting:Slider({
+    Title = "Tốc độ chạy",
+    Step = 1,
+    Value = {
+        Min = 16,
+        Max = 300,
+        Default = 100
+    },
+    Callback = function(v)
+        if game.Players.LocalPlayer.Character then
+            game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = v
+        end
+    end
+})
+
+-- 7. Thêm Code Element để hiển thị thông tin bản quyền hoặc script rời
+Tabs.Setting:Code({
+    Title = "Thông tin Developer",
+    Code = [[
+-- Script được phát triển bởi: YourName
+-- Version: 1.0.0
+print("Cảm ơn bạn đã sử dụng!")
+    ]]
+})
+
+-- ==========================================
+-- TẠO LOGO NỔI BẬT/TẮT UI (DRAGGABLE)
+-- ==========================================
+local CoreGui = game:GetService("CoreGui")
+local vim = game:GetService("VirtualInputManager")
+
+-- Tạo một Gui mới chứa nút
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "WindUIToggle"
+-- Dùng gethui() nếu executor hỗ trợ, nếu không thì dùng CoreGui để nút không mất khi reset nhân vật
+ScreenGui.Parent = (gethui and gethui()) or CoreGui 
+
+-- Tạo nút hình ảnh
+local ToggleBtn = Instance.new("ImageButton")
+ToggleBtn.Parent = ScreenGui
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30) -- Màu nền đen xám
+ToggleBtn.Position = UDim2.new(0, 50, 0, 50) -- Vị trí ban đầu
+ToggleBtn.Size = UDim2.new(0, 45, 0, 45) -- Kích thước nút
+ToggleBtn.Image = "rbxassetid://13527218679" -- Icon của nút (bạn có thể thay ID khác nếu muốn)
+
+-- Làm cho nút bo tròn
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(1, 0) -- 1 là bo tròn thành hình nón
+UICorner.Parent = ToggleBtn
+
+-- Thêm viền cho đẹp (Tùy chọn)
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(0, 255, 255) -- Viền màu xanh (hợp với màu theme của bạn)
+UIStroke.Thickness = 2
+UIStroke.Parent = ToggleBtn
+
+-- ==========================================
+-- LOGIC KÉO THẢ NÚT (DRAG)
+-- ==========================================
+local dragging, dragInput, dragStart, startPos
+
+ToggleBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = ToggleBtn.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+ToggleBtn.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        ToggleBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- ==========================================
+-- LOGIC BẬT/TẮT MENU (CLICK)
+-- ==========================================
+ToggleBtn.MouseButton1Click:Connect(function()
+    -- Nó sẽ mô phỏng việc bạn bấm phím LeftShift để đóng/mở Menu
+    vim:SendKeyEvent(true, Enum.KeyCode.LeftShift, false, game)
+    vim:SendKeyEvent(false, Enum.KeyCode.LeftShift, false, game)
+end)
+
+
+
+--================================================
+-- LOOP
+--================================================
+task.spawn(function()
+    while task.wait() do
+        if _G.FarmBone then
+            pcall(function()
+                -- THIẾT LẬP THÔNG TIN NHIỆM VỤ (Dùng cho Luồng 1)
+                _G.QuestPos = CFrame.new(-9516.993, 172.017, 6078.465) -- NPC Haunted Quest
+                _G.QuestName = "HauntedQuest2"
+                _G.QuestLevel = 1
+                
+                -- LOGIC ĐÁNH QUÁI
+                local enemies = game:GetService("Workspace").Enemies:GetChildren()
+                local targetMob = nil
+                
+                for _, v in pairs(enemies) do
+                    if (v.Name == "Reborn Skeleton" or v.Name == "Living Zombie" or v.Name == "Demonic Soul" or v.Name == "Possessed Mummy") 
+                    and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                        targetMob = v
+                        break 
+                    end
+                end
+                
+                if targetMob then
+                    EquipWeapon(_G.SelectWeapon)
+                    
+                    -- Bay đến trên đầu quái
+                    local targetCF = targetMob.HumanoidRootPart.CFrame * CFrame.new(0, 25, 0)
+                    topos(targetCF)
+                    
+                    -- Gọi hàm BringMob (bản xịn đã fix quái ảo)
+                    if _G.BringMob then
+                        BringMob(targetMob.Name, targetMob.HumanoidRootPart.CFrame)
+                    end
+                    
+                    -- Tấn công
+                    game:GetService("VirtualUser"):CaptureController()
+                    game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 672))
+                else
+                    -- Không có quái thì bay ra giữa bãi đợi
+                    topos(CFrame.new(-9582.022, 6.251, 6205.478))
+                end
+            end)
+        end
+    end
+end)
