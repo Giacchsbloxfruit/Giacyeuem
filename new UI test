@@ -1294,7 +1294,7 @@ local SectionTravelPortal = Tabs.Teleport:Section({
     Title = "Travel Portal",
 })
 
-local PortalDrop = Tabs.Teleport:AddDropdown({
+local PortalDrop = Tabs.Teleport:Dropdown({
     Title = "Choose Portal",
     Values = {"Hydra Island (Portal)", "Mansion (Portal)", "Castle (Portal)","Temple of Time (Secret)"},
     Multi = false,
