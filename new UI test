@@ -1,3 +1,4 @@
+loadstring(game:HttpGet("https://github.com/TlDinhKhoi/Util/raw/refs/heads/main/ThongBao/AttackFix"))()
 -- ==========================================
 -- 1. KHAI BÁO BIẾN & CÀI ĐẶT HỆ THỐNG
 -- ==========================================
@@ -1043,7 +1044,7 @@ Tabs.Race:Toggle({
 Tabs.Race:Toggle({
     Title = "Auto Teleport to Race Doors",
     Description = "Tự động bay đến cửa Race của bạn",
-    Default = false,
+    Value = false,
     Callback = function(Value)
         _G.TPDoor = Value
         if not Value then 
@@ -1125,7 +1126,7 @@ Tabs.Fruit:Toggle({
 Tabs.Fruit:Toggle({
     Title = "Bring Fruit (Teleport)", 
     Description = "Dịch chuyển đến trái (dễ bị kick)",
-    Default = false,
+    Value = false,
     Callback = function(Value)
         _G.BringFruit = Value
     end
@@ -1134,7 +1135,7 @@ Tabs.Fruit:Toggle({
 Tabs.Fruit:Toggle({
     Title = "Tween to Fruit",
     Description = "Bay đến trái",
-    Default = false,
+    Value = false,
     Callback = function(Value)
         _G.TweenToFruit = Value
     end
@@ -1143,7 +1144,7 @@ Tabs.Fruit:Toggle({
 Tabs.Setting:Toggle({
     Title = "Auto Active Race V3",
     Description = "Tự động bật V3",
-    Default = false,
+    Value = false,
     Callback = function(Value)
         _G.AutoRaceV3 = Value
     end
@@ -1152,7 +1153,7 @@ Tabs.Setting:Toggle({
 Tabs.Setting:Toggle({
     Title = "Auto Active Race V4",
     Description = "Tự động bật V4",
-    Default = false,
+    Value = false,
     Callback = function(Value)
         _G.AutoRaceV4 = Value
     end
@@ -1160,7 +1161,7 @@ Tabs.Setting:Toggle({
 
 Tabs.Setting:Toggle({
     Title = "Walk on Water",
-    Default = true,
+    Value = true,
     Callback = function(Value)
         _G.WalkWater = Value
     end
@@ -1306,7 +1307,7 @@ local PortalDrop = Tabs.Teleport:Dropdown({
 
 local PortalToggle = Tabs.Teleport:Toggle({
     Title = "Start Teleport",
-    Default = false,
+    Value = false,
     Callback = function(Value)
         _G.AutoPortalIsland = Value
     end
@@ -1315,69 +1316,35 @@ local PortalToggle = Tabs.Teleport:Toggle({
 local SectionTravelSea = Tabs.Teleport:Section({ 
     Title = "Teleport Sea",
 })
-Tabs.Teleport:AddButton({
+-- Nút sang Sea 1
+Tabs.Teleport:Button({
     Title = "Travel East Blue (World 1)",
-    Description = "Bấm để quay về biển 1",
+    Desc = "Bấm để quay về biển 1 ngay lập tức",
     Callback = function()
-        Window:Dialog({
-            Title = "Xác nhận",
-            Content = "Bạn muốn di chuyển sang Sea 1?",
-            Buttons = {
-                {
-                    Title = "Đồng ý",
-                    Callback = function()
-                        PrepareToTravel()
-                        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("TravelMain")
-                    end
-                },
-                { Title = "Hủy" }
-            }
-        })
+        PrepareToTravel()
+        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("TravelMain")
     end
 })
 
-Tabs.Teleport:AddButton({
+-- Nút sang Sea 2
+Tabs.Teleport:Button({
     Title = "Travel Dressrosa (World 2)",
-    Description = "Bấm để di chuyển tới biển 2",
+    Desc = "Bấm để di chuyển tới biển 2 ngay lập tức",
     Callback = function()
-        Window:Dialog({
-            Title = "Xác nhận",
-            Content = "Bạn muốn di chuyển sang Sea 2?",
-            Buttons = {
-                {
-                    Title = "Đồng ý",
-                    Callback = function()
-                        PrepareToTravel()
-                        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("TravelDressrosa")
-                    end
-                },
-                { Title = "Hủy" }
-            }
-        })
+        PrepareToTravel()
+        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("TravelDressrosa")
     end
 })
 
-Tabs.Teleport:AddButton({
+-- Nút sang Sea 3
+Tabs.Teleport:Button({
     Title = "Travel Zou (World 3)",
-    Description = "Bấm để di chuyển tới biển 3",
+    Desc = "Bấm để di chuyển tới biển 3 ngay lập tức",
     Callback = function()
-        Window:Dialog({
-            Title = "Xác nhận",
-            Content = "Bạn muốn di chuyển sang Sea 3?",
-            Buttons = {
-                {
-                    Title = "Đồng ý",
-                    Callback = function()
-                        PrepareToTravel()
-                        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("TravelZou")
-                    end
-                },
-                { Title = "Hủy" }
-            }
-        })
+        PrepareToTravel()
+        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("TravelZou")
     end
 })
-
 -- ==========================================
 -- 4. LOGIC VÒNG LẶP (MAIN LOGIC)
 -- ==========================================
@@ -1881,5 +1848,3 @@ task.spawn(function()
         end
     end
 end)
-
-loadstring(game:HttpGet("https://github.com/TlDinhKhoi/Util/raw/refs/heads/main/ThongBao/AttackFix"))()
