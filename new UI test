@@ -1,0 +1,1885 @@
+-- ==========================================
+-- 1. KHAI BÁO BIẾN & CÀI ĐẶT HỆ THỐNG
+-- ==========================================
+_G.AutoTemple = false
+_G.PullLever = false
+_G.Complete_Trials = false
+_G.AutoAcceptQuest = false
+_G.HighlightColor = "Rainbow"
+_G.SelectedIsland = "Port Town"      -- Đảo mặc định cho Tween
+_G.AutoTweenIsland = false           -- Trạng thái nút gạt Tween
+_G.SelectedPortal = "Mansion (Portal)" -- Cổng mặc định
+_G.AutoPortalIsland = false
+_G.CurrentBones = 0
+_G.FarmBone = false
+_G.SelectWeapon = "Melee"
+_G.TweenSpeed = 250
+_G.BringMob = false -- Biến gom quái
+_G.FarmChest = false
+_G.StopHaveKey = false
+_G.AutoRandomBone = false
+_G.AutoRandom = false
+_G.AutoStore = false
+_G.AutoRaceV3 = false
+_G.AutoRaceV4 = false
+_G.BringFruit = false
+_G.TweenToFruit = false 
+_G.CurrentTween = nil
+_G.TweenSpeed = 250
+_G.AutoSoulReaper = false
+_G.WalkWater = false
+_G.Auto_Cake_Prince = false
+_G.OldFarmBoneStatus = false
+_G.AutoFarmLevel = false
+_G.FullBrightEnabled = false
+
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local replicated = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
+local TargetChest = nil
+
+-- Lưu lại giá trị gốc của game để khi Tắt toggle thì mọi thứ quay về bình thường
+local OriginalSettings = {
+    Ambient = Lighting.Ambient,
+    ColorShift_Bottom = Lighting.ColorShift_Bottom,
+    ColorShift_Top = Lighting.ColorShift_Top,
+    GlobalShadows = Lighting.GlobalShadows,
+    Brightness = Lighting.Brightness,
+    FogEnd = Lighting.FogEnd
+}
+--Hàm fps,ping,time
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+local Stats = game:GetService("Stats")
+
+-- Xóa cái cũ để tránh bị chồng đè khi chạy lại script
+if CoreGui:FindFirstChild("GiacdzStats") then
+    CoreGui.GiacdzStats:Destroy()
+end
+
+-- Lưu thời điểm bắt đầu chạy script
+local StartTime = tick()
+
+local ScreenGui = Instance.new("ScreenGui")
+local InfoLabel = Instance.new("TextLabel")
+
+ScreenGui.Name = "GiacdzStats"
+ScreenGui.Parent = CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+InfoLabel.Name = "InfoLabel"
+InfoLabel.Parent = ScreenGui
+InfoLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+InfoLabel.BackgroundTransparency = 1.000
+InfoLabel.Position = UDim2.new(0, 10, 0, 10) 
+InfoLabel.Size = UDim2.new(0, 400, 0, 30) -- Tăng độ rộng để chứa thêm Time
+InfoLabel.Font = Enum.Font.FredokaOne
+InfoLabel.Text = "FPS: 0 | Ping: 0 ms | Time: 00:00:00"
+InfoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+InfoLabel.TextSize = 17.000
+InfoLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Biến tính toán
+local TimeTable = {}
+local FrameUpdateDelay = 0.5 
+local LastUpdate = tick()
+
+-- Hàm đổi giây sang định dạng 00:00:00
+local function FormatTime(seconds)
+    local hours = math.floor(seconds / 3600)
+    local mins = math.floor((seconds % 3600) / 60)
+    local secs = math.floor(seconds % 60)
+    return string.format("%02d:%02d:%02d", hours, mins, secs)
+end
+
+RunService.RenderStepped:Connect(function()
+    -- Hiệu ứng Rainbow cho chữ
+    local hue = tick() % 3 / 3
+    InfoLabel.TextColor3 = Color3.fromHSV(hue, 1, 1)
+    
+    -- Tính FPS
+    local CurrentTime = tick()
+    for i = #TimeTable, 1, -1 do
+        if TimeTable[i] < CurrentTime - 1 then
+            table.remove(TimeTable, i)
+        end
+    end
+    table.insert(TimeTable, CurrentTime)
+    
+    -- Cập nhật nội dung mỗi 0.5 giây
+    if CurrentTime - LastUpdate >= FrameUpdateDelay then
+        local fps = #TimeTable
+        local ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+        local elapsed = CurrentTime - StartTime
+        
+        InfoLabel.Text = string.format("FPS: %d | Ping: %d ms | Time: %s", fps, ping, FormatTime(elapsed))
+        LastUpdate = CurrentTime
+    end
+end)
+
+-- Hàm walk on water
+function AutoWalkWater()
+    pcall(function()
+        local water = game:GetService("Workspace").Map:FindFirstChild("WaterBase-Plane")
+        if water then
+            if _G.WalkWater then
+                water.Size = Vector3.new(1000, 112, 1000) -- Nâng nước lên
+            else
+                water.Size = Vector3.new(1000, 80, 1000)  -- Trả về mặc định
+            end
+        end
+    end)
+end
+--Ham trial seabeast
+local function GetSeaBeastTrial()
+    if not workspace.Map:FindFirstChild("FishmanTrial") then return nil end
+    local waterTrial = workspace._WorldOrigin.Locations:FindFirstChild("Trial of Water")
+    if waterTrial then
+        for _, v in pairs(workspace.SeaBeasts:GetChildren()) do
+            if v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Health") and v.Health.Value > 0 then
+                if (v.HumanoidRootPart.Position - waterTrial.Position).Magnitude <= 1500 then
+                    return v
+                end
+            end
+        end
+    end
+    return nil
+end
+
+--Ham bright
+local function ApplyFullBright()
+    if _G.FullBrightEnabled then
+        Lighting.Ambient = Color3.new(1, 1, 1)
+        Lighting.ColorShift_Bottom = Color3.new(1, 1, 1)
+        Lighting.ColorShift_Top = Color3.new(1, 1, 1)
+        Lighting.GlobalShadows = false
+        Lighting.Brightness = 2
+        if Lighting.FogEnd < 9e8 then
+            Lighting.FogEnd = 9e10
+        end
+    end
+end
+Lighting.Changed:Connect(function()
+    if _G.FullBrightEnabled then
+        ApplyFullBright()
+    end
+end)
+
+-- Bảng dữ liệu Farm Sea 3 cực kỳ thông minh
+local Sea3MobData = {
+    {Min = 1500, Max = 1524, Mon = "Pirate Millionaire", Qname = "PiratePortQuest", Qdata = 1, PosQ = CFrame.new(-712.8, 98.5, 5711.9), PosM = CFrame.new(-712.8, 98.5, 5711.9)},
+    {Min = 1525, Max = 1574, Mon = "Pistol Billionaire", Qname = "PiratePortQuest", Qdata = 2, PosQ = CFrame.new(-723.4, 147.4, 5931.9), PosM = CFrame.new(-723.4, 147.4, 5931.9)},
+    {Min = 1575, Max = 1599, Mon = "Dragon Crew Warrior", Qname = "AmazonQuest", Qdata = 1, PosQ = CFrame.new(6779.0, 111.1, -801.2), PosM = CFrame.new(6779.0, 111.1, -801.2)},
+    {Min = 1600, Max = 1624, Mon = "Dragon Crew Archer", Qname = "AmazonQuest", Qdata = 2, PosQ = CFrame.new(6955.8, 546.6, 309.0), PosM = CFrame.new(6955.8, 546.6, 309.0)},
+    {Min = 1625, Max = 1649, Mon = "Hydra Enforcer", Qname = "VenomCrewQuest", Qdata = 1, PosQ = CFrame.new(4620.6, 1002.2, 399.0), PosM = CFrame.new(4620.6, 1002.2, 399.0)},
+    {Min = 1650, Max = 1699, Mon = "Venomous Assailant", Qname = "VenomCrewQuest", Qdata = 2, PosQ = CFrame.new(4697.5, 1100.6, 946.4), PosM = CFrame.new(4697.5, 1100.6, 946.4)},
+    {Min = 1700, Max = 1724, Mon = "Marine Commodore", Qname = "MarineTreeIsland", Qdata = 1, PosQ = CFrame.new(2180.5, 27.8, -6741.5), PosM = CFrame.new(2286.0, 73.1, -7159.8)},
+    {Min = 1725, Max = 1774, Mon = "Marine Rear Admiral", Qname = "MarineTreeIsland", Qdata = 2, PosQ = CFrame.new(2179.9, 28.7, -6740.0), PosM = CFrame.new(3656.7, 160.5, -7001.5)},
+    {Min = 1775, Max = 1799, Mon = "Fishman Raider", Qname = "DeepForestIsland3", Qdata = 1, PosQ = CFrame.new(-10581.6, 330.8, -8761.1), PosM = CFrame.new(-10407.5, 331.7, -8368.5)},
+    {Min = 1800, Max = 1824, Mon = "Fishman Captain", Qname = "DeepForestIsland3", Qdata = 2, PosQ = CFrame.new(-10581.6, 330.8, -8761.1), PosM = CFrame.new(-10994.7, 352.3, -9002.1)},
+    {Min = 1825, Max = 1849, Mon = "Forest Pirate", Qname = "DeepForestIsland", Qdata = 1, PosQ = CFrame.new(-13234.0, 331.4, -7625.4), PosM = CFrame.new(-13274.4, 332.3, -7769.5)},
+    {Min = 1850, Max = 1899, Mon = "Mythological Pirate", Qname = "DeepForestIsland", Qdata = 2, PosQ = CFrame.new(-13234.0, 331.4, -7625.4), PosM = CFrame.new(-13680.6, 501.0, -6991.1)},
+    {Min = 1900, Max = 1924, Mon = "Jungle Pirate", Qname = "DeepForestIsland2", Qdata = 1, PosQ = CFrame.new(-12680.3, 389.9, -9902.0), PosM = CFrame.new(-12256.1, 331.7, -10485.8)},
+    {Min = 1925, Max = 1974, Mon = "Musketeer Pirate", Qname = "DeepForestIsland2", Qdata = 2, PosQ = CFrame.new(-12680.3, 389.9, -9902.0), PosM = CFrame.new(-13457.9, 391.5, -9859.1)},
+    {Min = 1975, Max = 1999, Mon = "Reborn Skeleton", Qname = "HauntedQuest1", Qdata = 1, PosQ = CFrame.new(-9479.2, 141.2, 5566.0), PosM = CFrame.new(-8763.7, 165.7, 6159.8)},
+    {Min = 2000, Max = 2024, Mon = "Living Zombie", Qname = "HauntedQuest1", Qdata = 2, PosQ = CFrame.new(-9479.2, 141.2, 5566.0), PosM = CFrame.new(-10144.1, 138.6, 5838.0)},
+    {Min = 2025, Max = 2049, Mon = "Demonic Soul", Qname = "HauntedQuest2", Qdata = 1, PosQ = CFrame.new(-9516.9, 172.0, 6078.4), PosM = CFrame.new(-9505.8, 172.1, 6158.9)},
+    {Min = 2050, Max = 2074, Mon = "Posessed Mummy", Qname = "HauntedQuest2", Qdata = 2, PosQ = CFrame.new(-9516.9, 172.0, 6078.4), PosM = CFrame.new(-9582.0, 6.2, 6205.4)},
+    {Min = 2075, Max = 2099, Mon = "Peanut Scout", Qname = "NutsIslandQuest", Qdata = 1, PosQ = CFrame.new(-2104.3, 38.1, -10194.2), PosM = CFrame.new(-2143.2, 47.7, -10029.9)},
+    {Min = 2100, Max = 2124, Mon = "Peanut President", Qname = "NutsIslandQuest", Qdata = 2, PosQ = CFrame.new(-2104.3, 38.1, -10194.2), PosM = CFrame.new(-1859.3, 38.1, -10422.4)},
+    {Min = 2125, Max = 2149, Mon = "Ice Cream Chef", Qname = "IceCreamIslandQuest", Qdata = 1, PosQ = CFrame.new(-820.6, 65.8, -10965.7), PosM = CFrame.new(-872.2, 65.8, -10919.9)},
+    {Min = 2150, Max = 2199, Mon = "Ice Cream Commander", Qname = "IceCreamIslandQuest", Qdata = 2, PosQ = CFrame.new(-820.6, 65.8, -10965.7), PosM = CFrame.new(-558.0, 112.0, -11290.7)},
+    {Min = 2200, Max = 2224, Mon = "Cookie Crafter", Qname = "CakeQuest1", Qdata = 1, PosQ = CFrame.new(-2021.3, 37.7, -12028.7), PosM = CFrame.new(-2374.1, 37.7, -12125.3)},
+    {Min = 2225, Max = 2249, Mon = "Cake Guard", Qname = "CakeQuest1", Qdata = 2, PosQ = CFrame.new(-2021.3, 37.7, -12028.7), PosM = CFrame.new(-1598.3, 43.7, -12244.5)},
+    {Min = 2250, Max = 2274, Mon = "Baking Staff", Qname = "CakeQuest2", Qdata = 1, PosQ = CFrame.new(-1927.9, 37.7, -12842.5), PosM = CFrame.new(-1887.8, 77.6, -12998.3)},
+    {Min = 2275, Max = 2299, Mon = "Head Baker", Qname = "CakeQuest2", Qdata = 2, PosQ = CFrame.new(-1927.9, 37.7, -12842.5), PosM = CFrame.new(-2216.1, 82.8, -12869.2)},
+    {Min = 2300, Max = 2324, Mon = "Cocoa Warrior", Qname = "ChocQuest1", Qdata = 1, PosQ = CFrame.new(233.2, 29.8, -12201.2), PosM = CFrame.new(-21.5, 80.5, -12352.3)},
+    {Min = 2325, Max = 2349, Mon = "Chocolate Bar Battler", Qname = "ChocQuest1", Qdata = 2, PosQ = CFrame.new(233.2, 29.8, -12201.2), PosM = CFrame.new(582.5, 77.1, -12463.1)},
+    {Min = 2350, Max = 2374, Mon = "Sweet Thief", Qname = "ChocQuest2", Qdata = 1, PosQ = CFrame.new(150.5, 30.6, -12774.5), PosM = CFrame.new(165.1, 76.0, -12600.8)},
+    {Min = 2375, Max = 2399, Mon = "Candy Rebel", Qname = "ChocQuest2", Qdata = 2, PosQ = CFrame.new(150.5, 30.6, -12774.5), PosM = CFrame.new(134.8, 77.2, -12876.5)},
+    {Min = 2400, Max = 2449, Mon = "Candy Pirate", Qname = "CandyQuest1", Qdata = 1, PosQ = CFrame.new(-1150.0, 20.3, -14446.3), PosM = CFrame.new(-1310.5, 26.0, -14562.4)},
+    {Min = 2450, Max = 2474, Mon = "Isle Outlaw", Qname = "TikiQuest1", Qdata = 1, PosQ = CFrame.new(-16548.8, 55.6, -172.8), PosM = CFrame.new(-16479.9, 226.6, -300.3)},
+    {Min = 2475, Max = 2499, Mon = "Island Boy", Qname = "TikiQuest1", Qdata = 2, PosQ = CFrame.new(-16548.8, 55.6, -172.8), PosM = CFrame.new(-16849.3, 192.8, -150.7)},
+    {Min = 2500, Max = 2524, Mon = "Sun-kissed Warrior", Qname = "TikiQuest2", Qdata = 1, PosQ = CFrame.new(-16538.0, 55.0, 1049.0), PosM = CFrame.new(-16347.0, 64.0, 984.0)},
+    {Min = 2525, Max = 2550, Mon = "Isle Champion", Qname = "TikiQuest2", Qdata = 2, PosQ = CFrame.new(-16541.0, 57.3, 1051.4), PosM = CFrame.new(-16602.1, 130.3, 1087.2)},
+    {Min = 2551, Max = 2574, Mon = "Serpent Hunter", Qname = "TikiQuest3", Qdata = 1, PosQ = CFrame.new(-16679.4, 176.7, 1474.3), PosM = CFrame.new(-16679.4, 176.7, 1474.3)},
+    {Min = 2575, Max = 10000, Mon = "Skull Slayer", Qname = "TikiQuest3", Qdata = 2, PosQ = CFrame.new(-16759.5, 71.2, 1595.3), PosM = CFrame.new(-16759.5, 71.2, 1595.3)}
+}
+
+-- Hàm tự động tìm quái theo Level
+local function GetMobByLevel(level)
+    for _, data in ipairs(Sea3MobData) do
+        if level >= data.Min and level <= data.Max then
+            return data
+        end
+    end
+    return nil
+end
+
+-- Hàm hop server
+function HopServer()
+    local Http = game:GetService("HttpService")
+    local TPS = game:GetService("TeleportService")
+    local LP = game.Players.LocalPlayer
+    local Api = "https://games.roblox.com/v1/games/" .. tostring(game.PlaceId) .. "/servers/Public?sortOrder=Asc&limit=100"
+    
+    pcall(function()
+        local Raw = game:HttpGet(Api)
+        local Decode = Http:JSONDecode(Raw)
+        if Decode and Decode.data then
+            for _, s in pairs(Decode.data) do
+                if type(s) == "table" and s.id ~= game.JobId and s.playing ~= nil and s.maxPlayers ~= nil then
+                    -- Kiểm tra server còn chỗ trống (ít nhất 2 chỗ để tránh bị full khi đang vào)
+                    if s.playing < s.maxPlayers - 2 then
+                        TPS:TeleportToPlaceInstance(game.PlaceId, s.id, LP)
+                        break
+                    end
+                end
+            end
+        end
+    end)
+end
+--Ham color
+local StaticColors = {
+    ["Red"] = Color3.fromRGB(255, 0, 0),
+    ["Orange"] = Color3.fromRGB(255, 128, 0),
+    ["Yellow"] = Color3.fromRGB(255, 255, 0),
+    ["Green"] = Color3.fromRGB(0, 255, 0),
+    ["Blue"] = Color3.fromRGB(0, 170, 255), -- Màu xanh biển sáng cho đẹp
+    ["Purple"] = Color3.fromRGB(170, 0, 255),
+    ["Pink"] = Color3.fromRGB(255, 105, 180),
+    ["White"] = Color3.fromRGB(255, 255, 255)
+}
+
+task.spawn(function()
+    local LP = game.Players.LocalPlayer
+    while task.wait() do
+        if _G.GoingToSea2 then continue end
+        
+        pcall(function()
+            local char = LP.Character
+            if char then
+                local hl = char:FindFirstChild("GiacdzHighlight") or Instance.new("Highlight", char)
+                hl.Name = "GiacdzHighlight"
+                hl.FillTransparency = 0.5
+                
+                -- Kiểm tra xem đang chọn màu gì
+                if _G.HighlightColor == "Rainbow" then
+                    -- Chế độ 7 màu (Rainbow)
+                    local hue = tick() % 3 / 3 
+                    hl.FillColor = Color3.fromHSV(hue, 1, 1) 
+                    hl.OutlineColor = Color3.fromHSV(hue, 1, 1) 
+                else
+                    -- Chế độ màu tĩnh
+                    local selectedColor = StaticColors[_G.HighlightColor]
+                    if selectedColor then
+                        hl.FillColor = selectedColor
+                        hl.OutlineColor = selectedColor
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+-- Hàm code --
+function AutoRedeem()
+    local CodeList = {
+        "NOMOREHACK","BANEXPLOIT","WildDares","BossBuild","GetPranked","EARN_FRUITS","FIGHT4FRUIT",
+        "NOEXPLOITER","NOOB2ADMIN","CODESLIDE","ADMINHACKED","ADMINDARES","fruitconcepts","krazydares",
+        "TRIPLEABUSE","SEATROLLING","24NOADMIN","REWARDFUN","Chandler","NEWTROLL","KITT_RESET",
+        "Sub2CaptainMaui","kittgaming","Sub2Fer999","Enyu_is_Pro","Magicbus","JCWK","Starcodeheo",
+        "Bluxxy","fudd10_v2","SUB2GAMERROBOT_EXP1","Sub2NoobMaster123","Sub2UncleKizaru","Sub2Daigrock",
+        "Axiore","TantaiGaming","StrawHatMaine","Sub2OfficialNoobie","Fudd10","Bignews","TheGreatAce",
+        "SECRET_ADMIN","SUB2GAMERROBOT_RESET1","SUB2OFFICIALNOOBIE","AXIORE","BIGNEWS","BLUXXY",
+        "CHANDLER","ENYU_IS_PRO","FUDD10","FUDD10_V2","KITTGAMING","MAGICBUS","STARCODEHEO",
+        "STRAWHATMAINE","SUB2CAPTAINMAUI","SUB2DAIGROCK","SUB2FER999","SUB2NOOBMASTER123",
+        "SUB2UNCLEKIZARU","TANTAIGAMING","THEGREATACE","1LOSTADMIN","EASTEREXP","LIGHTNINGABUSE"
+    }
+    
+    local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Redeem")
+    
+    -- Chờ cho đến khi vào Team mới bắt đầu nhập
+    while task.wait(1) do
+        if game.Players.LocalPlayer.Team ~= nil then break end
+    end
+
+    for _, code in ipairs(CodeList) do
+        pcall(function()
+            remote:InvokeServer(code)
+        end)
+        task.wait(0.15) -- Delay nhẹ chống kick
+    end
+end
+
+-- Hàm Tween
+function topos(targetCFrame)
+    local char = game.Players.LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    -- Lấy tốc độ mặc định nếu biến bị lỗi
+    local speed = _G.TweenSpeed or 250
+    local dist = (targetCFrame.Position - root.Position).Magnitude
+    
+    -- 1. Nếu đang bay đến mục tiêu cũ thì KHÔNG làm gì cả (Chống giật/khựng)
+    if _G.CurrentTween and _G.LastTargetPos then
+        local lech = (targetCFrame.Position - _G.LastTargetPos.Position).Magnitude
+        if lech < 5 then return end -- Nếu mục tiêu lệch ít hơn 5 unit thì cứ để nó bay tiếp
+    end
+
+    -- 2. Dừng cái cũ để chuyển mục tiêu mới
+    StopTween()
+
+    -- 3. Nếu khoảng cách quá gần (< 15) thì dịch chuyển thẳng luôn cho nhanh
+    if dist < 15 then 
+        root.CFrame = targetCFrame 
+        return 
+    end
+
+    -- 4. Tạo Tween mới
+    _G.LastTargetPos = targetCFrame
+    local info = TweenInfo.new(dist / speed, Enum.EasingStyle.Linear)
+    _G.CurrentTween = game:GetService("TweenService"):Create(root, info, {CFrame = targetCFrame})
+    
+    _G.CurrentTween.Completed:Connect(function()
+        _G.LastTargetPos = nil
+        _G.CurrentTween = nil
+    end)
+
+    _G.CurrentTween:Play()
+end
+
+function StopTween()
+    if _G.CurrentTween then
+        _G.CurrentTween:Cancel()
+        _G.CurrentTween = nil
+    end
+    _G.LastTargetPos = nil
+    
+    -- Ép nhân vật dừng lại ngay lập tức (Chống nhặt thêm rương)
+    local root = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if root then
+        root.Velocity = Vector3.new(0, 0, 0)
+    end
+end
+
+-- Hàm bật Tộc V3 (Sử dụng Remote)
+function ActiveRaceV3()
+    pcall(function()
+        game:GetService("ReplicatedStorage").Remotes.CommE:FireServer("ActivateAbility")
+    end)
+end
+
+-- Hàm quét trái --
+function GetDroppedFruit()
+    for _, v in pairs(game.Workspace:GetChildren()) do
+        if string.find(v.Name, "Fruit") and v:FindFirstChild("Handle") then
+            return v.Handle
+        end
+    end
+    return nil
+end
+
+-- Hàm bật Tộc V4 (Giả lập nhấn phím Y)
+function ActiveRaceV4()
+    pcall(function()
+        local vim = game:GetService("VirtualInputManager")
+        vim:SendKeyEvent(true, "Y", false, game)
+        task.wait(0.5) -- Giữ phím một chút để hệ thống nhận diện
+        vim:SendKeyEvent(false, "Y", false, game)
+    end)
+end
+
+-- Hàm Mua Trái Ác Quỷ
+function BuyRandomFruit()
+    pcall(function()
+        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Cousin", "Buy")
+    end)
+end
+
+local Sea3Data = {
+    -- Danh sách Tween (Tất cả các đảo)
+    AllIslands = {
+        ["Port Town"] = CFrame.new(-226.75, 20.60, 5538.34),
+        ["Hydra Island"] = CFrame.new(5743.31, 1206.91, 936.01),
+        ["Floating Turtle"] = CFrame.new(-13274.52, 531.82, -7579.22),
+        ["Mansion"] = CFrame.new(-12471, 374, -7551),
+        ["Castle On The Sea"] = CFrame.new(-5083, 314, -3175),
+        ["Haunted Castle"] = CFrame.new(-9515.37, 164.00, 5786.06),
+        ["Ice Cream Island"] = CFrame.new(-902.56, 79.93, -10988.84),
+        ["Peanut Island"] = CFrame.new(-2062.74, 50.47, -10232.56),
+        ["Cake Island"] = CFrame.new(-1884.77, 19.32, -11666.89),
+        ["Cocoa Island"] = CFrame.new(87.94, 73.55, -12319.46),
+        ["Candy Island"] = CFrame.new(-1014.42, 149.11, -14555.96),
+        ["Tiki Outpost"] = CFrame.new(-16218.68, 9.08, 445.61),
+        ["Dragon Dojo"] = CFrame.new(5743.31, 1206.91, 936.01)
+    },
+    -- Danh sách Portal (Chỉ 3 đảo có cổng)
+    Portals = {
+        ["Hydra Island (Portal)"] = Vector3.new(5657.88, 1013.07, -335.49),
+        ["Mansion (Portal)"] = Vector3.new(-12462, 375, -7552),
+        ["Castle (Portal)"] = Vector3.new(-5036, 315, -3179),
+        ["Temple of Time (Secret)"] = Vector3.new(28286.35, 14895.3, 102.6)
+    }
+}
+
+-- Hàm Cất Trái Ác Quỷ
+function StoreFruit()
+    pcall(function()
+        local player = game.Players.LocalPlayer
+        local char = player.Character or player.CharacterAdded:Wait()
+        local backpack = player:WaitForChild("Backpack")
+        
+        local fruitList = {
+            {"Rocket Fruit", "Rocket-Rocket"}, {"Spin Fruit", "Spin-Spin"},
+            {"Blade Fruit", "Blade-Blade"}, {"Spring Fruit", "Spring-Spring"},
+            {"Bomb Fruit", "Bomb-Bomb"}, {"Smoke Fruit", "Smoke-Smoke"},
+            {"Spike Fruit", "Spike-Spike"}, {"Flame Fruit", "Flame-Flame"},
+            {"Eagle Fruit", "Eagle-Eagle"}, {"Ice Fruit", "Ice-Ice"},
+            {"Sand Fruit", "Sand-Sand"}, {"Dark Fruit", "Dark-Dark"},
+            {"Diamond Fruit", "Diamond-Diamond"}, {"Light Fruit", "Light-Light"},
+            {"Rubber Fruit", "Rubber-Rubber"}, {"Creation Fruit", "Creation-Creation"},
+            {"Ghost Fruit", "Ghost-Ghost"}, {"Magma Fruit", "Magma-Magma"},
+            {"Quake Fruit", "Quake-Quake"}, {"Buddha Fruit", "Buddha-Buddha"},
+            {"Love Fruit", "Love-Love"}, {"Spider Fruit", "Spider-Spider"},
+            {"Sound Fruit", "Sound-Sound"}, {"Phoenix Fruit", "Phoenix-Phoenix"},
+            {"Portal Fruit", "Portal-Portal"}, {"Lightning Fruit", "Lightning-Lightning"},
+            {"Pain Fruit", "Pain-Pain"}, {"Blizzard Fruit", "Blizzard-Blizzard"},
+            {"Gravity Fruit", "Gravity-Gravity"}, {"Mammoth Fruit", "Mammoth-Mammoth"},
+            {"T-Rex Fruit", "T-Rex-T-Rex"}, {"Dough Fruit", "Dough-Dough"},
+            {"Shadow Fruit", "Shadow-Shadow"}, {"Venom Fruit", "Venom-Venom"},
+            {"Gas Fruit", "Gas-Gas"}, {"Control Fruit", "Control-Control"},
+            {"Spirit Fruit", "Spirit-Spirit"}, {"Leopard Fruit", "Leopard-Leopard"},
+            {"Yeti Fruit", "Yeti-Yeti"}, {"Kitsune Fruit", "Kitsune-Kitsune"},
+            {"Dragon Fruit", "Dragon-Dragon"}
+        }
+        
+        for _, fruitData in ipairs(fruitList) do
+            local fruitName = fruitData[1]
+            local fruitId = fruitData[2]
+            
+            local foundFruit = backpack:FindFirstChild(fruitName) or char:FindFirstChild(fruitName)
+            
+            if foundFruit then
+                game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StoreFruit", fruitId, foundFruit)
+                break 
+            end
+        end
+    end)
+end
+
+-- Hàm random bone --
+function RandomBone()
+    pcall(function()
+        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Bones", "Buy", 1, 1)
+    end)
+end
+
+-- Hàm chest --
+function GetClosestChest()
+    local closestChest = nil
+    local shortestDistance = math.huge
+    local player = game.Players.LocalPlayer
+    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return nil end
+
+    local chests = game:GetService("CollectionService"):GetTagged("_ChestTagged")
+    
+    for _, v in pairs(chests) do
+        -- Kiểm tra rương còn tồn tại và chưa bị ai ăn (IsDisabled)
+        if v and v.Parent and not v:GetAttribute("IsDisabled") then
+            local dist = (v:GetPivot().Position - root.Position).Magnitude
+            if dist < shortestDistance then
+                shortestDistance = dist
+                closestChest = v
+            end
+        end
+    end
+    return closestChest
+end
+
+-- Hàm Tự Động Bật Haki
+task.spawn(function()
+    while task.wait(0.5) do
+        pcall(function()
+            local player = game.Players.LocalPlayer
+            -- Chỉ chạy khi đã chọn Team (Hải tặc/Hải quân)
+            if player.Team ~= nil then 
+                local char = player.Character
+                if char and not char:FindFirstChild("HasBuso") then
+                    -- Gửi lệnh bật Haki lên server
+                    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Buso")
+                end
+            end
+        end)
+    end
+end)
+-- Hàm tool --
+function EquipWeapon(WeaponType)
+    pcall(function()
+        local backpack = game.Players.LocalPlayer.Backpack
+        local character = game.Players.LocalPlayer.Character
+        if not character then return end
+        
+        for _, v in pairs(character:GetChildren()) do
+            if v:IsA("Tool") and (v.ToolTip == WeaponType or (WeaponType == "Blox Fruit" and v.ToolTip == "Go")) then
+                return 
+            end
+        end
+        for _, v in pairs(backpack:GetChildren()) do
+            if v:IsA("Tool") and (v.ToolTip == WeaponType or (WeaponType == "Blox Fruit" and v.ToolTip == "Go")) then
+                character.Humanoid:EquipTool(v)
+            end
+        end
+    end)
+end
+
+-- Hàm Noclip & Chống rơi "Thông minh"
+RunService.Stepped:Connect(function()
+    -- Chỉ hoạt động khi có Tween đang chạy (Farm, Đánh Boss, Nhặt trái...)
+    if _G.CurrentTween and (_G.CurrentTween.PlaybackState == Enum.PlaybackState.Playing or _G.CurrentTween.PlaybackState == Enum.PlaybackState.Delayed) then
+        pcall(function()
+            local char = game.Players.LocalPlayer.Character
+            if char then
+                local root = char:FindFirstChild("HumanoidRootPart")
+                local hum = char:FindFirstChild("Humanoid")
+
+                if hum then hum.Sit = false end
+                
+                for _, v in pairs(char:GetDescendants()) do
+                    if v:IsA("BasePart") then 
+                        v.CanCollide = false 
+                    end
+                end
+                
+                if root then
+                    -- Triệt tiêu vận tốc rơi, giữ cố định trên đầu quái cực chuẩn
+                    root.Velocity = Vector3.new(0, 0, 0)
+                end
+            end
+        end)
+    end
+end)
+
+-- Hàm Gom Quái (Bring Mob) - Tầm 2-4 con gần nhất
+function BringMob(targetMobName, targetPos)
+    if not _G.BringMob then return end
+    pcall(function()
+        local count = 0
+        -- QUAN TRỌNG 1: Chiếm quyền điều khiển mạng của quái để Server công nhận vị trí
+        sethiddenproperty(game.Players.LocalPlayer, "SimulationRadius", math.huge)
+
+        for _, v in pairs(workspace.Enemies:GetChildren()) do
+            if v.Name == targetMobName and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                if count < 4 then
+                    -- QUAN TRỌNG 2: Tắt va chạm toàn bộ cơ thể để không bị cấn đất (gây văng/bay)
+                    for _, part in pairs(v:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+
+                    v.HumanoidRootPart.CFrame = targetPos
+                    
+                    -- QUAN TRỌNG 3: Triệt tiêu mọi lực văng hiện có của quái
+                    v.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+                    
+                    v.Humanoid.WalkSpeed = 0
+                    v.Humanoid.JumpPower = 0 -- Khóa nhảy để quái không thoát khỏi CFrame
+
+                    -- QUAN TRỌNG 4: Đổi từ State 11 sang 14. 
+                    -- State 14 (Physics) giúp quái đứng im re tại vị trí CFrame mà không bị Server kéo lại
+                    if v.Humanoid:GetState() ~= Enum.HumanoidStateType.Physics then
+                        v.Humanoid:ChangeState(14)
+                    end
+
+                    count = count + 1
+                end
+            end
+        end
+    end)
+end
+-- Hàm dùng chung để bay đi mua Melee
+function BuyMeleeTween(TargetCFrame, MeleeID)
+    _G.FarmBone = false -- Tắt farm xương ngay lập tức
+    _G.OldFarmBoneStatus = false -- Xóa bộ nhớ để nó không tự bật lại
+    if _G.CurrentTween then _G.CurrentTween:Cancel() end -- Dừng các hành động bay khác
+
+    task.spawn(function()
+        local player = game.Players.LocalPlayer
+        
+        -- Bắt đầu bay tới NPC
+        topos(TargetCFrame)
+        
+        -- Đợi cho đến khi bay sát NPC (khoảng cách < 15)
+        repeat 
+            task.wait(0.5) 
+        until (player.Character.HumanoidRootPart.Position - TargetCFrame.Position).Magnitude < 15
+        
+        -- Khi đã đến nơi, thực hiện lệnh mua
+        local remote = game:GetService("ReplicatedStorage").Remotes.CommF_
+        
+        if MeleeID == "BlackLeg" then remote:InvokeServer("BuyBlackLeg")
+        elseif MeleeID == "Electro" then remote:InvokeServer("BuyElectro")
+        elseif MeleeID == "WaterKungFu" then remote:InvokeServer("BuyFishmanKarate")
+        elseif MeleeID == "Superhuman" then remote:InvokeServer("BuySuperhuman")
+        elseif MeleeID == "DeathStep" then remote:InvokeServer("BuyDeathStep")
+        elseif MeleeID == "Sharkman" then 
+            remote:InvokeServer("BuySharkmanKarate", true)
+            remote:InvokeServer("BuySharkmanKarate")
+        elseif MeleeID == "DragonClaw" then remote:InvokeServer("BlackbeardReward", "DragonClaw", "1")
+        elseif MeleeID == "ElectricClaw" then remote:InvokeServer("BuyElectricClaw")
+        elseif MeleeID == "DragonTalon" then remote:InvokeServer("BuyDragonTalon")
+        elseif MeleeID == "Godhuman" then remote:InvokeServer("BuyGodhuman")
+        end
+        
+        print("Đã mua xong: " .. MeleeID)
+    end)
+end
+
+-- Hàm check bone
+function GetMyBones()
+    local success, result = pcall(function()
+        return game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Bones", "Check")
+    end)
+    if success and type(result) == "number" then
+        _G.CurrentBones = result
+    end
+    return _G.CurrentBones
+end
+
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+local Window = WindUI:CreateWindow({
+    Title = "Giacyeuem",
+    Icon = "door-open", -- lucide icon
+    Author = "by Giacdz",
+    Folder = "Giacdz",
+    Size = UDim2.fromOffset(580, 460),
+    MinSize = Vector2.new(560, 350),
+    MaxSize = Vector2.new(850, 560),
+    ToggleKey = Enum.KeyCode.LeftShift,
+    Transparent = true,
+    Theme = "Dark",
+    Resizable = true,
+    SideBarWidth = 200,
+    BackgroundImageTransparency = 0.42,
+    HideSearchBar = true,
+    ScrollBarEnabled = false,
+    User = {
+        Enabled = true,
+        Anonymous = true,
+        Callback = function()
+            print("clicked")
+        end,
+    },
+})
+
+local Tabs = {
+    Info = Window:Tab({ Title = "Tab Information", Icon = "info" }),
+    Main = Window:Tab({ Title = "Tab Main Farming", Icon = "house" }),
+    Other = Window:Tab({ Title = "Tab Farming Other", Icon = "layers" }),
+    Setting = Window:Tab({ Title = "Setting Farm", Icon = "settings" }),
+    Sea = Window:Tab({ Title = "Tab Volcano And Sea Event", Icon = "waves-horizontal" }),
+    Player = Window:Tab({ Title = "Tab Local Player", Icon = "user" }),
+    Teleport = Window:Tab({ Title = "Tab Teleport", Icon = "navigation" }),
+    Visual = Window:Tab({ Title = "Tab Visual", Icon = "eye" }),
+    Fruit = Window:Tab({ Title = "Tab Fruit And Raid", Icon = "apple" }),
+    Race = Window:Tab({ Title = "Tab Upgrade Race", Icon = "biceps-flexed" }),
+    Shop = Window:Tab({ Title = "Tab Shop", Icon = "store" }),
+    Server = Window:Tab({ Title = "Tab Server", Icon = "boxes" })
+};
+
+-- ==========================================
+-- TẠO LOGO NỔI BẬT/TẮT UI (DRAGGABLE)
+-- ==========================================
+local CoreGui = game:GetService("CoreGui")
+local vim = game:GetService("VirtualInputManager")
+
+-- Tạo một Gui mới chứa nút
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "WindUIToggle"
+-- Dùng gethui() nếu executor hỗ trợ, nếu không thì dùng CoreGui để nút không mất khi reset nhân vật
+ScreenGui.Parent = (gethui and gethui()) or CoreGui 
+
+-- Tạo nút hình ảnh
+local ToggleBtn = Instance.new("ImageButton")
+ToggleBtn.Parent = ScreenGui
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30) -- Màu nền đen xám
+ToggleBtn.Position = UDim2.new(0, 50, 0, 50) -- Vị trí ban đầu
+ToggleBtn.Size = UDim2.new(0, 45, 0, 45) -- Kích thước nút
+ToggleBtn.Image = "rbxassetid://13527218679" -- Icon của nút (bạn có thể thay ID khác nếu muốn)
+
+-- Làm cho nút bo tròn
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(1, 0) -- 1 là bo tròn thành hình nón
+UICorner.Parent = ToggleBtn
+
+-- Thêm viền cho đẹp (Tùy chọn)
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(0, 255, 255) -- Viền màu xanh (hợp với màu theme của bạn)
+UIStroke.Thickness = 2
+UIStroke.Parent = ToggleBtn
+
+-- ==========================================
+-- LOGIC KÉO THẢ NÚT (DRAG)
+-- ==========================================
+local dragging, dragInput, dragStart, startPos
+
+ToggleBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = ToggleBtn.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+ToggleBtn.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        ToggleBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- ==========================================
+-- LOGIC BẬT/TẮT MENU (CLICK)
+-- ==========================================
+ToggleBtn.MouseButton1Click:Connect(function()
+    -- Nó sẽ mô phỏng việc bạn bấm phím LeftShift để đóng/mở Menu
+    vim:SendKeyEvent(true, Enum.KeyCode.LeftShift, false, game)
+    vim:SendKeyEvent(false, Enum.KeyCode.LeftShift, false, game)
+end)
+
+-- ==========================================
+-- 3. TABS
+-- ==========================================
+
+local SectionLv = Tabs.Main:Section({ 
+    Title = "Auto Farm levels",
+})
+local ToggleFarm = Tabs.Main:Toggle({
+    Title = "Auto Farm Level",
+    Value = false,
+    Callback = function(Value)
+        _G.AutoFarmLevel = Value
+        if not Value then
+            if _G.CurrentTween then _G.CurrentTween:Cancel() end
+        else
+            -- Tắt các Auto khác để chống giật
+            _G.FarmBone = false 
+            _G.OldFarmBoneStatus = false
+        end
+    end
+})
+
+local SectionChest = Tabs.Main:Section({ 
+    Title = "Auto Farm Chest",
+})
+
+local Togglechest = Tabs.Main:Toggle({
+    Title = "Farm chest",
+    Value = false,
+    Callback = function(a)
+        _G.FarmChest = a
+        if not a then 
+            StopTween()
+        end
+    end
+})
+
+Tabs.Main:Toggle({
+    Title = "Stop when get item",
+    Value = false,
+    Callback = function(Value)
+        _G.StopHaveKey = Value
+    end
+})
+
+local SectionBones = Tabs.Main:Section({ 
+    Title = "Auto Farm Bones",
+})
+
+local BoneParagraph = Tabs.Main:Paragraph({
+    Title = "Check Bone",
+    Desc = "Bones: 0", -- Dùng Desc theo đúng WindUI document
+})
+
+-- Vòng lặp cập nhật UI
+task.spawn(function()
+    while task.wait(1.5) do
+        -- Lấy số lượng xương
+        local count = GetMyBones()
+        
+        -- Cập nhật vào WindUI
+        if BoneParagraph then
+            pcall(function()
+                -- Sử dụng SetDesc theo đúng document của WindUI
+                BoneParagraph:SetDesc("Bạn đang có: " .. tostring(count) .. " Xương")
+            end)
+        end
+    end
+end)
+
+Tabs.Main:Toggle({
+    Title = "Auto Random Bone",
+    Value = false,
+    Callback = function(Value) _G.AutoRandomBone = Value end
+})
+
+Tabs.Main:Toggle({
+    Title = "Auto Farm Bone",
+    Value = false,
+    Callback = function(Value) _G.FarmBone = Value end
+})
+Tabs.Main:Toggle({
+    Title = "Auto Accept quest",
+    Value = true,
+    Callback = function(Value) _G.AutoAcceptQuest = Value end
+})
+
+Tabs.Main:Toggle({
+    Title = "Auto Soul Reaper",
+    Value = false,
+    Callback = function(Value)
+        _G.AutoSoulReaper = Value 
+        
+        if not Value then
+            -- Khi TẮT nút Soul Reaper bằng tay:
+            -- CHỈ trả lại farm bone NẾU trước đó bạn đang bật nó
+            if _G.OldFarmBoneStatus then
+                _G.FarmBone = true
+                _G.OldFarmBoneStatus = false -- Reset bộ nhớ
+            end
+            if _G.CurrentTween then _G.CurrentTween:Cancel() end
+        end
+    end
+})
+
+local SectionKata = Tabs.Main:Section({ 
+    Title = "Auto Farm Cake Prince",
+})
+
+Tabs.Main:Toggle({
+    Title = "Auto Farm & Summon Cake Prince",
+    Value = false,
+    Callback = function(Value)
+        _G.Auto_Cake_Prince = Value
+    end
+})
+
+Tabs.Setting:Dropdown({
+    Title = "Highlight color",
+    Values = {"Rainbow", "Red", "Orange", "Yellow", "Green", "Blue", "Purple", "Pink", "White",'None'},
+    Multi = false,
+    Value = "None",
+    Callback = function(Value)
+        _G.HighlightColor = Value
+    end
+})
+
+Tabs.Setting:Toggle({
+    Title = "Bring Mobs",
+    Description = "Gom quái",
+    Value = false,
+    Callback = function(Value) _G.BringMob = Value end
+})
+
+Tabs.Setting:Dropdown({
+    Title = "Choose Weapon",
+    Values = {"Melee", "Sword", "Gun", "Blox Fruit"},
+    Value = 1,
+    Callback = function(Value) _G.SelectWeapon = Value end
+})
+
+Tabs.Setting:Button({
+    Title = "Redeem All Codes",
+    Description = "Nhập codes",
+    Callback = function()
+        -- Chạy hàm trong task.spawn để không làm đứng Menu khi đang đợi Team
+        task.spawn(AutoRedeem)
+    end
+})
+Tabs.Setting:Toggle({
+    Title = "Turn on Bright",
+    Description = " ",
+    Value = false,
+    Callback = function(Value) _G.FullBrightEnabled = Value
+        
+        if Value then
+            ApplyFullBright()
+        else
+            -- Khi tắt, khôi phục lại toàn bộ cài đặt gốc của game
+            Lighting.Ambient = OriginalSettings.Ambient
+            Lighting.ColorShift_Bottom = OriginalSettings.ColorShift_Bottom
+            Lighting.ColorShift_Top = OriginalSettings.ColorShift_Top
+            Lighting.GlobalShadows = OriginalSettings.GlobalShadows
+            Lighting.Brightness = OriginalSettings.Brightness
+            Lighting.FogEnd = OriginalSettings.FogEnd
+        end
+    end
+})
+
+Tabs.Race:Button({
+    Title = "Teleport to Temple of Time",
+    Description = "Teleport to Temple",
+    Callback = function()
+        pcall(function()
+            local lp = game.Players.LocalPlayer
+            local char = lp.Character
+            local templePos = CFrame.new(28286.35, 14895.3, 102.6)
+
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                -- Thực hiện bay tới tọa độ đền thờ
+                -- Nếu bạn có hàm topos xịn, hãy dùng topos(templePos)
+                char.HumanoidRootPart.CFrame = templePos
+            end
+        end)
+    end
+})
+
+Tabs.Race:Toggle({
+    Title = "Teleport to Pull Level",
+    Value = false,
+    Callback = function(Value)
+        _G.PullLever = Value
+        if not Value then StopTween() end
+    end
+})
+
+task.spawn(function()
+    while task.wait(0.1) do
+        if _G.PullLever then
+            pcall(function()
+                local root = game.Players.LocalPlayer.Character.HumanoidRootPart
+                local TargetPos = CFrame.new(28576, 14938, 76)
+                local dist = (TargetPos.Position - root.Position).Magnitude
+                
+                if dist < 10 then
+                    StopTween()
+                    _G.PullLever = false
+                    TglPullLever:SetValue(false) -- Tự tắt nút trên Menu
+                else
+                    topos(TargetPos)
+                end
+            end)
+        end
+    end
+end)
+
+Tabs.Race:Toggle({
+    Title = "Teleport to Ancient One",
+    Description = "Đến nơi tự tắt",
+    Value = false,
+    Callback = function(Value)
+        _G.TP_AncientOne = Value
+        if not Value then 
+            StopTween() 
+        else
+            task.spawn(function()
+                local target = CFrame.new(28981.552734375, 14888.426757812, -120.24584960938)
+                while _G.TP_AncientOne do
+                    local root = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if root then
+                        local dist = (target.Position - root.Position).Magnitude
+                        if dist < 10 then -- Khoảng cách đến đích dưới 10m
+                            StopTween()
+                            _G.TP_AncientOne = false
+                            -- Lệnh dưới đây để UI tự gạt nút về OFF
+                            TglAncientOne:SetValue(false) 
+                            break
+                        end
+                        topos(target)
+                    end
+                    task.wait(0.1)
+                end
+            end)
+        end
+    end
+})
+
+Tabs.Race:Toggle({
+    Title = "Teleport to Ancient Clock",
+    Description = "Đến nơi tự tắt",
+    Value = false,
+    Callback = function(Value)
+        _G.TP_AncientClock = Value
+        if not Value then 
+            StopTween() 
+        else
+            task.spawn(function()
+                local target = CFrame.new(29549, 15069, -88)
+                while _G.TP_AncientClock do
+                    local root = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if root then
+                        local dist = (target.Position - root.Position).Magnitude
+                        if dist < 10 then
+                            StopTween()
+                            _G.TP_AncientClock = false
+                            TglAncientClock:SetValue(false)
+                            break
+                        end
+                        topos(target)
+                    end
+                    task.wait(0.1)
+                end
+            end)
+        end
+    end
+})
+
+Tabs.Race:Toggle({
+    Title = "Auto Teleport to Race Doors",
+    Description = "Tự động bay đến cửa Race của bạn",
+    Default = false,
+    Callback = function(Value)
+        _G.TPDoor = Value
+        if not Value then 
+            StopTween() 
+        end
+    end
+})
+
+task.spawn(function()
+    while task.wait(0.1) do
+        if _G.TPDoor then
+            pcall(function()
+                local root = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                -- Lấy Race hiện tại từ Data của bạn (giữ nguyên logic gốc)
+                local MyRace = tostring(game:GetService("Players").LocalPlayer.Data.Race.Value)
+                local DoorPos = nil
+
+                -- Xác định tọa độ theo Race
+                if MyRace == "Mink" then
+                    DoorPos = CFrame.new(29020.66, 14889.42, -379.26)
+                elseif MyRace == "Fishman" then
+                    DoorPos = CFrame.new(28224.05, 14889.42, -210.58)
+                elseif MyRace == "Cyborg" then
+                    DoorPos = CFrame.new(28492.41, 14894.42, -422.11)
+                elseif MyRace == "Skypiea" then
+                    DoorPos = CFrame.new(28967.40, 14918.07, 234.31)
+                elseif MyRace == "Ghoul" then
+                    DoorPos = CFrame.new(28672.72, 14889.12, 454.59)
+                elseif MyRace == "Human" then
+                    DoorPos = CFrame.new(29237.29, 14889.42, -206.94)
+                end
+
+                if DoorPos and root then
+                    local dist = (DoorPos.Position - root.Position).Magnitude
+                    if dist < 10 then
+                        StopTween()
+                        _G.TPDoor = false
+                        TglRaceDoor:SetValue(false) -- Tự tắt toggle khi đến nơi
+                    else
+                        topos(DoorPos)
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+Tabs.Race:Toggle({
+    Title = "Auto Complete Trial Race",
+    Value = false,
+    Callback = function(Value)
+        _G.Complete_Trials = Value
+        if not Value then StopTween() end
+    end
+})
+
+local SectionFruit = Tabs.Fruit:Section({ 
+    Title = "Fruit",
+})
+
+Tabs.Fruit:Toggle({
+    Title = "Auto Random Fruit",
+    Description = "Quay trái",
+    Value = false,
+    Callback = function(Value)
+        _G.AutoRandom = Value
+    end
+})
+
+Tabs.Fruit:Toggle({
+    Title = "Auto Store Fruit",
+    Description = "Cất trái",
+    Value = false,
+    Callback = function(Value)
+        _G.AutoStore = Value
+    end
+})
+
+Tabs.Fruit:Toggle({
+    Title = "Bring Fruit (Teleport)", 
+    Description = "Dịch chuyển đến trái (dễ bị kick)",
+    Default = false,
+    Callback = function(Value)
+        _G.BringFruit = Value
+    end
+})
+
+Tabs.Fruit:Toggle({
+    Title = "Tween to Fruit",
+    Description = "Bay đến trái",
+    Default = false,
+    Callback = function(Value)
+        _G.TweenToFruit = Value
+    end
+})
+
+Tabs.Setting:Toggle({
+    Title = "Auto Active Race V3",
+    Description = "Tự động bật V3",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoRaceV3 = Value
+    end
+})
+
+Tabs.Setting:Toggle({
+    Title = "Auto Active Race V4",
+    Description = "Tự động bật V4",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoRaceV4 = Value
+    end
+})
+
+Tabs.Setting:Toggle({
+    Title = "Walk on Water",
+    Default = true,
+    Callback = function(Value)
+        _G.WalkWater = Value
+    end
+})
+
+Tabs.Server:Button({
+    Title = "Server Hop",
+    Description = " ",
+    Callback = function()
+        -- Hiển thị thông báo nhỏ nếu muốn, hoặc chạy thẳng luôn
+        HopServer()
+    end
+})
+
+local SectionSM = Tabs.Shop:Section({ 
+    Title = "Shop Melee",
+})
+
+Tabs.Shop:Button({
+    Title = "Black Leg (Hắc Cước)", 
+    Callback = function() BuyMeleeTween(CFrame.new(-5045, 371, -3181), "BlackLeg") end
+})
+
+Tabs.Shop:Button({
+    Title = "Electro (Điện Chưởng)", 
+    Callback = function() BuyMeleeTween(CFrame.new(-4995, 314, -3200), "Electro") end
+})
+
+Tabs.Shop:Button({
+    Title = "Water Kung Fu (Thâm Hải)", 
+    Callback = function() BuyMeleeTween(CFrame.new(-5023, 371, -3190), "WaterKungFu") end
+})
+
+Tabs.Shop:Button({
+    Title = "Dragon Claw (Long Trảo)", 
+    Callback = function() BuyMeleeTween(CFrame.new(-4981, 371, -3205), "DragonClaw") end
+})
+
+Tabs.Shop:Button({
+    Title = "Superhuman", 
+    Callback = function() BuyMeleeTween(CFrame.new(-5002, 371, -3199), "Superhuman") end
+})
+
+Tabs.Shop:Button({
+    Title = "Death Step", 
+    Callback = function() BuyMeleeTween(CFrame.new(-5000, 314, -3220), "DeathStep") end
+})
+
+Tabs.Shop:Button({
+    Title = "Sharkman Karate", 
+    Callback = function() BuyMeleeTween(CFrame.new(-4971, 314, -3220), "Sharkman") end
+})
+
+Tabs.Shop:Button({
+    Title = "God Human", 
+    Callback = function() BuyMeleeTween(CFrame.new(-13779, 334, -9879), "Godhuman") end
+})
+
+Tabs.Shop:Button({
+    Title = "Electric Claw", 
+    Callback = function() BuyMeleeTween(CFrame.new(-10372, 331, -10129), "ElectricClaw") end
+})
+
+Tabs.Shop:Button({
+    Title = "Dragon Talon", 
+    Callback = function() BuyMeleeTween(CFrame.new(5663, 1211, 862), "DragonTalon") end
+})
+local SectionSO = Tabs.Shop:Section({ 
+    Title = "Shop Options",
+})
+Tabs.Shop:Button({
+    Title = "Buy Buso",
+    Callback = function() replicated.Remotes.CommF_:InvokeServer("BuyHaki", "Buso") end
+})
+Tabs.Shop:Button({
+    Title = "Buy Geppo",
+    Callback = function() replicated.Remotes.CommF_:InvokeServer("BuyHaki", "Geppo") end
+})
+Tabs.Shop:Button({
+    Title = "Buy Soru",
+    Callback = function() replicated.Remotes.CommF_:InvokeServer("BuyHaki", "Soru") end
+})
+Tabs.Shop:Button({
+    Title = "Buy Ken",
+    Callback = function() replicated.Remotes.CommF_:InvokeServer("KenTalk", "Buy") end
+})
+local SectionSF = Tabs.Shop:Section({ 
+    Title = "Shop Fragments",
+})
+
+Tabs.Shop:Button({
+    Title = "Buy Refund Stats",
+    Callback = function() replicated.Remotes.CommF_:InvokeServer("BlackbeardReward", "Refund", "2") end
+})
+Tabs.Shop:Button({
+    Title = "Buy Reroll Race",
+    Callback = function() replicated.Remotes.CommF_:InvokeServer("BlackbeardReward", "Reroll", "2") end
+})   
+Tabs.Shop:Button({
+    Title = "Buy Ghoul Race (2.5k)",
+    Callback = function() replicated.Remotes.CommF_:InvokeServer("Ectoplasm", " Change", 4) end
+})	
+Tabs.Shop:Button({
+    Title = "Buy Cyborg Race (2.5k)",
+    Callback = function() replicated.Remotes.CommF_:InvokeServer("CyborgTrainer", " Buy") end
+})
+
+local SectionTravelIsland = Tabs.Teleport:Section({ 
+    Title = "Travel Island",
+})
+
+local IslandDrop = Tabs.Teleport:Dropdown({
+    Title = "Choose Island",
+    Values = {"Port Town", "Hydra Island", "Floating Turtle", "Mansion", "Castle On The Sea", "Haunted Castle", "Ice Cream Island", "Peanut Island", "Cake Island", "Cocoa Island", "Candy Island", "Tiki Outpost", "Dragon Dojo"},
+    Multi = false,
+    Value = "Port Town",
+    Callback = function(Value)
+        _G.SelectedIsland = Value
+    end
+})
+
+local TweenToggle = Tabs.Teleport:Toggle({
+    Title = "Start Teleport",
+    Value = false,
+    Callback = function(Value)
+        _G.AutoTweenIsland = Value
+    end
+})
+
+local SectionTravelPortal = Tabs.Teleport:Section({ 
+    Title = "Travel Portal",
+})
+
+local PortalDrop = Tabs.Teleport:AddDropdown({
+    Title = "Choose Portal",
+    Values = {"Hydra Island (Portal)", "Mansion (Portal)", "Castle (Portal)","Temple of Time (Secret)"},
+    Multi = false,
+    Value = "Mansion (Portal)",
+    Callback = function(Value)
+        _G.SelectedPortal = Value
+    end
+})
+
+local PortalToggle = Tabs.Teleport:Toggle({
+    Title = "Start Teleport",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoPortalIsland = Value
+    end
+})
+
+local SectionTravelSea = Tabs.Teleport:Section({ 
+    Title = "Teleport Sea",
+})
+Tabs.Teleport:AddButton({
+    Title = "Travel East Blue (World 1)",
+    Description = "Bấm để quay về biển 1",
+    Callback = function()
+        Window:Dialog({
+            Title = "Xác nhận",
+            Content = "Bạn muốn di chuyển sang Sea 1?",
+            Buttons = {
+                {
+                    Title = "Đồng ý",
+                    Callback = function()
+                        PrepareToTravel()
+                        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("TravelMain")
+                    end
+                },
+                { Title = "Hủy" }
+            }
+        })
+    end
+})
+
+Tabs.Teleport:AddButton({
+    Title = "Travel Dressrosa (World 2)",
+    Description = "Bấm để di chuyển tới biển 2",
+    Callback = function()
+        Window:Dialog({
+            Title = "Xác nhận",
+            Content = "Bạn muốn di chuyển sang Sea 2?",
+            Buttons = {
+                {
+                    Title = "Đồng ý",
+                    Callback = function()
+                        PrepareToTravel()
+                        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("TravelDressrosa")
+                    end
+                },
+                { Title = "Hủy" }
+            }
+        })
+    end
+})
+
+Tabs.Teleport:AddButton({
+    Title = "Travel Zou (World 3)",
+    Description = "Bấm để di chuyển tới biển 3",
+    Callback = function()
+        Window:Dialog({
+            Title = "Xác nhận",
+            Content = "Bạn muốn di chuyển sang Sea 3?",
+            Buttons = {
+                {
+                    Title = "Đồng ý",
+                    Callback = function()
+                        PrepareToTravel()
+                        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("TravelZou")
+                    end
+                },
+                { Title = "Hủy" }
+            }
+        })
+    end
+})
+
+-- ==========================================
+-- 4. LOGIC VÒNG LẶP (MAIN LOGIC)
+-- ==========================================
+--Loop bringmob
+
+--Loop farmlv
+task.spawn(function()
+    while task.wait() do
+        if _G.AutoFarmLevel then
+            pcall(function()
+                local player = game.Players.LocalPlayer
+                local currentLevel = player.Data.Level.Value
+                local questData = GetMobByLevel(currentLevel)
+                
+                if questData then
+                    local questGui = player.PlayerGui.Main.Quest
+                    local hasQuest = questGui.Visible
+                    local currentQuestText = hasQuest and questGui.Container.QuestTitle.Title.Text or ""
+                    
+                    -- KIỂM TRA & NHẬN NHIỆM VỤ
+                    if not hasQuest or not string.find(currentQuestText, questData.Mon) then
+                        -- Đang nhận sai Quest thì Hủy
+                        if hasQuest then
+                            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("AbandonQuest")
+                        end
+                        
+                        -- Bay đến NPC giao Quest
+                        if (player.Character.HumanoidRootPart.Position - questData.PosQ.Position).Magnitude > 10 then
+                            topos(questData.PosQ)
+                        else
+                            -- Tới nơi thì nhận Quest
+                            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StartQuest", questData.Qname, questData.Qdata)
+                        end
+                    else
+                        -- ĐÃ CÓ QUEST -> ĐI FARM QUÁI
+                        local enemies = game:GetService("Workspace").Enemies
+                        local targetMob = nil
+                        
+                        -- Tìm con quái còn sống
+                        for _, mob in ipairs(enemies:GetChildren()) do
+                            if mob.Name == questData.Mon and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+                                targetMob = mob
+                                break
+                            end
+                        end
+                        
+                        if targetMob then
+                            -- Trang bị vũ khí
+                            EquipWeapon(_G.SelectWeapon)
+                            
+                            -- Bay đến đỉnh đầu quái, cố định cách 30m
+                            topos(targetMob.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
+                            
+                            -- Auto Click chém quái
+                            game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 670))
+                            
+                            -- Gom quái (Bring Mob)
+                            if _G.BringMob then
+                                for _, otherMob in ipairs(enemies:GetChildren()) do
+                                    if otherMob.Name == questData.Mon and otherMob:FindFirstChild("Humanoid") and otherMob.Humanoid.Health > 0 then
+                                        -- Nếu quái khác trong phạm vi 250m thì kéo nó tới
+                                        if (otherMob.HumanoidRootPart.Position - targetMob.HumanoidRootPart.Position).Magnitude < 250 then
+                                            otherMob.HumanoidRootPart.CFrame = targetMob.HumanoidRootPart.CFrame
+                                            otherMob.Humanoid.WalkSpeed = 0
+                                            otherMob.Humanoid.JumpPower = 0
+                                        end
+                                    end
+                                end
+                            end
+                        else
+                            -- Nếu hết quái hoặc chưa spawn, bay lơ lửng cách mặt đất bãi quái 30m để chờ
+                            topos(questData.PosM * CFrame.new(0, 30, 0))
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+--Loop travel
+task.spawn(function()
+    while task.wait(0.5) do
+        -- 1. XỬ LÝ TWEEN
+        if _G.AutoTweenIsland then
+            pcall(function()
+                local targetCF = Sea3Data.AllIslands[_G.SelectedIsland]
+                local root = game.Players.LocalPlayer.Character.HumanoidRootPart
+                local dist = (root.Position - targetCF.Position).Magnitude
+                
+                if dist > 15 then
+                    -- Tắt farm để không bị kéo ngược
+                    _G.FarmBone = false
+                    _G.OldFarmBoneStatus = false
+                    topos(targetCF)
+                else
+                    -- TỚI NƠI THÌ TỰ TẮT
+                    _G.AutoTweenIsland = false
+                    TweenToggle:SetValue(false) -- Cập nhật UI nút gạt về Off
+                    if _G.CurrentTween then _G.CurrentTween:Cancel() end
+                end
+            end)
+        else
+            -- Tắt toggle thì dừng Tween ngay
+            if not _G.AutoTweenIsland and _G.CurrentTween then
+                _G.CurrentTween:Cancel()
+                _G.CurrentTween = nil
+            end
+        end
+
+        -- 2. XỬ LÝ PORTAL
+        if _G.AutoPortalIsland then
+            pcall(function()
+                local targetPos = Sea3Data.Portals[_G.SelectedPortal]
+                if targetPos then
+                    _G.FarmBone = false
+                    _G.OldFarmBoneStatus = false
+                    if _G.CurrentTween then _G.CurrentTween:Cancel() end
+                    
+                    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("requestEntrance", targetPos)
+                    
+                    -- Dùng xong tự tắt luôn
+                    _G.AutoPortalIsland = false
+                    PortalToggle:SetValue(false)
+                end
+            end)
+        end
+    end
+end)
+
+--Loop walk on water
+task.spawn(function()
+    while task.wait(1) do -- Để 1 giây để an toàn cho FPS của bạn
+        AutoWalkWater()
+    end
+end)
+
+-- Vòng lặp cho Bring Fruit (Instant TP)
+task.spawn(function()
+    while task.wait(0.5) do
+        if _G.BringFruit then
+            pcall(function()
+                local target = GetDroppedFruit()
+                if target then
+                    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = target.CFrame
+                end
+            end)
+        end
+    end
+end)
+--Loop accecpt quest
+task.spawn(function()
+    while task.wait() do
+        if _G.AutoAcceptQuest then
+            pcall(function()
+                local player = game:GetService("Players").LocalPlayer
+                local hasQuest = player.PlayerGui.Main.Quest.Visible
+                
+                -- Nếu chưa có nhiệm vụ thì mới đi nhận
+                if not hasQuest then
+                    -- Kiểm tra xem bãi farm hiện tại đã được thiết lập tọa độ NPC chưa
+                    if _G.QuestPos and _G.QuestName and _G.QuestLevel then
+                        local dist = (player.Character.HumanoidRootPart.Position - _G.QuestPos.Position).Magnitude
+                        
+                        if dist > 15 then
+                            topos(_G.QuestPos) -- Bay tới NPC
+                        else
+                            -- Đợi một chút để NPC load rồi nhận quest
+                            task.wait(0.2)
+                            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StartQuest", _G.QuestName, _G.QuestLevel)
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+-- Vòng lặp cho Tween to Fruit (Dùng hàm topos)
+task.spawn(function()
+    while task.wait(0.1) do
+        if _G.TweenToFruit then
+            pcall(function()
+                local target = GetDroppedFruit()
+                if target then
+                    topos(target.CFrame)
+                end
+            end)
+        end
+    end
+end)
+
+-- Vòng lặp cho Race V3
+task.spawn(function()
+    while task.wait(0.5) do -- Kiểm tra mỗi 0.5 giây
+        if _G.AutoRaceV3 then
+            ActiveRaceV3()
+        end
+    end
+end)
+
+-- Vòng lặp cho Race V4
+task.spawn(function()
+    while task.wait(1) do -- Race V4 cần nộ nên check 1 giây/lần là đủ
+        if _G.AutoRaceV4 then
+            -- Chỉ nhấn Y khi nhân vật đã sẵn sàng (tránh lỗi khi đang chết/nạp dữ liệu)
+            if game.Players.LocalPlayer.Character then
+                ActiveRaceV4()
+            end
+        end
+    end
+end)
+
+-- Vòng lặp cho Random Fruit
+task.spawn(function()
+    while task.wait(5) do -- Random có thời gian hồi 2 tiếng, nên để 5 giây check 1 lần là cực kỳ an toàn
+        if _G.AutoRandom then
+            BuyRandomFruit()
+        end
+    end
+end)
+
+-- loop store fruit --
+task.spawn(function()
+    while task.wait(1) do
+        if _G.AutoStore then
+            StoreFruit()
+        end
+    end
+end)
+
+-- Farm chest --
+task.spawn(function()
+    while task.wait(0.1) do
+        if _G.FarmChest then
+            pcall(function()
+                local char = game.Players.LocalPlayer.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                if not root then return end
+
+                -- KHÓA MỤC TIÊU: Nếu rương mục tiêu cũ vẫn còn đó thì CỨ BAY TIẾP
+                if not TargetChest or not TargetChest.Parent or TargetChest:GetAttribute("IsDisabled") then
+                    TargetChest = GetClosestChest()
+                end
+
+                if TargetChest then
+                    local targetPos = TargetChest:GetPivot()
+                    local dist = (targetPos.Position - root.Position).Magnitude
+
+                    if dist > 3 then
+                        -- Tiếp tục bay mượt đến rương
+                        topos(targetPos)
+                    else
+                        -- Đã chạm rương: Dừng bay và reset mục tiêu để tìm rương mới
+                        StopTween()
+                        root.CFrame = targetPos -- Teleport thẳng vào lõi rương cho chắc ăn
+                        TargetChest = nil
+                        task.wait(0.1) -- Nghỉ cực ngắn để game nhận rương
+                    end
+                end
+            end)
+        else
+            -- Nếu tắt nút Farm thì xóa mục tiêu ngay
+            if TargetChest then
+                TargetChest = nil
+                StopTween()
+            end
+        end
+    end
+end)
+
+-- loop random bone --
+task.spawn(function()
+    while task.wait(0.5) do -- Nghỉ 0.5 giây mỗi lần đổi để tránh lag/spam
+        if _G.AutoRandomBone then
+            RandomBone()
+        end
+    end
+end)
+
+-- Vòng lặp Farm Bone có kèm Auto Quest
+task.spawn(function()
+    while task.wait() do
+        if _G.FarmBone then
+            pcall(function()
+                -- THIẾT LẬP THÔNG TIN NHIỆM VỤ (Dùng cho Luồng 1)
+                _G.QuestPos = CFrame.new(-9516.993, 172.017, 6078.465) -- NPC Haunted Quest
+                _G.QuestName = "HauntedQuest2"
+                _G.QuestLevel = 1
+                
+                -- LOGIC ĐÁNH QUÁI
+                local enemies = game:GetService("Workspace").Enemies:GetChildren()
+                local targetMob = nil
+                
+                for _, v in pairs(enemies) do
+                    if (v.Name == "Reborn Skeleton" or v.Name == "Living Zombie" or v.Name == "Demonic Soul" or v.Name == "Possessed Mummy") 
+                    and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                        targetMob = v
+                        break 
+                    end
+                end
+                
+                if targetMob then
+                    EquipWeapon(_G.SelectWeapon)
+                    
+                    -- Bay đến trên đầu quái
+                    local targetCF = targetMob.HumanoidRootPart.CFrame * CFrame.new(0, 25, 0)
+                    topos(targetCF)
+                    
+                    -- Gọi hàm BringMob (bản xịn đã fix quái ảo)
+                    if _G.BringMob then
+                        BringMob(targetMob.Name, targetMob.HumanoidRootPart.CFrame)
+                    end
+                    
+                    -- Tấn công
+                    game:GetService("VirtualUser"):CaptureController()
+                    game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 672))
+                else
+                    -- Không có quái thì bay ra giữa bãi đợi
+                    topos(CFrame.new(-9582.022, 6.251, 6205.478))
+                end
+            end)
+        end
+    end
+end)
+
+--Loop auto soul reaper
+task.spawn(function()
+    while task.wait(0.5) do
+        if _G.AutoSoulReaper then 
+            pcall(function()
+                local player = game:GetService("Players").LocalPlayer
+                local char = player.Character
+                if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+                
+                local hasEssence = player.Backpack:FindFirstChild("Hallow Essence") or char:FindFirstChild("Hallow Essence")
+                local boss = game:GetService("Workspace").Enemies:FindFirstChild("Soul Reaper")
+                
+                if boss or hasEssence then
+                    -- Nếu đang bật Farm Bone thì mới LƯU và TẮT để đánh boss
+                    if _G.FarmBone then
+                        _G.OldFarmBoneStatus = true
+                        _G.FarmBone = false 
+                    end
+                    
+                    if boss and boss.Humanoid.Health > 0 then
+                        EquipWeapon(_G.SelectWeapon)
+                        topos(boss.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
+                        game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 670))
+                    elseif hasEssence then
+                        topos(CFrame.new(-8932.322, 146.832, 6062.551))
+                    end
+                else
+                    -- Khi hết Boss: Chỉ trả lại NẾU bộ nhớ đang giữ giá trị true
+                    if _G.OldFarmBoneStatus then
+                        _G.FarmBone = true
+                        _G.OldFarmBoneStatus = false
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- Loop 1: Cập nhật UI hiển thị số quái katakuri
+task.spawn(function()
+    while task.wait(1) do
+        if _G.Auto_Cake_Prince then
+            pcall(function()
+                local countInfo = game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("CakePrinceSpawner")
+                if type(countInfo) == "string" then
+                    local num = string.match(countInfo, "%d+")
+                    if num then
+                        MobKilled:SetDesc("Đã giết: " .. (500 - tonumber(num)) .. "/500 con")
+                    else
+                        MobKilled:SetDesc("Trạng thái: Killed 500/500")
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- Loop 2: Logic Farm & Triệu hồi
+task.spawn(function()
+    while task.wait(0.5) do
+        if _G.Auto_Cake_Prince then
+            pcall(function()
+                local player = game.Players.LocalPlayer
+                local char = player.Character
+                if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+
+                local enemies = workspace.Enemies
+                local bigMirror = workspace.Map.CakeLoaf.BigMirror
+
+                -- BƯỚC 1: Nếu có Boss (Cake Prince hoặc Dough King) -> Bay lên đầu Boss
+                local boss = enemies:FindFirstChild("Cake Prince") or enemies:FindFirstChild("Dough King")
+                if boss and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
+                    topos(boss.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
+                    return -- Dừng lại để script Auto Attack riêng của bạn tự đấm Boss
+                end
+
+                -- BƯỚC 2: Nếu Gương đã mở -> Bay vào thẳng trong không gian Gương
+                if bigMirror and bigMirror:FindFirstChild("Other") and bigMirror.Other.Transparency == 0 then
+                    topos(CFrame.new(-2151.82, 149.32, -12404.91))
+                    return
+                end
+
+                -- BƯỚC 3: Lấy thông tin số lượng quái
+                local countStr = game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("CakePrinceSpawner")
+                local mobsLeft = 500
+                if type(countStr) == "string" then
+                    local match = string.match(countStr, "%d+")
+                    if match then mobsLeft = tonumber(match) end
+                end
+
+                -- BƯỚC 4: Logic Farm hoặc Triệu hồi
+                if mobsLeft > 0 then
+                    -- Nếu chưa đủ 500 con -> Tìm quái ở đảo Cake Loaf để TP tới
+                    local targetMob = nil
+                    local validMobs = {"Cookie Crafter", "Cake Guard", "Baking Staff", "Head Baker"}
+                    
+                    for _, mobName in ipairs(validMobs) do
+                        local mob = enemies:FindFirstChild(mobName)
+                        if mob and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+                            targetMob = mob
+                            break
+                        end
+                    end
+
+                    if targetMob then
+                        -- Bay đến trên đầu quái để Auto Attack đánh
+                        topos(targetMob.HumanoidRootPart.CFrame * CFrame.new(0, 15, 0))
+                    else
+                        -- Không thấy quái thì đứng giữa đảo chờ quái spawn
+                        topos(CFrame.new(-2077, 252, -12373))
+                    end
+                else
+                    -- BƯỚC 5: NẾU ĐÃ ĐỦ 500 CON -> Tự động mở cổng (Talk to NPC Drip Mama)
+                    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("CakePrinceSpawner", true)
+                end
+            end)
+        end
+    end
+end)
+-- Loop temple
+task.spawn(function()
+    while task.wait(5) do -- 5 giây kiểm tra một lần cho nhẹ máy
+        pcall(function()
+            -- Luôn đảm bảo map được load sẵn trong ReplicatedStorage
+            local temple = game:GetService("ReplicatedStorage"):FindFirstChild("Temple of Time", true)
+            if temple and temple.Parent ~= workspace.Map then
+                temple.Parent = workspace:FindFirstChild("Map") or workspace
+            end
+        end)
+    end
+end)
+
+-- Loop trial
+task.spawn(function()
+    while task.wait(0.1) do
+        if _G.Complete_Trials then
+            pcall(function()
+                local MyRace = tostring(game.Players.LocalPlayer.Data.Race.Value)
+                local char = game.Players.LocalPlayer.Character
+                local root = char.HumanoidRootPart
+
+                -- LOGIC RIÊNG CHO TỪNG RACE
+                if MyRace == "Mink" then
+                    topos(workspace.Map.MinkTrial.Ceiling.CFrame * CFrame.new(0, -20, 0))
+                    
+                elseif MyRace == "Skypiea" then
+                    topos(workspace.Map.SkyTrial.Model.FinishPart.CFrame)
+
+                elseif MyRace == "Cyborg" then
+                    -- Bay lên cao để né sát thương
+                    topos(workspace.Map.CyborgTrial.Floor.CFrame * CFrame.new(0, 500, 0))
+
+                elseif MyRace == "Fishman" then
+                    local SB = GetSeaBeastTrial()
+                    if SB then
+                        -- Bay trên đầu Sea Beast
+                        local SBPos = SB.HumanoidRootPart.Position
+                        topos(CFrame.new(SBPos.X, workspace.Map["WaterBase-Plane"].Position.Y + 300, SBPos.Z))
+                        
+                        -- Tự động dùng skill (Thay "Melee" bằng vũ khí bạn muốn)
+                        game:GetService("VirtualUser"):CaptureController()
+                        game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 672))
+                    end
+
+                elseif MyRace == "Human" or MyRace == "Ghoul" then
+                    -- Tìm quái Trial
+                    for _, en in pairs(workspace.Enemies:GetChildren()) do
+                        if (en.Name == "Ancient Vampire" or en.Name == "Ancient Zombie") and en:FindFirstChild("Humanoid") and en.Humanoid.Health > 0 then
+                            topos(en.HumanoidRootPart.CFrame * CFrame.new(0, 15, 0))
+                            -- Bạn có thể thêm lệnh Auto Attack của bạn vào đây
+                            break
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+loadstring(game:HttpGet("https://github.com/TlDinhKhoi/Util/raw/refs/heads/main/ThongBao/AttackFix"))()
