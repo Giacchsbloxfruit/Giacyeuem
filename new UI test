@@ -35,6 +35,8 @@ _G.OldFarmBoneStatus = false
 _G.AutoFarmLevel = false
 _G.FullBrightEnabled = false
 _G.AutoFarmLevelNew = true
+_G.FarmTyrant = false
+_G.AutoSummonBoss = false
 
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -672,6 +674,45 @@ function GetMyBones()
     return _G.CurrentBones
 end
 
+-- Hàm kiểm tra 4 con mắt tại Tiki Outpost
+local function GetEyeCount()
+    local islandModel = workspace["Map"]["TikiOutpost"]["IslandModel"]
+    local eyeParts = {
+        islandModel:FindFirstChild("Eye1"),
+        islandModel:FindFirstChild("Eye2"),
+        islandModel["IslandChunks"]["E"]:FindFirstChild("Eye3"),
+        islandModel["IslandChunks"]["E"]:FindFirstChild("Eye4")
+    }
+    local count = 0
+    for _, eye in ipairs(eyeParts) do
+        if eye and eye.Transparency ~= 1 then
+            count = count + 1
+        end
+    end
+    return count
+end
+
+-- Hàm sử dụng toàn bộ kỹ năng (Z, X, C, V, F)
+function CastSkillsRandomly()
+    local keys = {"Z", "X", "C", "V", "F"}
+    local VIM = game:GetService("VirtualInputManager")
+    for _, key in ipairs(keys) do
+        if not _G.AutoSummonBoss then break end
+        VIM:SendKeyEvent(true, key, false, game)
+        task.wait(0.05)
+        VIM:SendKeyEvent(false, key, false, game)
+        task.wait(0.05) -- Spam nhanh hơn để phá bình
+    end
+end
+
+local SummonPoints = {
+    CFrame.new(-16332.5, 158.0, 1440.3), CFrame.new(-16288.6, 158.1, 1470.3),
+    CFrame.new(-16245.4, 158.4, 1463.3), CFrame.new(-16212.4, 158.1, 1466.3),
+    CFrame.new(-16211.9, 158.0, 1322.3), CFrame.new(-16260.9, 154.9, 1323.6),
+    CFrame.new(-16297.0, 159.3, 1317.2), CFrame.new(-16335.0, 159.3, 1324.8)
+}
+
+------- LOCAL WINDOW --------
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 local Window = WindUI:CreateWindow({
     Title = "Giacyeuem",
@@ -913,6 +954,35 @@ Tabs.Main:Toggle({
     Value = false,
     Callback = function(Value)
         _G.Auto_Cake_Prince = Value
+    end
+})
+local SectionTyrant = Tabs.Main:Section({ 
+    Title = "Tyrant of the Skies",
+})
+
+local BossStatus = Tabs.Main:Paragraph({
+    Title = "Boss Spawn Status",
+    Content = "Đang kiểm tra..."
+})
+
+local EyeStatus = Tabs.Main:Paragraph({
+    Title = "Check Status Eyes",
+    Content = "Eyes: 0/4"
+})
+
+Tabs.Main:Toggle({
+    Title = "Auto Farm Boss",
+    Value = false,
+    Callback = function(val)
+        _G.FarmTyrant = val
+    end
+})
+
+Tabs.Main:Toggle({
+    Title = "Auto Summon Boss",
+    Value = false,
+    Callback = function(val)
+        _G.AutoSummonBoss = val
     end
 })
 
@@ -1383,7 +1453,6 @@ Tabs.Teleport:Button({
 -- ==========================================
 -- 4. LOGIC VÒNG LẶP (MAIN LOGIC)
 -- ==========================================
---Loop bringmob
 
 --Loop farmlv
 task.spawn(function()
@@ -1532,6 +1601,7 @@ task.spawn(function()
         end
     end
 end)
+
 --Loop travel
 task.spawn(function()
     while task.wait(0.5) do
@@ -1896,6 +1966,7 @@ task.spawn(function()
         end
     end
 end)
+
 -- Loop temple
 task.spawn(function()
     while task.wait(5) do -- 5 giây kiểm tra một lần cho nhẹ máy
@@ -1952,6 +2023,96 @@ task.spawn(function()
                     end
                 end
             end)
+        end
+    end
+end)
+
+--- Loop Check Boss Tyrant
+task.spawn(function()
+    while task.wait(1) do
+        -- Check Boss
+        local isBossSpawned = workspace["Enemies"]:FindFirstChild("Tyrant of the Skies")
+        BossStatus:SetDesc(isBossSpawned and "✅ Boss đã xuất hiện!" or "❌ Chưa có Boss")
+        
+        -- Check Eyes
+        local currentEyes = GetEyeCount()
+        EyeStatus:SetDesc("Eyes: " .. currentEyes .. "/4")
+    end
+end)
+
+--- Loop farm tyrant
+task.spawn(function()
+    local BossPos = Vector3.new(-16268.287, 152.616, 1390.773)
+    local MobNames = {"Serpent Hunter", "Skull Slayer", "Isle Champion", "Sun-kissed Warrior"}
+    
+    while task.wait(0.1) do
+        if _G.FarmTyrant then
+            pcall(function()
+                local char = game.Players.LocalPlayer.Character
+                if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+                
+                local root = char.HumanoidRootPart
+                local boss = workspace["Enemies"]:FindFirstChild("Tyrant of the Skies")
+
+                if boss and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
+                    -- CÓ BOSS: Bay tới và đánh
+                    topos(boss.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
+                    EquipWeapon(_G.SelectWeapon)
+                    game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 670)) -- Click chém
+                else
+                    -- KHÔNG BOSS: Bay tới điểm đợi hoặc dọn quái con
+                    if (root.Position - BossPos).Magnitude > 10 then
+                        topos(CFrame.new(BossPos))
+                    end
+                    
+                    for _, mName in ipairs(MobNames) do
+                        for _, enemy in pairs(workspace["Enemies"]:GetChildren()) do
+                            if enemy.Name == mName and enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
+                                if not _G.FarmTyrant then break end
+                                
+                                -- Bay tới quái con
+                                topos(enemy.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
+                                EquipWeapon(_G.SelectWeapon)
+                                game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 670))
+                            end
+                        end
+                    end
+                end
+            end)
+        else
+            StopTween()
+        end
+    end
+end)
+
+---- Loop summon tyrant
+task.spawn(function()
+    while task.wait(0.5) do
+        if _G.AutoSummonBoss then
+            pcall(function()
+                -- SummonPoints là bảng tọa độ các cái hũ bạn đã có
+                for _, targetPos in ipairs(SummonPoints) do
+                    if not _G.AutoSummonBoss then break end
+                    
+                    -- Bay tới hũ bằng topos xịn
+                    topos(targetPos)
+                    
+                    local root = game.Players.LocalPlayer.Character.HumanoidRootPart
+                    local timeout = tick()
+                    
+                    -- Đợi bay tới sát hũ
+                    repeat task.wait() 
+                    until (root.Position - targetPos.Position).Magnitude < 5 or tick() - timeout > 5
+                    
+                    -- Cầm vũ khí ra để dùng chiêu
+                    EquipWeapon(_G.SelectWeapon)
+                    
+                    -- "Xả" chiêu lung tung để phá bình
+                    CastSkillsRandomly()
+                end
+            end)
+        else
+            StopTween()
         end
     end
 end)
