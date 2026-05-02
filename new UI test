@@ -27,12 +27,14 @@ _G.BringFruit = false
 _G.TweenToFruit = false 
 _G.CurrentTween = nil
 _G.TweenSpeed = 250
+_G.LastTargetPos = nil
 _G.AutoSoulReaper = false
 _G.WalkWater = false
 _G.Auto_Cake_Prince = false
 _G.OldFarmBoneStatus = false
 _G.AutoFarmLevel = false
 _G.FullBrightEnabled = false
+_G.AutoFarmLevelNew = true
 
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -205,7 +207,16 @@ local Sea3MobData = {
     {Min = 2500, Max = 2524, Mon = "Sun-kissed Warrior", Qname = "TikiQuest2", Qdata = 1, PosQ = CFrame.new(-16538.0, 55.0, 1049.0), PosM = CFrame.new(-16347.0, 64.0, 984.0)},
     {Min = 2525, Max = 2550, Mon = "Isle Champion", Qname = "TikiQuest2", Qdata = 2, PosQ = CFrame.new(-16541.0, 57.3, 1051.4), PosM = CFrame.new(-16602.1, 130.3, 1087.2)},
     {Min = 2551, Max = 2574, Mon = "Serpent Hunter", Qname = "TikiQuest3", Qdata = 1, PosQ = CFrame.new(-16679.4, 176.7, 1474.3), PosM = CFrame.new(-16679.4, 176.7, 1474.3)},
-    {Min = 2575, Max = 10000, Mon = "Skull Slayer", Qname = "TikiQuest3", Qdata = 2, PosQ = CFrame.new(-16759.5, 71.2, 1595.3), PosM = CFrame.new(-16759.5, 71.2, 1595.3)}
+    {Min = 2575, Max = 2599, Mon = "Skull Slayer", Qname = "TikiQuest3", Qdata = 2, PosQ = CFrame.new(-16759.5, 71.2, 1595.3), PosM = CFrame.new(-16759.5, 71.2, 1595.3)}
+}
+
+local SubmergedData = {
+    {Min = 2600, Max = 2624, Mon = "Reef Bandit", Qname = "SubmergedQuest1", Qdata = 1, PosQ = CFrame.new(10882.264, -2086.322, 10034.226), PosM = CFrame.new(10736.6191, -2087.8439, 9338.4882)},
+    {Min = 2625, Max = 2649, Mon = "Coral Pirate", Qname = "SubmergedQuest1", Qdata = 2, PosQ = CFrame.new(10882.264, -2086.322, 10034.226), PosM = CFrame.new(10965.1, -2158.8, 9177.2)},
+    {Min = 2650, Max = 2674, Mon = "Sea Chanter", Qname = "SubmergedQuest2", Qdata = 1, PosQ = CFrame.new(10882.264, -2086.322, 10034.226), PosM = CFrame.new(10621.0, -2087.8, 10102.0)},
+    {Min = 2675, Max = 2699, Mon = "Ocean Prophet", Qname = "SubmergedQuest2", Qdata = 2, PosQ = CFrame.new(10882.264, -2086.322, 10034.226), PosM = CFrame.new(11056.1, -2001.6, 10117.4)},
+    {Min = 2700, Max = 2724, Mon = "High Disciple ", Qname = "SubmergedQuest3", Qdata = 1, PosQ = CFrame.new(9636.52441, -1992.19507, 9609.52832), PosM = CFrame.new(9828.087890625, -1940.9089355469, 9693.0634765625)},
+    {Min = 2725, Max = 2800, Mon = "Grand Devotee", Qname = "SubmergedQuest3", Qdata = 2, PosQ = CFrame.new(9636.52441, -1992.19507, 9609.52832), PosM = CFrame.new(9557.5849609375, -1928.0404052734, 9859.1826171875)}
 }
 
 -- Hàm tự động tìm quái theo Level
@@ -218,6 +229,11 @@ local function GetMobByLevel(level)
     return nil
 end
 
+local function IsAtSubmerged()
+    local root = game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return false end
+    return (Vector3.new(root.Position.X, 0, root.Position.Z) - Vector3.new(SubmergedIslandPos.X, 0, SubmergedIslandPos.Z)).Magnitude < 2500
+end
 -- Hàm hop server
 function HopServer()
     local Http = game:GetService("HttpService")
@@ -314,44 +330,6 @@ function AutoRedeem()
     end
 end
 
--- Hàm Tween
-function topos(targetCFrame)
-    local char = game.Players.LocalPlayer.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-
-    -- Lấy tốc độ mặc định nếu biến bị lỗi
-    local speed = _G.TweenSpeed or 250
-    local dist = (targetCFrame.Position - root.Position).Magnitude
-    
-    -- 1. Nếu đang bay đến mục tiêu cũ thì KHÔNG làm gì cả (Chống giật/khựng)
-    if _G.CurrentTween and _G.LastTargetPos then
-        local lech = (targetCFrame.Position - _G.LastTargetPos.Position).Magnitude
-        if lech < 5 then return end -- Nếu mục tiêu lệch ít hơn 5 unit thì cứ để nó bay tiếp
-    end
-
-    -- 2. Dừng cái cũ để chuyển mục tiêu mới
-    StopTween()
-
-    -- 3. Nếu khoảng cách quá gần (< 15) thì dịch chuyển thẳng luôn cho nhanh
-    if dist < 15 then 
-        root.CFrame = targetCFrame 
-        return 
-    end
-
-    -- 4. Tạo Tween mới
-    _G.LastTargetPos = targetCFrame
-    local info = TweenInfo.new(dist / speed, Enum.EasingStyle.Linear)
-    _G.CurrentTween = game:GetService("TweenService"):Create(root, info, {CFrame = targetCFrame})
-    
-    _G.CurrentTween.Completed:Connect(function()
-        _G.LastTargetPos = nil
-        _G.CurrentTween = nil
-    end)
-
-    _G.CurrentTween:Play()
-end
-
 function StopTween()
     if _G.CurrentTween then
         _G.CurrentTween:Cancel()
@@ -359,11 +337,54 @@ function StopTween()
     end
     _G.LastTargetPos = nil
     
-    -- Ép nhân vật dừng lại ngay lập tức (Chống nhặt thêm rương)
-    local root = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local char = game.Players.LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
     if root then
+        -- Triệt tiêu hoàn toàn lực đẩy và trọng lực để đứng im tại chỗ, không rơi chậm
         root.Velocity = Vector3.new(0, 0, 0)
     end
+end
+
+-- Hàm bay mượt mà (topos)
+function topos(targetCFrame)
+    local char = game.Players.LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChild("Humanoid")
+    
+    -- Kiểm tra điều kiện nhân vật
+    if not root or not hum or hum.Health <= 0 then return end
+
+    -- 1. Chống giật: Nếu mục tiêu mới gần như trùng với mục tiêu đang bay thì bỏ qua
+    if _G.CurrentTween and _G.LastTargetPos then
+        local diff = (targetCFrame.Position - _G.LastTargetPos.Position).Magnitude
+        if diff < 2 then return end 
+    end
+
+    -- 2. Tính toán khoảng cách
+    local distance = (targetCFrame.Position - root.Position).Magnitude
+    
+    -- Nếu khoảng cách quá nhỏ (dưới 1 unit) thì dừng luôn cho chính xác
+    if distance < 1 then 
+        StopTween()
+        return 
+    end
+
+    -- 3. Khởi tạo Tween mới
+    StopTween() -- Hủy tween cũ trước khi bắt đầu cái mới
+    _G.LastTargetPos = targetCFrame
+    
+    local time = distance / (_G.TweenSpeed or 250)
+    local info = TweenInfo.new(time, Enum.EasingStyle.Linear)
+    
+    _G.CurrentTween = game:GetService("TweenService"):Create(root, info, {CFrame = targetCFrame})
+    
+    -- Dọn dẹp biến khi bay xong
+    _G.CurrentTween.Completed:Connect(function()
+        _G.CurrentTween = nil
+        _G.LastTargetPos = nil
+    end)
+
+    _G.CurrentTween:Play()
 end
 
 -- Hàm bật Tộc V3 (Sử dụng Remote)
@@ -772,10 +793,24 @@ local SectionLv = Tabs.Main:Section({
     Title = "Auto Farm levels",
 })
 local ToggleFarm = Tabs.Main:Toggle({
-    Title = "Auto Farm Level",
+    Title = "Auto Farm Level 1-2600",
     Value = false,
     Callback = function(Value)
         _G.AutoFarmLevel = Value
+        if not Value then
+            if _G.CurrentTween then _G.CurrentTween:Cancel() end
+        else
+            -- Tắt các Auto khác để chống giật
+            _G.FarmBone = false 
+            _G.OldFarmBoneStatus = false
+        end
+    end
+})
+local ToggleFarmNew = Tabs.Main:Toggle({
+    Title = "Auto Farm Level 2600-2800 ",
+    Value = false,
+    Callback = function(Value)
+        _G.AutoFarmLevelNew = Value
         if not Value then
             if _G.CurrentTween then _G.CurrentTween:Cancel() end
         else
@@ -1425,6 +1460,78 @@ task.spawn(function()
     end
 end)
 
+--Loop farm new level
+task.spawn(function()
+    while task.wait(0.1) do
+        if _G.SubmergedIsland then
+            pcall(function()
+                local plr = game.Players.LocalPlayer
+                local char = plr.Character
+                
+                if not char or not char:FindFirstChild("HumanoidRootPart") or not char:FindFirstChild("Humanoid") or char.Humanoid.Health <= 0 then 
+                    return 
+                end
+
+                local root = char.HumanoidRootPart
+                local myLv = plr.Data.Level.Value
+                
+                if myLv < 2600 then return end
+
+                local data = nil
+                for _, v in pairs(SubmergedData) do
+                    if myLv >= v.Min and myLv <= v.Max then 
+                        data = v 
+                        break 
+                    end
+                end
+
+                if not data then return end
+
+                local TikiPos = CFrame.new(-16269.7, 25.2, 1373.6)
+                local SubmergedCenter = Vector3.new(11520.8, -2100, 9829.5)
+                local isSubmerged = (Vector3.new(root.Position.X, 0, root.Position.Z) - Vector3.new(SubmergedCenter.X, 0, SubmergedCenter.Z)).Magnitude < 2500
+
+                if not isSubmerged then
+                    topos(TikiPos)
+                    if (root.Position - TikiPos.Position).Magnitude < 15 then
+                        game:GetService("ReplicatedStorage").Net["RF/SubmarineWorkerSpeak"]:InvokeServer("TravelToSubmergedIsland")
+                        task.wait(5)
+                    end
+                    return
+                end
+
+                local questGui = plr.PlayerGui.Main.Quest
+                if not questGui.Visible then
+                    topos(data.PosQ)
+                    if (root.Position - data.PosQ.Position).Magnitude < 15 then
+                        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StartQuest", data.Qname, data.Qdata)
+                    end
+                else
+                    local targetMob = nil
+                    for _, en in pairs(workspace.Enemies:GetChildren()) do
+                        if en.Name == data.Mon and en:FindFirstChild("Humanoid") and en.Humanoid.Health > 0 then
+                            targetMob = en
+                            break
+                        end
+                    end
+
+                    if targetMob then
+                        local mobRoot = targetMob:FindFirstChild("HumanoidRootPart")
+                        if mobRoot then
+                            topos(mobRoot.CFrame * CFrame.new(0, 10, 0))
+                            if (root.Position - mobRoot.Position).Magnitude < 15 then
+                                root.CFrame = mobRoot.CFrame * CFrame.new(0, 10, 0)
+                            end
+                        end
+                    else
+                        topos(data.PosM)
+                    end
+                end
+            end)
+        else
+        end
+    end
+end)
 --Loop travel
 task.spawn(function()
     while task.wait(0.5) do
