@@ -1624,12 +1624,21 @@ task.spawn(function()
             pcall(function()
                 local target = GetDroppedFruit()
                 if target then
+                    -- TẠM TẮT CÁC CHẾ ĐỘ FARM ĐỂ ƯU TIÊN LƯỢM TRÁI
+                    _G.AutoFarmLevel = false
+                    _G.FarmBone = false
+                    _G.FarmNearest = false
+                    _G.FarmChest = false
+                    _G.Auto_Cake_Prince = false
+                    
+                    -- Thực hiện dịch chuyển
                     game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = target.CFrame
                 end
             end)
         end
     end
 end)
+
 --Loop accecpt quest
 task.spawn(function()
     while task.wait() do
@@ -1664,6 +1673,15 @@ task.spawn(function()
             pcall(function()
                 local target = GetDroppedFruit()
                 if target then
+                    -- TẮT TẤT CẢ BIẾN FARM KHI PHÁT HIỆN TRÁI
+                    _G.AutoFarmLevel = false
+                    _G.FarmBone = false
+                    _G.FarmNearest = false
+                    _G.FarmChest = false
+                    _G.Auto_Cake_Prince = false
+                    _G.AutoSoulReaper = false
+                    
+                    -- Bay đến trái ác quỷ
                     topos(target.CFrame)
                 end
             end)
