@@ -30,6 +30,7 @@ _G.Auto_Cake_Prince = false
 _G.OldFarmBoneStatus = false
 _G.AutoFarmLevel = false
 _G.FullBrightEnabled = false
+_G.FarmNearest = false
 
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -379,6 +380,53 @@ function StopTween()
         root.Velocity = Vector3.new(0, 0, 0)
     end
 end
+-- Ham nearest
+local function KillNearestMob()
+    local MaxDistance = 1000 -- Khoảng cách quét
+    local enemies = game:GetService("Workspace").Enemies:GetChildren()
+    local targetMob = nil
+    local minDist = MaxDistance
+    local player = game.Players.LocalPlayer
+
+    pcall(function()
+        -- TÌM QUÁI GẦN NHẤT (Giống logic loop bone nhưng thêm so sánh khoảng cách)
+        for _, v in pairs(enemies) do
+            if v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") and v.Humanoid.Health > 0 then
+                local dist = (player.Character.HumanoidRootPart.Position - v.HumanoidRootPart.Position).Magnitude
+                if dist < minDist then
+                    minDist = dist
+                    targetMob = v
+                end
+            end
+        end
+
+        -- LOGIC XỬ LÝ KHI CÓ QUÁI
+        if targetMob then
+            -- 1. Trang bị vũ khí
+            EquipWeapon(_G.SelectWeapon)
+
+            -- 2. Bay đến trên đầu quái mục tiêu (giống loop bone dùng 25 unit)
+            local targetCF = targetMob.HumanoidRootPart.CFrame * CFrame.new(0, 25, 0)
+            topos(targetCF)
+
+            -- 3. GỌI BRING MOB (Dựa trên tên và tọa độ con gần nhất)
+            if _G.BringMob then
+                BringMob(targetMob.Name, targetMob.HumanoidRootPart.CFrame)
+            end
+
+            -- 4. TẤN CÔNG (Dùng VirtualUser như loop bone của bạn)
+            game:GetService("VirtualUser"):CaptureController()
+            game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 672))
+
+            -- 5. FIX LỖI PHÓNG TO & KHÓA QUÁI
+            targetMob.HumanoidRootPart.CanCollide = false
+            targetMob.Humanoid.WalkSpeed = 0
+            if targetMob.HumanoidRootPart.Size ~= Vector3.new(2, 2, 1) then
+                targetMob.HumanoidRootPart.Size = Vector3.new(2, 2, 1)
+            end
+        end
+    end)
+end
 
 -- Hàm bật Tộc V3 (Sử dụng Remote)
 function ActiveRaceV3()
@@ -713,7 +761,7 @@ local Window = Fluent:CreateWindow({
 })
 
 local Tabs = {
-    Home = Window:AddTab({ Title = "Tab Information", Icon = "" }),
+    Info = Window:AddTab({ Title = "Tab Information", Icon = "" }),
     Main = Window:AddTab({ Title = "Farming", Icon = "" }),
     Sea = Window:AddTab({ Title = "Tab Sea Event", Icon = "" }),
     Other = Window:AddTab({ Title = "Tab Farming Other", Icon = "" }),
@@ -769,6 +817,44 @@ end)
 -- ==========================================
 -- 3. GIAO DIỆN CHI TIẾT
 -- ==========================================
+-- 1. Khối tiêu đề chào mừng
+Tabs.Info:AddParagraph({
+    Title = "Welcome to Giacyeuem Hub!",
+    Content = "Script developed by Giacyeuem hub\nVersion 1.0.0\nEnjoy your day!"
+})
+
+Tabs.Info:AddButton({
+    Title = "Copy Link Youtube",
+    Description = "Non-existent",
+    Callback = function()
+        setclipboard("https://www.youtube.com/@Giacdz-Official") -- Thay link của bạn vào đây
+        Fluent:Notify({
+            Title = "Giacyeuem Hub",
+            Content = "Copied!",
+            Duration = 3
+        })
+    end
+})
+
+Tabs.Info:AddButton({
+    Title = "Copy Link Discord Server",
+    Description = "Click to copy",
+    Callback = function()
+        setclipboard("https://discord.gg/giacyeuem") -- Thay link của bạn vào đây
+        Fluent:Notify({
+            Title = "Giacyeuem Hub",
+            Content = "Copied!",
+            Duration = 3
+        })
+    end
+})
+
+-- 4. Thêm một cái Credit nhỏ phía dưới
+Tabs.Info:AddParagraph({
+    Title = "Credits",
+    Content = "Owner: Giacdz"
+})
+
 Tabs.Main:AddDropdown("WeaponSelect", {
     Title = "Choose weapon",
     Values = {"Melee", "Sword", "Gun", "Blox Fruit"},
@@ -790,6 +876,18 @@ local ToggleFarm = Tabs.Main:AddToggle("AutoFarmLevel", {
             _G.FarmBone = false 
             _G.OldFarmBoneStatus = false
         end
+    end
+})
+
+local MainTab = Tabs.Main
+
+MainTab:AddToggle("FarmNearToggle", {
+    Title = "Auto Kill Nearest Mob",
+    Default = false,
+    Callback = function(Value)
+        _G.FarmNearest = Value
+        -- Dừng di chuyển ngay khi tắt
+        if not Value then pcall(function() StopTween(true) end) end
     end
 })
 
@@ -1851,6 +1949,16 @@ task.spawn(function()
                 temple.Parent = workspace:FindFirstChild("Map") or workspace
             end
         end)
+    end
+end)
+
+-- Loop nearest
+task.spawn(function()
+    while true do
+        task.wait()
+        if _G.FarmNearest then
+            KillNearestMob()
+        end
     end
 end)
 
