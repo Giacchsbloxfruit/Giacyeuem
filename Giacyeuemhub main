@@ -714,8 +714,8 @@ local Window = Fluent:CreateWindow({
 
 local Tabs = {
     Home = Window:AddTab({ Title = "Tab Information", Icon = "" }),
-    Main = Window:AddTab({ Title = "Tab Farming", Icon = "" }),
-    Sea = Window:AddTab({ Title = "Tab Volcano And Sea Event", Icon = "" }),
+    Main = Window:AddTab({ Title = "Farming", Icon = "" }),
+    Sea = Window:AddTab({ Title = "Tab Sea Event", Icon = "" }),
     Other = Window:AddTab({ Title = "Tab Farming Other", Icon = "" }),
     Setting = Window:AddTab({ Title = "Setting Farm", Icon = "" }),
     Player = Window:AddTab({ Title = "Tab Local Player", Icon = "" }),
@@ -769,7 +769,14 @@ end)
 -- ==========================================
 -- 3. GIAO DIỆN CHI TIẾT
 -- ==========================================
-Tabs.Main:AddSection("Auto Farm Level")
+Tabs.Main:AddDropdown("WeaponSelect", {
+    Title = "Choose weapon",
+    Values = {"Melee", "Sword", "Gun", "Blox Fruit"},
+    Default = 1,
+    Callback = function(Value) _G.SelectWeapon = Value end
+})
+
+Tabs.Main:AddSection("Main Farm")
 
 local ToggleFarm = Tabs.Main:AddToggle("AutoFarmLevel", {
     Title = "Auto Farm Level",
@@ -827,7 +834,7 @@ Tabs.Main:AddToggle("FarmBoneToggle", {
 })
 Tabs.Main:AddToggle("QuestBones", {
     Title = "Auto Accept quest",
-    Default = true,
+    Default = false,
     Callback = function(Value) _G.AutoAcceptQuest = Value end
 })
 
@@ -879,13 +886,6 @@ Tabs.Setting:AddToggle("BringMobToggle", {
     Description = "Gom quái",
     Default = false,
     Callback = function(Value) _G.BringMob = Value end
-})
-
-Tabs.Setting:AddDropdown("WeaponSelect", {
-    Title = "Chọn Vũ Khí",
-    Values = {"Melee", "Sword", "Gun", "Blox Fruit"},
-    Default = 1,
-    Callback = function(Value) _G.SelectWeapon = Value end
 })
 
 Tabs.Setting:AddButton({
