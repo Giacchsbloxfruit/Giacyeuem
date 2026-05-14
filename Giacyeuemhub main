@@ -11,7 +11,6 @@ _G.AutoPortalIsland = false
 _G.CurrentBones = 0
 _G.FarmBone = false
 _G.SelectWeapon = "Melee"
-_G.TweenSpeed = 250
 _G.BringMob = false -- Biến gom quái
 _G.FarmChest = false
 _G.StopHaveKey = false
@@ -600,30 +599,31 @@ function EquipWeapon(WeaponType)
 end
 
 -- Hàm Noclip & Chống rơi "Thông minh"
-RunService.Stepped:Connect(function()
-    -- Chỉ hoạt động khi có Tween đang chạy (Farm, Đánh Boss, Nhặt trái...)
-    if _G.CurrentTween and (_G.CurrentTween.PlaybackState == Enum.PlaybackState.Playing or _G.CurrentTween.PlaybackState == Enum.PlaybackState.Delayed) then
-        pcall(function()
-            local char = game.Players.LocalPlayer.Character
-            if char then
-                local root = char:FindFirstChild("HumanoidRootPart")
-                local hum = char:FindFirstChild("Humanoid")
-
-                if hum then hum.Sit = false end
-                
-                for _, v in pairs(char:GetDescendants()) do
-                    if v:IsA("BasePart") then 
-                        v.CanCollide = false 
-                    end
-                end
-                
-                if root then
-                    -- Triệt tiêu vận tốc rơi, giữ cố định trên đầu quái cực chuẩn
-                    root.Velocity = Vector3.new(0, 0, 0)
+game:GetService("RunService").Stepped:Connect(function()
+    pcall(function()
+        -- Tự động khóa vị trí khi đang Tween hoặc đang bật Farm
+        local isActive = _G.CurrentTween or _G.FarmChest or _G.FarmBone or _G.AutoFarmLevel or _G.FarmNearest
+        
+        if isActive and game.Players.LocalPlayer.Character then
+            local root = game.Players.LocalPlayer.Character.HumanoidRootPart
+            
+            -- Khóa cứng vận tốc theo mọi hướng để không bị rơi do trọng lực
+            root.Velocity = Vector3.new(0,0,0)
+            root.AssemblyLinearVelocity = Vector3.new(0,0,0)
+            
+            -- Tắt va chạm (Noclip) để không bị kẹt vào tường/địa hình khi Tween
+            for _, v in pairs(game.Players.LocalPlayer.Character:GetChildren()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
                 end
             end
-        end)
-    end
+            
+            -- Chống bị ép ngồi ( Sit ) làm ngắt Tween
+            if game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
+                game.Players.LocalPlayer.Character.Humanoid.Sit = false
+            end
+        end
+    end)
 end)
 
 -- Hàm Gom Quái (Bring Mob) - Tầm 2-4 con gần nhất
@@ -866,6 +866,7 @@ Tabs.Main:AddSection("Main Farm")
 
 local ToggleFarm = Tabs.Main:AddToggle("AutoFarmLevel", {
     Title = "Auto Farm Level",
+    Description = "Dont use bring mob",
     Default = false,
     Callback = function(Value)
         _G.AutoFarmLevel = Value
@@ -988,7 +989,6 @@ Tabs.Setting:AddToggle("BringMobToggle", {
 
 Tabs.Setting:AddButton({
     Title = "Redeem All Codes",
-    Description = "Nhập codes",
     Callback = function()
         -- Chạy hàm trong task.spawn để không làm đứng Menu khi đang đợi Team
         task.spawn(AutoRedeem)
@@ -996,7 +996,6 @@ Tabs.Setting:AddButton({
 })
 Tabs.Setting:AddToggle("BrightToggle", {
     Title = "Turn on Bright",
-    Description = " ",
     Default = false,
     Callback = function(Value) _G.FullBrightEnabled = Value
         
@@ -1016,7 +1015,6 @@ Tabs.Setting:AddToggle("BrightToggle", {
 
 Tabs.Race:AddButton({
     Title = "Teleport to Temple of Time",
-    Description = "Bay đến Đền thờ thời gian ngay lập tức",
     Callback = function()
         pcall(function()
             local lp = game.Players.LocalPlayer
@@ -1063,7 +1061,6 @@ end)
 
 Tabs.Race:AddToggle("TglAncientOne", {
     Title = "Teleport to Ancient One",
-    Description = "Đến nơi tự tắt",
     Default = false,
     Callback = function(Value)
         _G.TP_AncientOne = Value
@@ -1094,7 +1091,6 @@ Tabs.Race:AddToggle("TglAncientOne", {
 
 Tabs.Race:AddToggle("TglAncientClock", {
     Title = "Teleport to Ancient Clock",
-    Description = "Đến nơi tự tắt",
     Default = false,
     Callback = function(Value)
         _G.TP_AncientClock = Value
@@ -1124,7 +1120,6 @@ Tabs.Race:AddToggle("TglAncientClock", {
 
 Tabs.Race:AddToggle("TglRaceDoor", {
     Title = "Auto Teleport to Race Doors",
-    Description = "Tự động bay đến cửa Race của bạn",
     Default = false,
     Callback = function(Value)
         _G.TPDoor = Value
@@ -1177,7 +1172,6 @@ Tabs.Fruit:AddSection("Fruits")
 
 Tabs.Fruit:AddToggle("RandomFruit", {
     Title = "Auto Random Fruit",
-    Description = "Quay trái",
     Default = false,
     Callback = function(Value)
         _G.AutoRandom = Value
@@ -1186,7 +1180,6 @@ Tabs.Fruit:AddToggle("RandomFruit", {
 
 Tabs.Fruit:AddToggle("StoreFruit", {
     Title = "Auto Store Fruit",
-    Description = "Cất trái",
     Default = false,
     Callback = function(Value)
         _G.AutoStore = Value
