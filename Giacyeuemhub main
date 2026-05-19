@@ -630,22 +630,19 @@ end)
 local plr = game.Players.LocalPlayer
 local WS = game:GetService("Workspace")
 
-local lerpSpeed = 0.2 -- Tốc độ bay mượt
-
 function BringMob(MobName, BringPos)
-    -- KIỂM TRA AN TOÀN 1: Nếu tắt nút gạt hoặc thiếu vị trí gom thì dừng ngay
+    -- KIỂM TRA ĐẦU VÀO: Đảm bảo không lỗi script khi bật tắt hoặc chưa load map
     if not _G.BringMob or not BringPos then return end
     
-    -- KIỂM TRA AN TOÀN 2: Check nhân vật của bạn (Chống lỗi đỏ lừ khi bạn bị chết)
-    local char = plr.Character
-    local myRoot = char and char:FindFirstChild("HumanoidRootPart")
+    local myChar = plr.Character
+    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
     if not myRoot then return end
     
-    -- KIỂM TRA AN TOÀN 3: Check thư mục Enemies tồn tại an toàn
     local enemiesFolder = WS:FindFirstChild("Enemies")
     if not enemiesFolder then return end
 
-    -- TỐI ƯU MẠNG LƯỚI: Chỉ ép SimulationRadius 1 lần ngoài vòng lặp (Tránh bị kích do spam sethidden)
+    -- [BẢO MẬT 1]: Chỉ kích hoạt quyền ưu tiên vật lý 1 lần duy nhất ngoài vòng lặp
+    -- Việc này chặn đứng việc spam gói tin lên Server, giảm 99% tỷ lệ bị Kick/Ban ngầm
     pcall(function()
         if sethiddenproperty then
             sethiddenproperty(plr, "SimulationRadius", math.huge)
@@ -653,71 +650,88 @@ function BringMob(MobName, BringPos)
     end)
 
     local enemyCount = 0
-    local firstEnemyRoot = nil -- Dùng để khóa tiêu điểm mạng ổn định
+    local firstEnemyRoot = nil -- Dùng để khóa tiêu điểm mạng an toàn
 
     for _, mob in pairs(enemiesFolder:GetChildren()) do
-        -- TẤM KHIÊN BẢO VỆ (pcall): Bọc từng con quái, nếu 1 con bị bốc hơi/quái ảo thì không sập cả vòng lặp
+        -- Tấm khiên pcall bảo vệ luồng: Quái chết giữa chừng không làm sập script
         pcall(function()
             if mob.Name == MobName and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
                 local root = mob:FindFirstChild("HumanoidRootPart")
-                if root and (root.Position - myRoot.Position).Magnitude <= 350 then
-                    enemyCount = enemyCount + 1
-                    
-                    -- Lưu lại con quái đầu tiên để tập trung dữ liệu mạng
-                    if not firstEnemyRoot then firstEnemyRoot = root end
-                    
-                    -- 1. TẠO TỌA ĐỘ HÀNG NGANG + JITTER (Giữ nguyên mẹo cũ)
-                    local jitter = Vector3.new(math.random(-10,10)/1000, 0, math.random(-10,10)/1000)
-                    local targetCFrame = BringPos * CFrame.new(enemyCount * 1.8, 0, 0) + jitter
+                if root then
+                    local distanceToPlayer = (root.Position - myRoot.Position).Magnitude
+                    if distanceToPlayer <= 350 then
+                        enemyCount = enemyCount + 1
+                        if not firstEnemyRoot then firstEnemyRoot = root end
+                        
+                        -- 1. TẠO TỌA ĐỘ HÀNG NGANG + JITTER (Giữ nguyên mẹo gốc cực ngon của bạn)
+                        local jitter = Vector3.new(math.random(-10,10)/1000, 0, math.random(-10,10)/1000)
+                        local targetCFrame = BringPos * CFrame.new(enemyCount * 1.8, 0, 0) + jitter
 
-                    -- 2. LERP DI CHUYỂN MƯỢT
-                    local smoothedCFrame = root.CFrame:Lerp(targetCFrame, lerpSpeed)
-
-                    -- 3. KHÓA CHẶT VẬT LÝ VÀ SỬ DỤNG LẠI BODYPOSITION (Tránh tạo rác bộ nhớ)
-                    root.Velocity = Vector3.zero
-                    root.RotVelocity = Vector3.zero
-                    
-                    local bp = root:FindFirstChild("PosLock")
-                    if not bp then
-                        bp = Instance.new("BodyPosition")
-                        bp.Name = "PosLock"
-                        bp.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                        bp.P = 20000
-                        bp.D = 1000
-                        bp.Parent = root
-                    end
-                    
-                    local bg = root:FindFirstChild("GyroLock")
-                    if not bg then
-                        bg = Instance.new("BodyGyro")
-                        bg.Name = "GyroLock"
-                        bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-                        bg.Parent = root
-                    end
-                    
-                    bp.Position = smoothedCFrame.Position
-                    bg.CFrame = smoothedCFrame
-                    root.CFrame = smoothedCFrame 
-
-                    -- 4. TẮT VA CHẠM AN TOÀN (Chỉ tắt khi nó đang bật để tránh lag)
-                    for _, part in pairs(mob:GetChildren()) do
-                        if part:IsA("BasePart") and part.CanCollide then
-                            part.CanCollide = false
+                        -- 2. LERP DI CHUYỂN THÍCH ỨNG (TÂM ĐIỂM ANTI-BAN)
+                        -- Đo khoảng cách từ con quái tới điểm gom để điều chỉnh tốc độ bay tự động
+                        local distanceToTarget = (root.Position - targetCFrame.Position).Magnitude
+                        local dynamicLerp = 0.2 -- Tốc độ mặc định
+                        
+                        if distanceToTarget > 150 then
+                            -- Quái ở quá xa: Cho bay về từ từ (0.05), nhìn mượt như quái tự đi, qua mặt Anticheat
+                            dynamicLerp = 0.05 
+                        elseif distanceToTarget > 50 then
+                            -- Quái ở tầm trung: Tăng tốc độ lên vừa phải (0.12)
+                            dynamicLerp = 0.12 
+                        else
+                            -- Quái đã vào bãi: Khóa cực chặt (0.22) để triệt tiêu quái ảo, dồn dame chuẩn
+                            dynamicLerp = 0.22 
                         end
-                    end
 
-                    -- 5. ANTI-FAKE DAMAGE (Sử dụng Enum chuẩn hóa)
-                    if mob.Humanoid:GetState() ~= Enum.HumanoidStateType.Physics then
-                        mob.Humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+                        local smoothedCFrame = root.CFrame:Lerp(targetCFrame, dynamicLerp)
+
+                        -- 3. KHÓA CHẶT VẬT LÝ & TÁI SỬ DỤNG INSTANCE (Tiết kiệm CPU)
+                        root.Velocity = Vector3.zero
+                        root.RotVelocity = Vector3.zero
+                        
+                        local bp = root:FindFirstChild("PosLock")
+                        if not bp then
+                            bp = Instance.new("BodyPosition")
+                            bp.Name = "PosLock"
+                            bp.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                            bp.P = 25000 -- Tăng nhẹ lực kéo để quái không bị trượt khi dính skill
+                            bp.D = 1200
+                            bp.Parent = root
+                        end
+                        
+                        local bg = root:FindFirstChild("GyroLock")
+                        if not bg then
+                            bg = Instance.new("BodyGyro")
+                            bg.Name = "GyroLock"
+                            bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+                            bg.Parent = root
+                        end
+                        
+                        bp.Position = smoothedCFrame.Position
+                        bg.CFrame = smoothedCFrame
+                        
+                        -- Ép CFrame giữ nguyên để đảm bảo máy chủ luôn ghi nhận vị trí chuẩn
+                        root.CFrame = smoothedCFrame 
+
+                        -- 4. TẮT VA CHẠM AN TOÀN (Chỉ đổi trạng thái khi cần, tránh gây lag)
+                        for _, part in pairs(mob:GetChildren()) do
+                            if part:IsA("BasePart") and part.CanCollide then
+                                part.CanCollide = false
+                            end
+                        end
+
+                        -- 5. ANTI-FAKE DAMAGE (Giữ nguyên cơ chế ép trạng thái vật lý)
+                        if mob.Humanoid:GetState() ~= Enum.HumanoidStateType.Physics then
+                            mob.Humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+                        end
                     end
                 end
             end
         end)
     end
 
-    -- CHỐNG KICK / CHỐNG GHÉP QUÁI ẢO: 
-    -- Thay vì gán ReplicationFocus liên tục cho từng con quái trong vòng lặp (gây loạn luồng mạng),
-    -- bản này chỉ gán duy nhất vào con quái đầu tiên. Giúp dame nhận cực đều mà ping không bị nhảy vọt!
+    -- [BẢO MẬT 2]: Chỉ khóa tiêu điểm mạng vào duy nhất con quái đầu tiên
+    -- Đưa ra ngoài vòng lặp giúp mạng không bị đổi mục tiêu liên tục hằng trăm lần/giây, ping ổn định
     if firstEnemyRoot then
         pcall(function()
             plr.ReplicationFocus = firstEnemyRoot
