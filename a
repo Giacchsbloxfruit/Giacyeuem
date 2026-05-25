@@ -655,7 +655,7 @@ function BringMob(MobName, BringPos)
                 local root = mob:FindFirstChild("HumanoidRootPart")
                 if root then
                     local distanceToPlayer = (root.Position - myRoot.Position).Magnitude
-                    if distanceToPlayer <= 325 then
+                    if distanceToPlayer <= 350 then
                         enemyCount = enemyCount + 1
                         if not firstEnemyRoot then firstEnemyRoot = root end
                         
