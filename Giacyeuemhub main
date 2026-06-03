@@ -640,7 +640,6 @@ function BringMob(MobName, BringPos)
     local enemiesFolder = WS:FindFirstChild("Enemies")
     if not enemiesFolder then return end
 
-    -- Ép SimulationRadius 1 lần duy nhất ngoài vòng lặp
     pcall(function()
         if sethiddenproperty then
             sethiddenproperty(plr, "SimulationRadius", math.huge)
@@ -648,7 +647,7 @@ function BringMob(MobName, BringPos)
     end)
 
     local enemyCount = 0
-    local firstEnemyRoot = nil
+    local firstEnemyRoot = nil 
 
     for _, mob in pairs(enemiesFolder:GetChildren()) do
         pcall(function()
@@ -660,25 +659,21 @@ function BringMob(MobName, BringPos)
                         enemyCount = enemyCount + 1
                         if not firstEnemyRoot then firstEnemyRoot = root end
                         
-                        -- 1. FIX CẮM ĐẦU: Chỉ trích xuất Vị trí (Position), loại bỏ hoàn toàn Góc nghiêng
+                        -- TẠO TỌA ĐỘ VÀ KHÓA HƯỚNG (ĐỨNG THẲNG)
                         local jitter = Vector3.new(math.random(-10,10)/1000, 0, math.random(-10,10)/1000)
                         local targetPosition = (BringPos * CFrame.new(enemyCount * 1.8, 0, 0)).Position + jitter
-                        
-                        -- Tạo CFrame mới tinh từ targetPosition giúp quái auto đứng thẳng đứng 100%
                         local targetCFrame = CFrame.new(targetPosition)
 
-                        -- 2. HIỆU ỨNG LƯỚT NHANH CHẬM DẦN (EASING GLIDE)
+                        -- HIỆU ỨNG BAY NHANH CHẬM DẦN MƯỢT MÀ
                         local distanceToTarget = (root.Position - targetPosition).Magnitude
-                        local glideSpeed = 0.08 
-                        
-                        -- Khi quái đã lướt tới sát bãi (< 15 studs), siết tốc độ lại để hút chặt, tránh trượt chiêu
+                        local glideSpeed = 0.08
                         if distanceToTarget < 15 then
                             glideSpeed = 0.3
                         end
 
                         local smoothedCFrame = root.CFrame:Lerp(targetCFrame, glideSpeed)
 
-                        -- 3. KHÓA VẬT LÝ VÀ CHỐNG TRƯỢT
+                        -- KHÓA VẬT LÝ BẰNG BODYMOVERS
                         root.Velocity = Vector3.zero
                         root.RotVelocity = Vector3.zero
                         
@@ -687,8 +682,8 @@ function BringMob(MobName, BringPos)
                             bp = Instance.new("BodyPosition")
                             bp.Name = "PosLock"
                             bp.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                            bp.P = 15000 -- Lực kéo vừa phải để mượt hơn
-                            bp.D = 1000
+                            bp.P = 25000 
+                            bp.D = 1200
                             bp.Parent = root
                         end
                         
@@ -697,24 +692,25 @@ function BringMob(MobName, BringPos)
                             bg = Instance.new("BodyGyro")
                             bg.Name = "GyroLock"
                             bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-                            bg.P = 15000
+                            bg.P = 20000
                             bg.Parent = root
                         end
                         
                         bp.Position = smoothedCFrame.Position
-                        bg.CFrame = smoothedCFrame
+                        bg.CFrame = targetCFrame -- Ép quái luôn nhìn thẳng, không cắm đầu
                         root.CFrame = smoothedCFrame 
 
-                        -- 4. TẮT VA CHẠM THÔNG MINH
+                        -- TẮT VA CHẠM XUYÊN TƯỜNG (Cực kỳ quan trọng ở Tàu Ma)
                         for _, part in pairs(mob:GetChildren()) do
-                            if part:IsA("BasePart") and part.CanCollide then
+                            if part:IsA("BasePart") then
                                 part.CanCollide = false
                             end
                         end
 
-                        -- 5. ÉP CHUẨN TRẠNG THÁI VẬT LÝ
-                        if mob.Humanoid:GetState() ~= Enum.HumanoidStateType.Physics then
-                            mob.Humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+                        -- [PHẦN CỐT LÕI FIX QUÁI ẢO TÀU MA]: Ép State 11 (StrafingNoPhysics)
+                        -- Lệnh này nói với Server rằng: "Hãy bỏ qua mọi quy tắc kẹt tường, rơi tự do hay pathfinding của con quái này"
+                        if mob.Humanoid:GetState() ~= Enum.HumanoidStateType.StrafingNoPhysics then
+                            mob.Humanoid:ChangeState(11)
                         end
                     end
                 end
@@ -722,14 +718,13 @@ function BringMob(MobName, BringPos)
         end)
     end
 
-    -- Khóa tiêu điểm mạng vào 1 con duy nhất
+    -- Chốt chặn cuối: Giữ tiêu điểm mạng
     if firstEnemyRoot then
         pcall(function()
             plr.ReplicationFocus = firstEnemyRoot
         end)
     end
 end
-
 -- Hàm dùng chung để bay đi mua Melee
 function BuyMeleeTween(TargetCFrame, MeleeID)
     _G.FarmBone = false -- Tắt farm xương ngay lập tức
