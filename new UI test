@@ -1,3 +1,4 @@
+
 -- 1. KHAI BÁO BIẾN & CÀI ĐẶT HỆ THỐNG
 -- ==========================================
 _G.AutoAcceptQuest = false
@@ -32,7 +33,11 @@ _G.FarmNearest = false
 _G.AutoYama = false
 _G.AutoElitehunter = false
 _G.IsDoingElite = false
+_G.EliteKilled = _G.EliteKilled or 0 
+_G.EliteStatus = "Checking..."
 
+local eliteNames = {"Diablo", "Deandre", "Urban"}
+local lastRemoteCheck = 0
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local replicated = game:GetService("ReplicatedStorage")
@@ -63,19 +68,6 @@ local OriginalSettings = {
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
 local Stats = game:GetService("Stats")
-
--- Ham dung farm
-local function StopAllFarms()
-    _G.AutoFarm = false
-    _G.FarmBone = false
-    _G.TweenToFruit = false
-    _G.AutoSoulReaper = false
-    _G.AutoFarmLevel = false
-    _G.FarmNearest = false
-    _G.FarmChest = false
-    
-    StopTween() -- Gọi hàm dừng Tween của bạn
-end
 
 -- Xóa cái cũ để tránh bị chồng đè khi chạy lại script
 if CoreGui:FindFirstChild("GiacdzStats") then
@@ -682,9 +674,10 @@ function BringMob(MobName, BringPos)
                         enemyCount = enemyCount + 1
                         if not firstEnemyRoot then firstEnemyRoot = root end
                         
-                        -- TẠO TỌA ĐỘ VÀ KHÓA HƯỚNG (ĐỨNG THẲNG)
+                        -- CHỐNG LỖI KÉO QUÁI: Ép toàn bộ quái tập trung tại tâm gốc BringPos.Position
+                        -- Thêm một chút jitter cực nhỏ để không bị server phát hiện check vị trí tuyệt đối
                         local jitter = Vector3.new(math.random(-10,10)/1000, 0, math.random(-10,10)/1000)
-                        local targetPosition = (BringPos * CFrame.new(enemyCount * 1.8, 0, 0)).Position + jitter
+                        local targetPosition = BringPos.Position + jitter
                         local targetCFrame = CFrame.new(targetPosition)
 
                         -- HIỆU ỨNG BAY NHANH CHẬM DẦN MƯỢT MÀ
@@ -731,7 +724,6 @@ function BringMob(MobName, BringPos)
                         end
 
                         -- [PHẦN CỐT LÕI FIX QUÁI ẢO TÀU MA]: Ép State 11 (StrafingNoPhysics)
-                        -- Lệnh này nói với Server rằng: "Hãy bỏ qua mọi quy tắc kẹt tường, rơi tự do hay pathfinding của con quái này"
                         if mob.Humanoid:GetState() ~= Enum.HumanoidStateType.StrafingNoPhysics then
                             mob.Humanoid:ChangeState(11)
                         end
@@ -945,6 +937,97 @@ Tabs.Info:Button({
         })
     end
 })
+
+local EliteParagraph = Tabs.Status:Paragraph({
+    Title = "Elite Hunter Tracker",
+    Content = "Killed: 0\nStatus: Checking..."
+})
+
+local function UpdateEliteStatus()
+    pcall(function()
+        -- 1. QUÉT MAP THỰC TẾ (CHỈ QUÉT TRONG WORKSPACE - NƠI QUÁI ĐANG SỐNG)
+        local isEliteSpawned = false
+        local liveMobName = ""
+        for _, name in pairs(eliteNames) do
+            local inWS = game:GetService("Workspace").Enemies:FindFirstChild(name)
+            
+            -- Quái phải có thật trên map, có Humanoid và máu phải > 0 mới tin
+            if inWS and inWS:FindFirstChild("Humanoid") and inWS.Humanoid.Health > 0 then
+                isEliteSpawned = true
+                liveMobName = name
+                break
+            end
+        end
+
+        local currentTick = tick()
+        if (currentTick - lastRemoteCheck >= 5) then
+            lastRemoteCheck = currentTick
+            
+            -- Kiểm tra số lượng Elite đã tiêu diệt từ Server
+            local progressData = game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("EliteHunter", "Progress")
+            if progressData then
+                local parsedValue = nil
+                if type(progressData) == "number" then
+                    parsedValue = progressData 
+                elseif type(progressData) == "string" then
+                    parsedValue = tonumber(string.match(progressData, "%d+")) 
+                end
+                if parsedValue ~= nil then
+                    _G.EliteKilled = parsedValue
+                end
+            end
+
+            -- 2. BỘ LỌC ĐỌC THOẠI NPC CAO CẤP (CHỐNG BÁO ẢO TUYỆT ĐỐI)
+            if isEliteSpawned then
+                _G.EliteStatus = "Spawned (" .. liveMobName .. ") 🟢"
+            else
+                -- Nếu tầm nhìn không thấy quái, gọi Remote hỏi NPC diện rộng
+                local npcResponse = game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("EliteHunter")
+                if type(npcResponse) == "string" then
+                    local lowerResp = string.lower(npcResponse)
+                    
+                    -- CHỈ XÁC NHẬN SPAWN KHI THẤY TÊN ĐẢO XUẤT HIỆN TRONG CÂU THOẠI
+                    if string.find(lowerResp, "hydra") then
+                        _G.EliteStatus = "Spawned (Hydra Island) 🟢"
+                    elseif string.find(lowerResp, "turtle") or string.find(lowerResp, "mansion") then
+                        _G.EliteStatus = "Spawned (Floating Turtle) 🟢"
+                    elseif string.find(lowerResp, "tree") then
+                        _G.EliteStatus = "Spawned (Great Tree) 🟢"
+                    elseif string.find(lowerResp, "port") or string.find(lowerResp, "town") then
+                        _G.EliteStatus = "Spawned (Port Town) 🟢"
+                    else
+                        -- Tất cả các trường hợp còn lại (Check back later, defeated, rác gói tin...) đều coi là CHƯA SPAWN
+                        _G.EliteStatus = "Not Spawned ❌"
+                    end
+                else
+                    -- Nếu không nhận được string từ NPC -> Chốt chặn chắc chắn chưa spawn
+                    _G.EliteStatus = "Not Spawned ❌"
+                end
+            end
+        else
+            -- Trong 5 giây chờ giữa các lượt gọi Remote, nếu đột ngột thấy quái xuất hiện ở bãi thì update ngay lập tức
+            if isEliteSpawned then 
+                _G.EliteStatus = "Spawned (" .. liveMobName .. ") 🟢" 
+            end
+        end
+
+        -- 3. ĐẨY DỮ LIỆU CHUẨN LÊN GIAO DIỆN UI
+        if EliteParagraph then
+            local formatText = "Killed: " .. tostring(_G.EliteKilled or 0) .. " ⚔️\nStatus: " .. tostring(_G.EliteStatus or "Checking...")
+            if EliteParagraph.SetDescription then
+                EliteParagraph:SetDescription(formatText)
+            elseif EliteParagraph.SetDesc then
+                EliteParagraph:SetDesc(formatText)
+            end
+        end
+    end)
+end
+
+task.spawn(function()
+    while task.wait(0.5) do
+        UpdateEliteStatus()
+    end
+end)
 Tabs.Main:Dropdown({
     Title = "Choose Weapon",
     Values = {"Melee", "Sword", "Gun", "Blox Fruit"},
@@ -1112,74 +1195,87 @@ task.spawn(function()
         end
     end
 end)
+
+-- ==========================================================
+-- CẤU HÌNH HỆ THỐNG VÀ TỌA ĐỘ CHUẨN
+-- ==========================================================
+local eliteNames = {"Diablo", "Deandre", "Urban"}
+local npcCoords = CFrame.new(-5418.2, 314.1, -2824.6) -- Tọa độ NPC Elite Hunter
+local castlePortal = CFrame.new(-5036, 315, -3179)   -- Cổng dịch chuyển Lâu đài
+local hasPortaledToNPC = false                       -- Trạng thái chốt chặn nhảy cổng 1 lần
+
 Tabs.Stack:Toggle({
     Title = "Auto Kill Elite Hunter",
     Value = false,
-    Callback = function(Value)
-        _G.AutoElitehunter = Value
-        if not Value then 
-            StopTween() 
+    Callback = function(state)
+        _G.AutoEliteHunter = state
+        if not state then 
+            if StopTween then StopTween() end
             _G.IsDoingElite = false
         end
     end
 })
-function KillElitePriority()
-    local eliteNames = {"Diablo", "Deandre", "Urban"}
-    local targetMob = nil
-    
-    -- Tìm quái Elite
-    for _, name in pairs(eliteNames) do
-        local found = game:GetService("Workspace").Enemies:FindFirstChild(name)
-        if found and found:FindFirstChild("Humanoid") and found.Humanoid.Health > 0 then
-            targetMob = found
-            break
-        end
-    end
 
-    if targetMob then
-        _G.IsDoingElite = true -- Đánh dấu trạng thái bận
-        StopAllFarms()        -- Tắt mọi loại farm khác ngay lập tức
-        
-        repeat
-            task.wait()
-            pcall(function()
-                EquipWeapon(_G.SelectWeapon)
-                AutoHaki()
-                
-                -- Khóa quái
-                targetMob.HumanoidRootPart.CanCollide = false
-                targetMob.Humanoid.WalkSpeed = 0
-                
-                -- Di chuyển đến vị trí trên đầu quái
-                topos(targetMob.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
-                
-                -- Tấn công
-                game:GetService("VirtualUser"):CaptureController()
-                game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 672))
-            end)
-        until not targetMob or targetMob.Humanoid.Health <= 0 or not _G.AutoElitehunter
-        
-        _G.IsDoingElite = false
-        return true
-    end
-    
-    return false
-end
-
--- 3. Vòng lặp giám sát (Chạy nền)
 task.spawn(function()
     while task.wait(0.5) do
-        if _G.AutoElitehunter then
+        if _G.AutoEliteHunter then
             pcall(function()
-                -- Nhận nhiệm vụ nếu chưa có
-                local player = game.Players.LocalPlayer
-                local questGui = player.PlayerGui.Main.Quest
-                if not questGui.Visible then
-                    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("EliteHunter")
-                end
+                -- Khai báo các biến rõ ràng
+                local LocalPlayer = game:GetService("Players").LocalPlayer
+                local PlayerGui = LocalPlayer:FindFirstChild("PlayerGui")
+                local EnemiesFolder = workspace:FindFirstChild("Enemies")
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
                 
-                -- Thực hiện ưu tiên giết Elite
-                KillElitePriority()
+                if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+                
+                -- TIẾN TRÌNH 1: KIỂM TRA QUEST
+                local hasEliteQuest = false
+                if PlayerGui and PlayerGui.Main.Quest.Visible then
+                    local questTitle = PlayerGui.Main.Quest.Container.QuestTitle.Title.Text
+                    for _, name in pairs(eliteNames) do
+                        if string.find(questTitle, name) then
+                            hasEliteQuest = true
+                            break
+                        end
+                    end
+                end
+
+                -- TIẾN TRÌNH 2: QUẢN LÝ TRẠNG THÁI FARM
+                if hasEliteQuest or _G.EliteStatus == "Spawned" then
+                    _G.IsDoingElite = true
+                    _G.AutoFarm, _G.FarmBone, _G.TweenToFruit = false, false, false
+                    _G.AutoSoulReaper, _G.AutoFarmLevel, _G.FarmNearest, _G.FarmChest = false, false, false, false
+                else
+                    _G.IsDoingElite = false
+                end
+
+                -- TIẾN TRÌNH 3: ĐÁNH QUÁI
+                if hasEliteQuest then
+                    for _, enemy in pairs(EnemiesFolder:GetChildren()) do
+                        local isElite = false
+                        for _, name in pairs(eliteNames) do
+                            if string.find(enemy.Name, name) then isElite = true break end
+                        end
+                        
+                        if isElite and f.Alive(enemy) then
+                            repeat
+                                task.wait()
+                                if not _G.AutoEliteHunter then break end
+                                
+                                -- Di chuyển đến quái
+                                topos(enemy.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
+                                -- Tấn công
+                                f.Kill(enemy, _G.AutoEliteHunter)
+                                
+                            until not enemy or not enemy:FindFirstChild("HumanoidRootPart") or enemy.Humanoid.Health <= 0 or not _G.AutoEliteHunter
+                            
+                            _G.IsDoingElite = false
+                        end
+                    end
+                else
+                    -- TIẾN TRÌNH 4: NHẬN NHIỆM VỤ TỪ XA
+                    ReplicatedStorage.Remotes.CommF_:InvokeServer("EliteHunter")
+                end
             end)
         end
     end
