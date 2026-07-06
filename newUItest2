@@ -1,4 +1,4 @@
--- [[ GIACYEUEM HUB UI LIBRARY CORE - V8.6 (CLEAN TEXT & SEPARATED OUTSIDE LOGO) ]]
+-- [[ GIACYEUEM HUB UI LIBRARY CORE - V8.7 (CLEAN TEXT & SEPARATED OUTSIDE LOGO) ]]
 local AuroraLib = {}
 
 local CoreGui = game:GetService("CoreGui")
@@ -43,7 +43,7 @@ function AuroraLib:CreateWindow(Config)
     OutsideLogo.BackgroundColor3 = Theme.Bg
     OutsideLogo.BackgroundTransparency = 0.2
     OutsideLogo.Image = LogoId
-    OutsideLogo.Visible = false -- Mặc định ẩn, chỉ hiện khi UI đóng/thu nhỏ
+    OutsideLogo.Visible = false -- Mặc định ẩn, chỉ hiện khi tắt UI chính
     Instance.new("UICorner", OutsideLogo).CornerRadius = UDim.new(1, 0)
     
     local LogoStroke = Instance.new("UIStroke", OutsideLogo)
@@ -51,7 +51,7 @@ function AuroraLib:CreateWindow(Config)
     LogoStroke.Thickness = 1.5
     LogoStroke.Transparency = 0.3
 
-    -- Kéo thả Logo bên ngoài
+    -- Hệ thống kéo thả cho Logo bên ngoài
     local logoDragging, logoDragStart, logoStartPos
     OutsideLogo.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -66,7 +66,7 @@ function AuroraLib:CreateWindow(Config)
     end)
     UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then logoDragging = false end end)
 
-    -- [[ KHUNG HUB CHÍNH ]]
+    -- [[ KHUNG UI CHÍNH ]]
     local MainFrame = Instance.new("Frame", ScreenGui)
     MainFrame.Size = UDim2.new(0, 620, 0, 420)
     MainFrame.Position = UDim2.new(0.5, -310, 0.5, -210)
@@ -86,7 +86,7 @@ function AuroraLib:CreateWindow(Config)
     table.insert(Window.AccentObjects, {Instance = MainStroke, Property = "Color"})
     table.insert(Window.AccentObjects, {Instance = LogoStroke, Property = "Color"})
 
-    -- Click Logo để mở lại UI chính
+    -- Click Logo ngoài để mở lại UI chính
     OutsideLogo.MouseButton1Click:Connect(function()
         OutsideLogo.Visible = false
         MainFrame.Visible = true
@@ -182,7 +182,7 @@ function AuroraLib:CreateWindow(Config)
         Btn.Text = iconText
         Btn.TextColor3 = Theme.Text
         Btn.Font = FontBold
-        Btn.TextSize = 14 + sizeOffset
+        Btn.TextSize = 15 + sizeOffset
         Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 5)
         
         Btn.MouseEnter:Connect(function() TweenService:Create(Btn, TweenInfo.new(0.15), {BackgroundTransparency = 0.3, TextColor3 = hoverColor}):Play() end)
@@ -215,7 +215,7 @@ function AuroraLib:CreateWindow(Config)
         end
     end)
 
-    CreateControlButton("[ ]", -2, Theme.Text, function()
+    CreateControlButton("□", 0, Theme.Text, function()
         if IsMinimized then return end
         IsMaximized = not IsMaximized
         local targetSize = IsMaximized and MaxSize or NormalSize
@@ -227,7 +227,7 @@ function AuroraLib:CreateWindow(Config)
         closeTween.Play()
         closeTween.Completed:Wait()
         MainFrame.Visible = false
-        OutsideLogo.Visible = true -- Kích hoạt Logo ngoài khi tắt UI
+        OutsideLogo.Visible = true
     end)
 
     local dragging, dragInput, dragStart, startPos
@@ -305,7 +305,7 @@ function AuroraLib:CreateWindow(Config)
 
         local TabLabel = Instance.new("TextLabel", TabBtn)
         TabLabel.Size = UDim2.new(1, -24, 1, 0)
-        TabLabel.Position = UDim2.new(0, 12, 0, 0) -- Đẩy text về lề trái vì không còn icon bọc đầu
+        TabLabel.Position = UDim2.new(0, 12, 0, 0) -- Đẩy lề chữ sát lề trái cực đẹp vì không dùng icon nữa
         TabLabel.BackgroundTransparency = 1
         TabLabel.Text = TabName
         TabLabel.TextColor3 = Theme.Text
@@ -630,7 +630,7 @@ function AuroraLib:CreateWindow(Config)
             DropBtn.Size = UDim2.new(0, 130, 0, 26)
             DropBtn.Position = UDim2.new(1, -142, 0, hasDesc and 13 or 7)
             DropBtn.BackgroundColor3 = Color3.fromRGB(40, 47, 56)
-            DropBtn.Text = Default ~= "" and Default or "Chon..."
+            DropBtn.Text = Default ~= "" and Default or "Chọn..."
             DropBtn.TextColor3 = Theme.Text
             DropBtn.Font = FontMain
             DropBtn.TextSize = 13
