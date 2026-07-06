@@ -1,4 +1,4 @@
--- [[ GIACYEUEM HUB UI LIBRARY CORE - V8.4 (LOGO TOGGLE SYSTEM) ]]
+-- [[ GIACYEUEM HUB UI LIBRARY CORE - V8.5 (REMOVED WEB ICONS - FIX ERROR 429) ]]
 local AuroraLib = {}
 
 local CoreGui = game:GetService("CoreGui")
@@ -23,29 +23,10 @@ local FontMain = Enum.Font.SourceSans
 local FontBold = Enum.Font.SourceSansBold
 local FontSection = Enum.Font.ArialBold
 
-local function GetWebIcon(iconName)
-    if not iconName or iconName == "" then return "" end
-    local getasset = getcustomasset or getsynasset
-    if not getasset or not writefile or not isfile or not makefolder then return "" end
-
-    local folderName = "Aurora_Icons"
-    local filePath = folderName .. "/" .. iconName .. ".png"
-    if not isfolder(folderName) then makefolder(folderName) end
-
-    if not isfile(filePath) then
-        local url = "https://raw.githubusercontent.com/dawid-scripts/Fluent/master/src/Icons/" .. iconName .. ".png"
-        pcall(function()
-            local imgData = game:HttpGet(url)
-            if imgData then writefile(filePath, imgData) end
-        end)
-    end
-    return isfile(filePath) and getasset(filePath) or ""
-end
-
 function AuroraLib:CreateWindow(Config)
     local MainTitleText = Config.Name or "Giacyeuem Hub"
     local SubTitleText = Config.SubName or "ver 1.0 by Giacdz Hub"
-    local LogoId = Config.LogoID or "rbxassetid://4483345998" -- ID ảnh Logo mặc định nếu không truyền vào
+    local LogoId = Config.LogoID or "rbxassetid://4483345998"
 
     if CoreGui:FindFirstChild("AuroraUI") then
         CoreGui.AuroraUI:Destroy()
@@ -54,23 +35,23 @@ function AuroraLib:CreateWindow(Config)
     local ScreenGui = Instance.new("ScreenGui", CoreGui)
     ScreenGui.Name = "AuroraUI"
 
-    -- [[ TẠO LOGO BẬT TẮT BÊN NGOÀI (TOGGLE LOGO) ]]
+    -- [[ LOGO BẬT TẮT BÊN NGOÀI ]]
     local ToggleLogo = Instance.new("ImageButton", ScreenGui)
     ToggleLogo.Name = "ToggleLogo"
     ToggleLogo.Size = UDim2.new(0, 50, 0, 50)
-    ToggleLogo.Position = UDim2.new(0, 20, 0.5, -25) -- Mặc định nằm bên cạnh trái màn hình
+    ToggleLogo.Position = UDim2.new(0, 20, 0.5, -25)
     ToggleLogo.BackgroundColor3 = Theme.Bg
     ToggleLogo.BackgroundTransparency = 0.2
     ToggleLogo.Image = LogoId
-    ToggleLogo.Visible = false -- Ban đầu ẩn đi khi Hub đang mở
-    Instance.new("UICorner", ToggleLogo).CornerRadius = UDim.new(1, 0) -- Bo tròn thành hình tròn lớn
+    ToggleLogo.Visible = false
+    Instance.new("UICorner", ToggleLogo).CornerRadius = UDim.new(1, 0)
     
     local LogoStroke = Instance.new("UIStroke", ToggleLogo)
     LogoStroke.Color = Theme.Accent
     LogoStroke.Thickness = 1.5
     LogoStroke.Transparency = 0.3
 
-    -- Làm cho Logo có thể kéo thả di chuyển được trên màn hình cho đỡ vướng khi chơi game
+    -- Kéo thả Logo
     local logoDragging, logoDragStart, logoStartPos
     ToggleLogo.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -102,15 +83,13 @@ function AuroraLib:CreateWindow(Config)
     Window.AccentObjects = {}
     local RainbowConnection = nil
 
-    -- Thêm Stroke của Logo vào danh sách quản lý đổi màu hệ thống
     table.insert(Window.AccentObjects, {Instance = MainStroke, Property = "Color"})
     table.insert(Window.AccentObjects, {Instance = LogoStroke, Property = "Color"})
 
-    -- Hàm mở lại Hub chính khi bấm vào Logo
     ToggleLogo.MouseButton1Click:Connect(function()
         ToggleLogo.Visible = false
         MainFrame.Visible = true
-        MainFrame:TweenSize(UDim2.new(0, 630, 0, 420), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.25, true)
+        MainFrame:TweenSize(UDim2.new(0, 620, 0, 420), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.25, true)
     end)
 
     local Header = Instance.new("Frame", MainFrame)
@@ -215,7 +194,6 @@ function AuroraLib:CreateWindow(Config)
     local NormalSize = UDim2.new(0, 620, 0, 420)
     local MaxSize = UDim2.new(0, 780, 0, 520)
 
-    -- Nút thu nhỏ [-] giờ sẽ thu UI lại gọn gàng
     CreateControlButton("-", 2, Theme.Text, function()
         IsMinimized = not IsMinimized
         if IsMinimized then
@@ -243,13 +221,12 @@ function AuroraLib:CreateWindow(Config)
         TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play()
     end)
 
-    -- Nút [X] thay vì xóa hẳn UI, giờ nó sẽ ẩn Hub và hiện Logo nổi bên ngoài
     CreateControlButton("X", 0, Color3.fromRGB(255, 70, 70), function() 
         local closeTween = TweenService:Create(MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Size = UDim2.new(0, 620, 0, 0)})
         closeTween.Play()
         closeTween.Completed:Wait()
         MainFrame.Visible = false
-        ToggleLogo.Visible = true -- Hiện logo nổi lên
+        ToggleLogo.Visible = true
     end)
 
     local dragging, dragInput, dragStart, startPos
@@ -311,7 +288,7 @@ function AuroraLib:CreateWindow(Config)
 
     function Window:MakeTab(TabConfig)
         local TabName = TabConfig.Name or "Tab"
-        local IconName = TabConfig.Icon or "box"
+        local TabIconText = TabConfig.Icon or "📁" -- Sử dụng ký tự text/emoji thay cho ảnh mạng
 
         local TabBtn = Instance.new("TextButton", Sidebar)
         TabBtn.Size = UDim2.new(1, -5, 0, 36)
@@ -326,16 +303,20 @@ function AuroraLib:CreateWindow(Config)
 
         table.insert(Window.AccentObjects, {Instance = TabStroke, Property = "Color"})
 
-        local IconImg = Instance.new("ImageLabel", TabBtn)
-        IconImg.Size = UDim2.new(0, 16, 0, 16)
-        IconImg.Position = UDim2.new(0, 10, 0.5, -8)
-        IconImg.BackgroundTransparency = 1
-        IconImg.ImageColor3 = Theme.Text
-        task.spawn(function() IconImg.Image = GetWebIcon(IconName) end)
+        -- Text đại diện cho Icon (Gọn nhẹ, không tốn request mạng)
+        local IconLabel = Instance.new("TextLabel", TabBtn)
+        IconLabel.Size = UDim2.new(0, 20, 0, 20)
+        IconLabel.Position = UDim2.new(0, 10, 0.5, -10)
+        IconLabel.BackgroundTransparency = 1
+        IconLabel.Text = TabIconText
+        IconLabel.TextColor3 = Theme.Text
+        IconLabel.Font = FontBold
+        IconLabel.TextSize = 14
+        IconLabel.TextXAlignment = Enum.TextXAlignment.Center
 
         local TabLabel = Instance.new("TextLabel", TabBtn)
-        TabLabel.Size = UDim2.new(1, -35, 1, 0)
-        TabLabel.Position = UDim2.new(0, 34, 0, 0)
+        TabLabel.Size = UDim2.new(1, -40, 1, 0)
+        TabLabel.Position = UDim2.new(0, 36, 0, 0)
         TabLabel.BackgroundTransparency = 1
         TabLabel.Text = TabName
         TabLabel.TextColor3 = Theme.Text
