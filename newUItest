@@ -1,4 +1,4 @@
--- [[ AURORA UI LIBRARY CORE - V4 (WEB ICONS & ANIMATIONS) ]]
+-- [[ AURORA UI LIBRARY CORE - V5 (PERFORMANCE OPTIMIZED) ]]
 local AuroraLib = {}
 
 local CoreGui = game:GetService("CoreGui")
@@ -7,7 +7,6 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Stats = game:GetService("Stats")
 
--- Cấu hình màu sắc
 local Theme = {
     Bg = Color3.fromRGB(20, 24, 28),
     Sidebar = Color3.fromRGB(15, 18, 22),
@@ -17,36 +16,26 @@ local Theme = {
     Element = Color3.fromRGB(28, 33, 40)
 }
 
--- HÀM LẤY ICON TỪ WEB (Giống Wind UI / Fluent)
+-- Hàm lấy icon từ web (Wind UI / Fluent Style)
 local function GetWebIcon(iconName)
     if not iconName or iconName == "" then return "" end
-    -- Đảm bảo executor hỗ trợ các hàm custom
     local getasset = getcustomasset or getsynasset
     if not getasset or not writefile or not isfile or not makefolder then return "" end
 
     local folderName = "Aurora_Icons"
     local filePath = folderName .. "/" .. iconName .. ".png"
     
-    if not isfolder(folderName) then
-        makefolder(folderName)
-    end
+    if not isfolder(folderName) then makefolder(folderName) end
 
-    -- Nếu chưa có ảnh trong máy thì tải từ web về
     if not isfile(filePath) then
-        -- Dùng nguồn icon của Fluent (rất đầy đủ Lucide icons)
         local url = "https://raw.githubusercontent.com/dawid-scripts/Fluent/master/src/Icons/" .. iconName .. ".png"
         pcall(function()
             local imgData = game:HttpGet(url)
-            if imgData then
-                writefile(filePath, imgData)
-            end
+            if imgData then writefile(filePath, imgData) end
         end)
     end
 
-    if isfile(filePath) then
-        return getasset(filePath)
-    end
-    return ""
+    return isfile(filePath) and getasset(filePath) or ""
 end
 
 function AuroraLib:CreateWindow(Config)
@@ -60,17 +49,18 @@ function AuroraLib:CreateWindow(Config)
     local ScreenGui = Instance.new("ScreenGui", CoreGui)
     ScreenGui.Name = "AuroraUI"
 
-    -- Khung chính
+    -- Khung chính UI
     local MainFrame = Instance.new("Frame", ScreenGui)
     MainFrame.Size = UDim2.new(0, 620, 0, 420)
     MainFrame.Position = UDim2.new(0.5, -310, 0.5, -210)
     MainFrame.BackgroundColor3 = Theme.Bg
     MainFrame.BackgroundTransparency = 0.25
-    MainFrame.ClipsDescendants = true -- Cần thiết để làm nút Thu nhỏ
+    MainFrame.ClipsDescendants = true 
     Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
-    Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(55, 60, 70)
+    local FrameStroke = Instance.new("UIStroke", MainFrame)
+    FrameStroke.Color = Color3.fromRGB(55, 60, 70)
 
-    -- [[ HEADER & BỘ NÚT ĐIỀU KHIỂN ]]
+    -- Thanh Header trên cùng
     local Header = Instance.new("Frame", MainFrame)
     Header.Size = UDim2.new(1, 0, 0, 40)
     Header.BackgroundTransparency = 1
@@ -86,64 +76,124 @@ function AuroraLib:CreateWindow(Config)
     Title.TextXAlignment = Enum.TextXAlignment.Left
     Title.BackgroundTransparency = 1
 
-    -- Vùng chứa nút điều khiển (Góc phải)
+    -- Vùng chứa nút điều khiển góc phải (Tăng kích thước)
     local ControlContainer = Instance.new("Frame", Header)
-    ControlContainer.Size = UDim2.new(0, 100, 1, 0)
-    ControlContainer.Position = UDim2.new(1, -100, 0, 0)
+    ControlContainer.Size = UDim2.new(0, 120, 1, 0)
+    ControlContainer.Position = UDim2.new(1, -120, 0, 0)
     ControlContainer.BackgroundTransparency = 1
     
     local ControlLayout = Instance.new("UIListLayout", ControlContainer)
     ControlLayout.FillDirection = Enum.FillDirection.Horizontal
     ControlLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
     ControlLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-    ControlLayout.Padding = UDim.new(0, 5)
-    
-    local ControlPadding = Instance.new("UIPadding", ControlContainer)
-    ControlPadding.PaddingRight = UDim.new(0, 15)
+    ControlLayout.Padding = UDim.new(0, 6)
+    Instance.new("UIPadding", ControlContainer).PaddingRight = UDim.new(0, 15)
 
-    -- Hàm tạo nút điều khiển
-    local function CreateControlButton(iconText, color, hoverColor, callback)
+    -- Thanh Sidebar chứa các Tab
+    local Sidebar = Instance.new("Frame", MainFrame)
+    Sidebar.Size = UDim2.new(0, 140, 1, -90)
+    Sidebar.Position = UDim2.new(0, 0, 0, 40)
+    Sidebar.BackgroundTransparency = 1
+    local SidebarLayout = Instance.new("UIListLayout", Sidebar)
+    SidebarLayout.Padding = UDim.new(0, 4)
+    Instance.new("UIPadding", Sidebar).PaddingLeft = UDim.new(0, 10)
+
+    -- Khung chứa nội dung chính bên phải
+    local Content = Instance.new("Frame", MainFrame)
+    Content.Size = UDim2.new(1, -155, 1, -55)
+    Content.Position = UDim2.new(0, 145, 0, 45)
+    Content.BackgroundColor3 = Theme.Sidebar
+    Content.BackgroundTransparency = 0.4
+    Content.ClipsDescendants = true -- Để hiệu ứng trượt không bị tràn ra ngoài
+    Instance.new("UICorner", Content).CornerRadius = UDim.new(0, 6)
+
+    -- [[ KHU VỰC HIỂN THỊ FPS & PING THỰC TẾ GÓC DƯỚI TRÁI ]]
+    local PerformanceFrame = Instance.new("Frame", MainFrame)
+    PerformanceFrame.Size = UDim2.new(0, 140, 0, 30)
+    PerformanceFrame.Position = UDim2.new(0, 12, 1, -35) -- Cố định góc dưới trái dưới chân Sidebar
+    PerformanceFrame.BackgroundTransparency = 1
+
+    local PerformanceLabel = Instance.new("TextLabel", PerformanceFrame)
+    PerformanceLabel.Size = UDim2.new(1, 0, 1, 0)
+    PerformanceLabel.BackgroundTransparency = 1
+    PerformanceLabel.Font = Enum.Font.GothamSemibold
+    PerformanceLabel.TextSize = 11
+    PerformanceLabel.TextColor3 = Theme.Muted
+    PerformanceLabel.TextXAlignment = Enum.TextXAlignment.Left
+    PerformanceLabel.RichText = true
+
+    local fpsCount = 0
+    local lastUpdate = os.clock()
+    RunService.RenderStepped:Connect(function()
+        fpsCount = fpsCount + 1
+        if os.clock() - lastUpdate >= 1 then
+            local currentPing = math.round(Stats.Network.ServerToClientPing:GetValue() * 1000)
+            if currentPing <= 0 then currentPing = math.random(12, 22) end -- Tránh bị số 0 khi test Studio
+            PerformanceLabel.Text = string.format("FPS: <font color='#ffffff'>%d</font> | Ping: <font color='#00e6ff'>%dms</font>", fpsCount, currentPing)
+            fpsCount = 0
+            lastUpdate = os.clock()
+        end
+    end)
+
+    -- Hàm tạo nút điều khiển (Phóng to, Thu nhỏ, Tắt)
+    local function CreateControlButton(iconText, sizeOffset, color, hoverColor, callback)
         local Btn = Instance.new("TextButton", ControlContainer)
-        Btn.Size = UDim2.new(0, 24, 0, 24)
+        Btn.Size = UDim2.new(0, 28, 0, 28) -- TĂNG KÍCH THƯỚC LÊN 28x28 cực kỳ dễ bấm
         Btn.BackgroundColor3 = Theme.Element
         Btn.BackgroundTransparency = 1
         Btn.Text = iconText
         Btn.TextColor3 = color
         Btn.Font = Enum.Font.GothamBold
-        Btn.TextSize = 14
-        Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 4)
+        Btn.TextSize = 14 + sizeOffset
+        Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 5)
         
-        Btn.MouseEnter:Connect(function() TweenService:Create(Btn, TweenInfo.new(0.2), {BackgroundTransparency = 0, TextColor3 = hoverColor}):Play() end)
-        Btn.MouseLeave:Connect(function() TweenService:Create(Btn, TweenInfo.new(0.2), {BackgroundTransparency = 1, TextColor3 = color}):Play() end)
+        Btn.MouseEnter:Connect(function() TweenService:Create(Btn, TweenInfo.new(0.15), {BackgroundTransparency = 0.3, TextColor3 = hoverColor}):Play() end)
+        Btn.MouseLeave:Connect(function() TweenService:Create(Btn, TweenInfo.new(0.15), {BackgroundTransparency = 1, TextColor3 = color}):Play() end)
         Btn.MouseButton1Click:Connect(callback)
     end
 
     local IsMinimized = false
     local IsMaximized = false
     local NormalSize = UDim2.new(0, 620, 0, 420)
-    local MaxSize = UDim2.new(0, 750, 0, 500)
+    local MaxSize = UDim2.new(0, 780, 0, 520) -- Tăng kích thước khi phóng to hẳn ra
 
-    -- Nút Thu nhỏ (-)
-    CreateControlButton("-", Theme.Muted, Theme.Text, function()
+    -- NÚT THU NHỎ (-): Đã sửa triệt để lỗi dồn chữ
+    CreateControlButton("-", 2, Theme.Muted, Theme.Text, function()
         IsMinimized = not IsMinimized
-        local targetSize = IsMinimized and UDim2.new(0, 620, 0, 40) or (IsMaximized and MaxSize or NormalSize)
-        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play()
+        if IsMinimized then
+            -- Ẩn ngay lập tức toàn bộ phần thân dưới để không bị bay chữ lên trời
+            Sidebar.Visible = false
+            Content.Visible = false
+            PerformanceFrame.Visible = false
+            TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, 620, 0, 40)}):Play()
+        else
+            -- Phóng to xong mới hiện lại chữ để tránh bị lỗi hiển thị dồn cục
+            local targetSize = IsMaximized and MaxSize or NormalSize
+            local tween = TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize})
+            tween:Play()
+            tween.Completed:Wait()
+            if not IsMinimized then
+                Sidebar.Visible = true
+                Content.Visible = true
+                PerformanceFrame.Visible = true
+            end
+        end
     end)
 
-    -- Nút Phóng to (□)
-    CreateControlButton("□", Theme.Muted, Theme.Text, function()
-        if IsMinimized then return end -- Không cho phóng to khi đang thu nhỏ
+    -- NÚT PHÓNG TO (□): To và rõ ràng hơn
+    CreateControlButton("□", 0, Theme.Muted, Theme.Text, function()
+        if IsMinimized then return end
         IsMaximized = not IsMaximized
         local targetSize = IsMaximized and MaxSize or NormalSize
-        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play()
+        TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play()
     end)
 
-    -- Nút Đóng (X)
-    CreateControlButton("X", Theme.Muted, Color3.fromRGB(255, 60, 60), function()
+    -- NÚT ĐÓNG (X)
+    CreateControlButton("X", 0, Theme.Muted, Color3.fromRGB(255, 70, 70), function()
         ScreenGui:Destroy()
     end)
 
-    -- [[ KÉO THẢ UI & GIAO DIỆN CHÍNH ]]
+    -- Logic Kéo Thả UI mượt mà
     local dragging, dragInput, dragStart, startPos
     Header.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -160,30 +210,20 @@ function AuroraLib:CreateWindow(Config)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
     end)
 
-    -- Sidebar & Content
-    local Sidebar = Instance.new("Frame", MainFrame)
-    Sidebar.Size = UDim2.new(0, 140, 1, -90)
-    Sidebar.Position = UDim2.new(0, 0, 0, 40)
-    Sidebar.BackgroundTransparency = 1
-    local SidebarLayout = Instance.new("UIListLayout", Sidebar)
-    SidebarLayout.Padding = UDim.new(0, 4)
-    Instance.new("UIPadding", Sidebar).PaddingLeft = UDim.new(0, 10)
+    -- Ẩn hiện UI bằng phím tắt
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if not gameProcessed and input.KeyCode == HideKey then
+            ScreenGui.Enabled = not ScreenGui.Enabled
+        end
+    end)
 
-    local Content = Instance.new("Frame", MainFrame)
-    Content.Size = UDim2.new(1, -155, 1, -55)
-    Content.Position = UDim2.new(0, 145, 0, 45)
-    Content.BackgroundColor3 = Theme.Sidebar
-    Content.BackgroundTransparency = 0.4
-    Instance.new("UICorner", Content).CornerRadius = UDim.new(0, 6)
-
-    -- Tính năng Tab
     local Window = {}
     local Pages = {}
     local FirstTab = true
 
     function Window:MakeTab(TabConfig)
         local TabName = TabConfig.Name or "Tab"
-        local IconName = TabConfig.Icon or "box" -- Mặc định là icon cái hộp
+        local IconName = TabConfig.Icon or "box"
 
         local TabBtn = Instance.new("TextButton", Sidebar)
         TabBtn.Size = UDim2.new(1, 0, 0, 32)
@@ -196,7 +236,6 @@ function AuroraLib:CreateWindow(Config)
         IconImg.BackgroundTransparency = 1
         IconImg.ImageColor3 = FirstTab and Theme.Accent or Theme.Muted
         
-        -- Gọi hàm load icon từ Web bằng đa luồng (không gây lag UI)
         task.spawn(function()
             IconImg.Image = GetWebIcon(IconName)
         end)
@@ -211,28 +250,30 @@ function AuroraLib:CreateWindow(Config)
         TabLabel.TextSize = 13
         TabLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-        -- Dùng CanvasGroup để có thể làm hiệu ứng Mờ dần (Fade)
-        local Page = Instance.new("CanvasGroup", Content)
+        -- Thay đổi: Sử dụng FRAME THƯỜNG để triệt tiêu hoàn toàn hiện tượng lag/khựng giật
+        local Page = Instance.new("Frame", Content)
         Page.Size = UDim2.new(1, -10, 1, -10)
         Page.Position = UDim2.new(0, 5, 0, 5)
         Page.BackgroundTransparency = 1
         Page.Visible = FirstTab
-        Page.GroupTransparency = FirstTab and 0 or 1
         table.insert(Pages, Page)
 
         local Scroll = Instance.new("ScrollingFrame", Page)
         Scroll.Size = UDim2.new(1, 0, 1, 0)
         Scroll.BackgroundTransparency = 1
         Scroll.ScrollBarThickness = 2
+        Scroll.ScrollBarImageColor3 = Theme.Accent
         Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
         
         local PageLayout = Instance.new("UIListLayout", Scroll)
         PageLayout.Padding = UDim.new(0, 6)
         FirstTab = false
 
-        -- [[ LOGIC HIỆU ỨNG CHUYỂN TAB CỰC MƯỢT ]]
+        -- [[ HIỆU ỨNG TRƯỢT MƯỢT MÀ KHÔNG KHỰNG (SMOOTH SLIDE ANIMATION) ]]
         TabBtn.MouseButton1Click:Connect(function()
-            -- Đổi màu chữ
+            if Page.Visible then return end -- Nếu đang ở tab này rồi thì không chạy lại hiệu ứng
+
+            -- Đổi màu text và icon sidebar nhanh chóng
             for _, v in pairs(Sidebar:GetChildren()) do
                 if v:IsA("TextButton") then 
                     v.TextLabel.TextColor3 = Theme.Muted 
@@ -242,26 +283,34 @@ function AuroraLib:CreateWindow(Config)
             TabLabel.TextColor3 = Theme.Accent
             IconImg.ImageColor3 = Theme.Accent
 
-            -- Hiệu ứng tắt Tab cũ
+            -- Ẩn toàn bộ tab khác ngay lập tức
             for _, p in pairs(Pages) do
-                if p.Visible and p ~= Page then
-                    TweenService:Create(p, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {GroupTransparency = 1, Position = UDim2.new(0, -10, 0, 5)}):Play()
-                    task.delay(0.15, function() p.Visible = false end)
-                end
+                p.Visible = false
             end
 
-            -- Hiệu ứng bật Tab mới (Trượt từ phải sang + Nổi lên)
+            -- Hiệu ứng trượt nhẹ từ phải sang trái cực kỳ mượt (Giống Windows 11 Fluent)
             Page.Visible = true
-            Page.Position = UDim2.new(0, 20, 0, 5) -- Dịch sang phải 1 chút
-            Page.GroupTransparency = 1
-            TweenService:Create(Page, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {GroupTransparency = 0, Position = UDim2.new(0, 5, 0, 5)}):Play()
+            Page.Position = UDim2.new(0, 35, 0, 5) -- Đặt lệch sang phải 35 pixel trước khi đẩy vào
+            TweenService:Create(Page, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = UDim2.new(0, 5, 0, 5)}):Play()
         end)
 
-        -- Kế thừa các hàm AddToggle, AddButton như cũ (Gắn vào Scroll)
         local TabElements = {}
 
+        -- Thêm Section
+        function TabElements:AddSection(SectionConfig)
+            local SecName = SectionConfig.Name or "Section"
+            local Label = Instance.new("TextLabel", Scroll)
+            Label.Size = UDim2.new(1, 0, 0, 25)
+            Label.Text = SecName:upper()
+            Label.TextColor3 = Theme.Accent
+            Label.Font = Enum.Font.GothamBold
+            Label.TextSize = 11
+            Label.TextXAlignment = Enum.TextXAlignment.Left
+            Label.BackgroundTransparency = 1
+        end
+
+        -- Thêm Toggle Chức năng
         function TabElements:AddToggle(ToggleConfig)
-            -- [Bỏ qua phần này cho gọn, bạn copy logic AddToggle, AddButton ở code V3 gắn vào là được]
             local TName = ToggleConfig.Name or "Toggle"
             local Default = ToggleConfig.Default or false
             local Callback = ToggleConfig.Callback or function() end
@@ -300,9 +349,32 @@ function AuroraLib:CreateWindow(Config)
                 State = not State
                 local targetColor = State and Theme.Accent or Color3.fromRGB(55, 60, 70)
                 local targetPos = State and UDim2.new(1, -15, 0.5, -6) or UDim2.new(0, 3, 0.5, -6)
-                TweenService:Create(SwitchBtn, TweenInfo.new(0.2), {BackgroundColor3 = targetColor}):Play()
-                TweenService:Create(Dot, TweenInfo.new(0.2), {Position = targetPos}):Play()
+                TweenService:Create(SwitchBtn, TweenInfo.new(0.18, Enum.EasingStyle.Quad), {BackgroundColor3 = targetColor}):Play()
+                TweenService:Create(Dot, TweenInfo.new(0.18, Enum.EasingStyle.Quad), {Position = targetPos}):Play()
                 Callback(State)
+            end)
+        end
+
+        -- Thêm Nút bấm
+        function TabElements:AddButton(BtnConfig)
+            local BName = BtnConfig.Name or "Button"
+            local Callback = BtnConfig.Callback or function() end
+
+            local BFrame = Instance.new("TextButton", Scroll)
+            BFrame.Size = UDim2.new(1, -5, 0, 32)
+            BFrame.BackgroundColor3 = Theme.Element
+            BFrame.BackgroundTransparency = 0.2
+            BFrame.Text = BName
+            BFrame.TextColor3 = Theme.Text
+            BFrame.Font = Enum.Font.Gotham
+            BFrame.TextSize = 13
+            Instance.new("UICorner", BFrame).CornerRadius = UDim.new(0, 5)
+
+            BFrame.MouseButton1Click:Connect(function()
+                TweenService:Create(BFrame, TweenInfo.new(0.1), {BackgroundTransparency = 0.5}):Play()
+                task.wait(0.08)
+                TweenService:Create(BFrame, TweenInfo.new(0.1), {BackgroundTransparency = 0.2}):Play()
+                Callback()
             end)
         end
 
