@@ -288,7 +288,7 @@ function AuroraLib:CreateWindow(Config)
 
     function Window:MakeTab(TabConfig)
         local TabName = TabConfig.Name or "Tab"
-        local TabIconText = TabConfig.Icon or "📁" -- Sử dụng ký tự text/emoji thay cho ảnh mạng
+        local TabIconText = TabConfig.Icon or " " -- Sử dụng ký tự text/emoji thay cho ảnh mạng
 
         local TabBtn = Instance.new("TextButton", Sidebar)
         TabBtn.Size = UDim2.new(1, -5, 0, 36)
