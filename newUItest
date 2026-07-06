@@ -1,4 +1,4 @@
--- [[ GIACYEUEM HUB UI LIBRARY CORE - V8.1 (DEFAULT FONT FIXED) ]]
+-- [[ GIACYEUEM HUB UI LIBRARY CORE - V8.2 (VIETNAMESE FONT FIX) ]]
 local AuroraLib = {}
 
 local CoreGui = game:GetService("CoreGui")
@@ -6,6 +6,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Stats = game:GetService("Stats")
+local TextService = game:GetService("TextService") -- Thêm service đo chữ
 
 local Theme = {
     Bg = Color3.fromRGB(20, 24, 28),
@@ -18,9 +19,9 @@ local Theme = {
     TabHover = Color3.fromRGB(30, 35, 42)
 }
 
--- Đổi font mặc định ở đây để dễ quản lý
 local FontMain = Enum.Font.SourceSans
 local FontBold = Enum.Font.SourceSansBold
+local FontSection = Enum.Font.ArialBold -- Font chuyên trị lỗi tiếng Việt trồi sụt
 
 local function GetWebIcon(iconName)
     if not iconName or iconName == "" then return "" end
@@ -44,7 +45,6 @@ end
 function AuroraLib:CreateWindow(Config)
     local MainTitleText = Config.Name or "Giacyeuem Hub"
     local SubTitleText = Config.SubName or "ver 1.0 by Giacdz Hub"
-    local HideKey = Config.HideKey or Enum.KeyCode.RightControl
 
     if CoreGui:FindFirstChild("AuroraUI") then
         CoreGui.AuroraUI:Destroy()
@@ -75,7 +75,7 @@ function AuroraLib:CreateWindow(Config)
     TitleLabel.Text = MainTitleText
     TitleLabel.TextColor3 = Theme.Text
     TitleLabel.Font = FontBold
-    TitleLabel.TextSize = 17 -- Tăng nhẹ size vì font mặc định nhỏ hơn gotham một chút
+    TitleLabel.TextSize = 17
     TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     TitleLabel.BackgroundTransparency = 1
 
@@ -290,7 +290,7 @@ function AuroraLib:CreateWindow(Config)
         local TabElements = {}
         local elementCount = 0
 
-        -- [[ 1. SECTION ]]
+        -- [[ 1. SECTION FIX FONT TIẾNG VIỆT ]]
         function TabElements:AddSection(SectionConfig)
             elementCount = elementCount + 1
             local SecName = SectionConfig.Name or "Section"
@@ -300,24 +300,28 @@ function AuroraLib:CreateWindow(Config)
             SecFrame.BackgroundTransparency = 1
             SecFrame.LayoutOrder = elementCount
 
+            -- Đo kích thước chữ thật để căn chỉnh đường line 2 bên chính xác
+            local sizeCalculated = TextService:GetTextSize(SecName, 13, FontSection, Vector2.new(1000, 26))
+            local textWidth = sizeCalculated.X + 14 -- Thêm khoảng trống nhỏ hai bên chữ
+
             local TextLabel = Instance.new("TextLabel", SecFrame)
-            TextLabel.Size = UDim2.new(0, 160, 1, 0)
-            TextLabel.Position = UDim2.new(0.5, -80, 0, 0)
+            TextLabel.Size = UDim2.new(0, textWidth, 1, 0)
+            TextLabel.Position = UDim2.new(0.5, -textWidth/2, 0, 0)
             TextLabel.BackgroundTransparency = 1
-            TextLabel.Text = SecName:upper()
+            TextLabel.Text = SecName -- Đã bỏ :upper() để tránh lỗi trồi sụt font chữ
             TextLabel.TextColor3 = Theme.Muted
-            TextLabel.Font = FontBold
+            TextLabel.Font = FontSection
             TextLabel.TextSize = 13
 
             local LeftLine = Instance.new("Frame", SecFrame)
-            LeftLine.Size = UDim2.new(0.5, -90, 0, 1)
+            LeftLine.Size = UDim2.new(0.5, -(textWidth/2 + 10), 0, 1)
             LeftLine.Position = UDim2.new(0, 5, 0.5, 0)
             LeftLine.BackgroundColor3 = Color3.fromRGB(55, 60, 70)
             LeftLine.BorderSizePixel = 0
 
             local RightLine = Instance.new("Frame", SecFrame)
-            RightLine.Size = UDim2.new(0.5, -90, 0, 1)
-            RightLine.Position = UDim2.new(0.5, 85, 0.5, 0)
+            RightLine.Size = UDim2.new(0.5, -(textWidth/2 + 10), 0, 1)
+            RightLine.Position = UDim2.new(0.5, textWidth/2 + 5, 0.5, 0)
             RightLine.BackgroundColor3 = Color3.fromRGB(55, 60, 70)
             RightLine.BorderSizePixel = 0
         end
