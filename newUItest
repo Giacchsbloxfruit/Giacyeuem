@@ -110,7 +110,7 @@ function AuroraLib:CreateWindow(Config)
     ToggleLogo.MouseButton1Click:Connect(function()
         ToggleLogo.Visible = false
         MainFrame.Visible = true
-        MainFrame:TweenSize(UDim2.new(0, 620, 0, 420), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.25, true)
+        MainFrame:TweenSize(UDim2.new(0, 630, 0, 420), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.25, true)
     end)
 
     local Header = Instance.new("Frame", MainFrame)
