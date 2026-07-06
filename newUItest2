@@ -1,4 +1,4 @@
--- [[ GIACYEUEM HUB UI LIBRARY CORE - V8.3 (DYNAMIC ACCENT & RAINBOW SYSTEM) ]]
+-- [[ GIACYEUEM HUB UI LIBRARY CORE - V8.6 (CLEAN TEXT & SEPARATED OUTSIDE LOGO) ]]
 local AuroraLib = {}
 
 local CoreGui = game:GetService("CoreGui")
@@ -11,7 +11,7 @@ local TextService = game:GetService("TextService")
 local Theme = {
     Bg = Color3.fromRGB(20, 24, 28),
     Sidebar = Color3.fromRGB(15, 18, 22),
-    Accent = Color3.fromRGB(255, 255, 255), -- Đã đổi mặc định thành MÀU TRẮNG
+    Accent = Color3.fromRGB(255, 255, 255),
     Text = Color3.fromRGB(255, 255, 255),
     Muted = Color3.fromRGB(150, 155, 165),
     Element = Color3.fromRGB(28, 33, 40),
@@ -23,28 +23,10 @@ local FontMain = Enum.Font.SourceSans
 local FontBold = Enum.Font.SourceSansBold
 local FontSection = Enum.Font.ArialBold
 
-local function GetWebIcon(iconName)
-    if not iconName or iconName == "" then return "" end
-    local getasset = getcustomasset or getsynasset
-    if not getasset or not writefile or not isfile or not makefolder then return "" end
-
-    local folderName = "Aurora_Icons"
-    local filePath = folderName .. "/" .. iconName .. ".png"
-    if not isfolder(folderName) then makefolder(folderName) end
-
-    if not isfile(filePath) then
-        local url = "https://raw.githubusercontent.com/dawid-scripts/Fluent/master/src/Icons/" .. iconName .. ".png"
-        pcall(function()
-            local imgData = game:HttpGet(url)
-            if imgData then writefile(filePath, imgData) end
-        end)
-    end
-    return isfile(filePath) and getasset(filePath) or ""
-end
-
 function AuroraLib:CreateWindow(Config)
     local MainTitleText = Config.Name or "Giacyeuem Hub"
     local SubTitleText = Config.SubName or "ver 1.0 by Giacdz Hub"
+    local LogoId = Config.LogoID or "rbxassetid://4483345998"
 
     if CoreGui:FindFirstChild("AuroraUI") then
         CoreGui.AuroraUI:Destroy()
@@ -53,6 +35,38 @@ function AuroraLib:CreateWindow(Config)
     local ScreenGui = Instance.new("ScreenGui", CoreGui)
     ScreenGui.Name = "AuroraUI"
 
+    -- [[ LOGO ĐỘC LẬP NẰM BÊN NGOÀI UI ]]
+    local OutsideLogo = Instance.new("ImageButton", ScreenGui)
+    OutsideLogo.Name = "OutsideLogo"
+    OutsideLogo.Size = UDim2.new(0, 55, 0, 55)
+    OutsideLogo.Position = UDim2.new(0, 20, 0.5, -27)
+    OutsideLogo.BackgroundColor3 = Theme.Bg
+    OutsideLogo.BackgroundTransparency = 0.2
+    OutsideLogo.Image = LogoId
+    OutsideLogo.Visible = false -- Mặc định ẩn, chỉ hiện khi UI đóng/thu nhỏ
+    Instance.new("UICorner", OutsideLogo).CornerRadius = UDim.new(1, 0)
+    
+    local LogoStroke = Instance.new("UIStroke", OutsideLogo)
+    LogoStroke.Color = Theme.Accent
+    LogoStroke.Thickness = 1.5
+    LogoStroke.Transparency = 0.3
+
+    -- Kéo thả Logo bên ngoài
+    local logoDragging, logoDragStart, logoStartPos
+    OutsideLogo.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            logoDragging = true; logoDragStart = input.Position; logoStartPos = OutsideLogo.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if logoDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - logoDragStart
+            OutsideLogo.Position = UDim2.new(logoStartPos.X.Scale, logoStartPos.X.Offset + delta.X, logoStartPos.Y.Scale, logoStartPos.Y.Offset + delta.Y)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then logoDragging = false end end)
+
+    -- [[ KHUNG HUB CHÍNH ]]
     local MainFrame = Instance.new("Frame", ScreenGui)
     MainFrame.Size = UDim2.new(0, 620, 0, 420)
     MainFrame.Position = UDim2.new(0.5, -310, 0.5, -210)
@@ -65,12 +79,19 @@ function AuroraLib:CreateWindow(Config)
     MainStroke.Color = Theme.Accent
     MainStroke.Transparency = 0.75
 
-    -- Quản lý các object đổi màu sắc hệ thống
     local Window = {}
     Window.AccentObjects = {}
     local RainbowConnection = nil
 
     table.insert(Window.AccentObjects, {Instance = MainStroke, Property = "Color"})
+    table.insert(Window.AccentObjects, {Instance = LogoStroke, Property = "Color"})
+
+    -- Click Logo để mở lại UI chính
+    OutsideLogo.MouseButton1Click:Connect(function()
+        OutsideLogo.Visible = false
+        MainFrame.Visible = true
+        MainFrame:TweenSize(UDim2.new(0, 620, 0, 420), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.25, true)
+    end)
 
     local Header = Instance.new("Frame", MainFrame)
     Header.Size = UDim2.new(1, 0, 0, 50)
@@ -161,7 +182,7 @@ function AuroraLib:CreateWindow(Config)
         Btn.Text = iconText
         Btn.TextColor3 = Theme.Text
         Btn.Font = FontBold
-        Btn.TextSize = 15 + sizeOffset
+        Btn.TextSize = 14 + sizeOffset
         Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 5)
         
         Btn.MouseEnter:Connect(function() TweenService:Create(Btn, TweenInfo.new(0.15), {BackgroundTransparency = 0.3, TextColor3 = hoverColor}):Play() end)
@@ -194,14 +215,20 @@ function AuroraLib:CreateWindow(Config)
         end
     end)
 
-    CreateControlButton("□", 0, Theme.Text, function()
+    CreateControlButton("[ ]", -2, Theme.Text, function()
         if IsMinimized then return end
         IsMaximized = not IsMaximized
         local targetSize = IsMaximized and MaxSize or NormalSize
         TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play()
     end)
 
-    CreateControlButton("X", 0, Color3.fromRGB(255, 70, 70), function() ScreenGui:Destroy() end)
+    CreateControlButton("X", 0, Color3.fromRGB(255, 70, 70), function() 
+        local closeTween = TweenService:Create(MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Size = UDim2.new(0, 620, 0, 0)})
+        closeTween.Play()
+        closeTween.Completed:Wait()
+        MainFrame.Visible = false
+        OutsideLogo.Visible = true -- Kích hoạt Logo ngoài khi tắt UI
+    end)
 
     local dragging, dragInput, dragStart, startPos
     Header.InputBegan:Connect(function(input)
@@ -221,7 +248,6 @@ function AuroraLib:CreateWindow(Config)
     local TabsList = {}
     local FirstTab = true
 
-    -- Hàm Core xử lý đổi màu sắc Accent linh hoạt công khai bên ngoài
     function Window:SetAccent(colorName)
         if RainbowConnection then
             RainbowConnection:Disconnect()
@@ -252,7 +278,7 @@ function AuroraLib:CreateWindow(Config)
 
         if colorName == "Rainbow" then
             RainbowConnection = RunService.Heartbeat:Connect(function()
-                local hue = (tick() % 4) / 4 -- Chu kỳ đổi màu chạy hết vòng trong 4 giây
+                local hue = (tick() % 4) / 4
                 UpdateAllElements(Color3.fromHSV(hue, 1, 1))
             end)
         else
@@ -263,7 +289,6 @@ function AuroraLib:CreateWindow(Config)
 
     function Window:MakeTab(TabConfig)
         local TabName = TabConfig.Name or "Tab"
-        local IconName = TabConfig.Icon or "box"
 
         local TabBtn = Instance.new("TextButton", Sidebar)
         TabBtn.Size = UDim2.new(1, -5, 0, 36)
@@ -278,16 +303,9 @@ function AuroraLib:CreateWindow(Config)
 
         table.insert(Window.AccentObjects, {Instance = TabStroke, Property = "Color"})
 
-        local IconImg = Instance.new("ImageLabel", TabBtn)
-        IconImg.Size = UDim2.new(0, 16, 0, 16)
-        IconImg.Position = UDim2.new(0, 10, 0.5, -8)
-        IconImg.BackgroundTransparency = 1
-        IconImg.ImageColor3 = Theme.Text
-        task.spawn(function() IconImg.Image = GetWebIcon(IconName) end)
-
         local TabLabel = Instance.new("TextLabel", TabBtn)
-        TabLabel.Size = UDim2.new(1, -35, 1, 0)
-        TabLabel.Position = UDim2.new(0, 34, 0, 0)
+        TabLabel.Size = UDim2.new(1, -24, 1, 0)
+        TabLabel.Position = UDim2.new(0, 12, 0, 0) -- Đẩy text về lề trái vì không còn icon bọc đầu
         TabLabel.BackgroundTransparency = 1
         TabLabel.Text = TabName
         TabLabel.TextColor3 = Theme.Text
@@ -431,7 +449,7 @@ function AuroraLib:CreateWindow(Config)
             table.insert(Window.AccentObjects, {
                 Instance = SwitchBtn, 
                 Property = "BackgroundColor3", 
-                Check = function() return State end -- Chỉ đổi màu khi nút đang BẬT
+                Check = function() return State end
             })
 
             SwitchBtn.MouseButton1Click:Connect(function()
@@ -566,7 +584,7 @@ function AuroraLib:CreateWindow(Config)
             UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then sliding = false end end)
         end
 
-        -- [[ 5. DROPDOWN - FIX LỖI CLICK 2 LẦN ]]
+        -- [[ 5. DROPDOWN ]]
         function TabElements:AddDropdown(DropdownConfig)
             elementCount = elementCount + 1
             local DName = DropdownConfig.Name or "Dropdown"
@@ -612,7 +630,7 @@ function AuroraLib:CreateWindow(Config)
             DropBtn.Size = UDim2.new(0, 130, 0, 26)
             DropBtn.Position = UDim2.new(1, -142, 0, hasDesc and 13 or 7)
             DropBtn.BackgroundColor3 = Color3.fromRGB(40, 47, 56)
-            DropBtn.Text = Default ~= "" and Default or "Chọn..."
+            DropBtn.Text = Default ~= "" and Default or "Chon..."
             DropBtn.TextColor3 = Theme.Text
             DropBtn.Font = FontMain
             DropBtn.TextSize = 13
@@ -625,7 +643,6 @@ function AuroraLib:CreateWindow(Config)
             local ListLayout = Instance.new("UIListLayout", ListContainer)
             ListLayout.Padding = UDim.new(0, 3)
 
-            -- Đảm bảo Canvas hoặc Frame cha cập nhật layout ngay lập tức khi load
             DFrame.Size = UDim2.new(1, -5, 0, baseHeight)
 
             for _, opt in pairs(Options) do
@@ -640,18 +657,14 @@ function AuroraLib:CreateWindow(Config)
 
                 OptBtn.MouseButton1Click:Connect(function()
                     DropBtn.Text = tostring(opt)
-                    -- Thu nhỏ Dropdown về lại độ cao cơ bản
                     TweenService:Create(DFrame, TweenInfo.new(0.15, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(1, -5, 0, baseHeight)}):Play()
                     Callback(opt)
                 end)
             end
 
-            -- Fix cơ chế Click mượt mà ngay từ lần đầu tiên
             DropBtn.MouseButton1Click:Connect(function()
-                -- Thay vì dùng biến trạng thái, check trực tiếp độ cao hiện tại của Frame
                 local IsClosed = (math.round(DFrame.Size.Y.Offset) == baseHeight)
                 local targetHeight = IsClosed and (baseHeight + #Options * 28 + 12) or baseHeight
-                
                 TweenService:Create(DFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(1, -5, 0, targetHeight)}):Play()
             end)
         end
