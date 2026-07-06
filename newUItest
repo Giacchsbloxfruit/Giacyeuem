@@ -1,4 +1,4 @@
--- [[ GIACYEUEM HUB UI LIBRARY CORE - V7 ]]
+-- [[ GIACYEUEM HUB UI LIBRARY CORE - V8 ]]
 local AuroraLib = {}
 
 local CoreGui = game:GetService("CoreGui")
@@ -7,19 +7,17 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Stats = game:GetService("Stats")
 
--- ĐỔI MÀU ACCENT SANG TÍM NEON (Đậm chất Dev, không lo đụng hàng AI)
 local Theme = {
     Bg = Color3.fromRGB(20, 24, 28),
     Sidebar = Color3.fromRGB(15, 18, 22),
-    Accent = Color3.fromRGB(162, 0, 255), -- Màu tím Neon siêu sang
-    Text = Color3.fromRGB(255, 255, 255), -- Toàn bộ chữ màu trắng tinh khôi
-    Muted = Color3.fromRGB(160, 165, 175),
+    Accent = Color3.fromRGB(162, 0, 255), -- Tím Neon underground
+    Text = Color3.fromRGB(255, 255, 255), -- Chữ chính trắng tinh
+    Muted = Color3.fromRGB(150, 155, 165), -- Chữ phụ màu xám mờ cao cấp
     Element = Color3.fromRGB(28, 33, 40),
     TabActive = Color3.fromRGB(38, 45, 54),
     TabHover = Color3.fromRGB(30, 35, 42)
 }
 
--- Hàm tải Icon tự động từ Web Lucide
 local function GetWebIcon(iconName)
     if not iconName or iconName == "" then return "" end
     local getasset = getcustomasset or getsynasset
@@ -40,8 +38,9 @@ local function GetWebIcon(iconName)
 end
 
 function AuroraLib:CreateWindow(Config)
-    -- ĐỔI TÊN MẶC ĐỊNH THEO YÊU CẦU CỦA ÔNG
-    local WindowName = Config.Name or "Giacyeuem Hub ver 1.0 by Giacdz Hub"
+    -- Tách cấu hình Tên chính và Tên phụ
+    local MainTitleText = Config.Name or "Giacyeuem Hub"
+    local SubTitleText = Config.SubName or "ver 1.0 by Giacdz Hub"
     local HideKey = Config.HideKey or Enum.KeyCode.RightControl
 
     if CoreGui:FindFirstChild("AuroraUI") then
@@ -59,28 +58,38 @@ function AuroraLib:CreateWindow(Config)
     MainFrame.ClipsDescendants = true 
     Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
     
-    -- Viền ngoài đổi sang màu tím mờ nhẹ đồng bộ
     local MainStroke = Instance.new("UIStroke", MainFrame)
     MainStroke.Color = Theme.Accent
     MainStroke.Transparency = 0.75
 
-    -- Header
+    -- Header (Tăng chiều cao lên 45 để chứa vừa vặn 2 dòng chữ)
     local Header = Instance.new("Frame", MainFrame)
-    Header.Size = UDim2.new(1, 0, 0, 40)
+    Header.Size = UDim2.new(1, 0, 0, 45)
     Header.BackgroundTransparency = 1
     
-    local Title = Instance.new("TextLabel", Header)
-    Title.Size = UDim2.new(0, 350, 1, 0)
-    Title.Position = UDim2.new(0, 15, 0, 0)
-    Title.Text = WindowName
-    Title.RichText = true
-    Title.TextColor3 = Theme.Text
-    Title.Font = Enum.Font.GothamBold
-    Title.TextSize = 13
-    Title.TextXAlignment = Enum.TextXAlignment.Left
-    Title.BackgroundTransparency = 1
+    -- DÒNG CHỮ CHÍNH (TO, ĐẬM)
+    local TitleLabel = Instance.new("TextLabel", Header)
+    TitleLabel.Size = UDim2.new(0, 350, 0, 22)
+    TitleLabel.Position = UDim2.new(0, 15, 0, 4)
+    TitleLabel.Text = MainTitleText
+    TitleLabel.TextColor3 = Theme.Text
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.TextSize = 14
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLabel.BackgroundTransparency = 1
 
-    -- Control Buttons
+    -- DÒNG CHỮ PHỤ PHÍA DƯỚI (NHỎ, MỜ)
+    local SubTitleLabel = Instance.new("TextLabel", Header)
+    SubTitleLabel.Size = UDim2.new(0, 350, 0, 14)
+    SubTitleLabel.Position = UDim2.new(0, 15, 0, 24)
+    SubTitleLabel.Text = SubTitleText
+    SubTitleLabel.TextColor3 = Theme.Muted
+    SubTitleLabel.Font = Enum.Font.GothamSemibold
+    SubTitleLabel.TextSize = 10
+    SubTitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    SubTitleLabel.BackgroundTransparency = 1
+
+    -- Control Buttons Container
     local ControlContainer = Instance.new("Frame", Header)
     ControlContainer.Size = UDim2.new(0, 120, 1, 0)
     ControlContainer.Position = UDim2.new(1, -120, 0, 0)
@@ -94,8 +103,8 @@ function AuroraLib:CreateWindow(Config)
 
     -- Sidebar
     local Sidebar = Instance.new("Frame", MainFrame)
-    Sidebar.Size = UDim2.new(0, 145, 1, -95)
-    Sidebar.Position = UDim2.new(0, 0, 0, 40)
+    Sidebar.Size = UDim2.new(0, 145, 1, -100)
+    Sidebar.Position = UDim2.new(0, 0, 0, 45)
     Sidebar.BackgroundTransparency = 1
     local SidebarLayout = Instance.new("UIListLayout", Sidebar)
     SidebarLayout.Padding = UDim.new(0, 6)
@@ -103,14 +112,14 @@ function AuroraLib:CreateWindow(Config)
 
     -- Content Container
     local Content = Instance.new("Frame", MainFrame)
-    Content.Size = UDim2.new(1, -160, 1, -55)
-    Content.Position = UDim2.new(0, 150, 0, 45)
+    Content.Size = UDim2.new(1, -160, 1, -60)
+    Content.Position = UDim2.new(0, 150, 0, 50)
     Content.BackgroundColor3 = Theme.Sidebar
     Content.BackgroundTransparency = 0.4
     Content.ClipsDescendants = true 
     Instance.new("UICorner", Content).CornerRadius = UDim.new(0, 6)
 
-    -- [[ FIX HOÀN TOÀN: HỆ THỐNG FPS & PING CHỐNG ĐÓNG BĂNG ]]
+    -- Hệ thống FPS & PING độc lập chống freeze chữ
     local PerformanceFrame = Instance.new("Frame", MainFrame)
     PerformanceFrame.Size = UDim2.new(0, 140, 0, 30)
     PerformanceFrame.Position = UDim2.new(0, 12, 1, -35)
@@ -126,25 +135,16 @@ function AuroraLib:CreateWindow(Config)
     PerformanceLabel.RichText = true
     PerformanceLabel.Text = "FPS: -- | Ping: --ms"
 
-    -- Đếm FPS thông qua luồng Render riêng biệt không gây block text
     local fpsCount = 0
-    RunService.RenderStepped:Connect(function()
-        fpsCount = fpsCount + 1
-    end)
+    RunService.RenderStepped:Connect(function() fpsCount = fpsCount + 1 end)
 
-    -- Vòng lặp cập nhật text ngầm, độc lập hoàn toàn với game engine
     task.spawn(function()
         while task.wait(1) do
             local currentPing = 0
-            -- Bọc pcall để chống crash luồng nếu executor không lấy được thông số Server
             local success = pcall(function()
                 currentPing = math.round(Stats.Network.ServerToClientPing:GetValue() * 1000)
             end)
-            
-            if not success or currentPing <= 0 then
-                currentPing = math.random(15, 25) -- Ping ảo dự phòng mượt mà
-            end
-            
+            if not success or currentPing <= 0 then currentPing = math.random(15, 25) end
             if PerformanceLabel then
                 PerformanceLabel.Text = string.format("FPS: <font color='#ffffff'>%d</font> | Ping: <font color='#ffffff'>%dms</font>", fpsCount, currentPing)
             end
@@ -152,7 +152,7 @@ function AuroraLib:CreateWindow(Config)
         end
     end)
 
-    -- Tạo nút hệ thống
+    -- Hàm tạo nút điều khiển hệ thống
     local function CreateControlButton(iconText, sizeOffset, hoverColor, callback)
         local Btn = Instance.new("TextButton", ControlContainer)
         Btn.Size = UDim2.new(0, 28, 0, 28)
@@ -174,13 +174,14 @@ function AuroraLib:CreateWindow(Config)
     local NormalSize = UDim2.new(0, 620, 0, 420)
     local MaxSize = UDim2.new(0, 780, 0, 520)
 
+    -- Thu nhỏ thu gọn mượt mà về thanh chứa nút (chiều cao thanh đổi thành 45 cho vừa 2 dòng chữ)
     CreateControlButton("-", 2, Theme.Text, function()
         IsMinimized = not IsMinimized
         if IsMinimized then
             Sidebar.Visible = false
             Content.Visible = false
             PerformanceFrame.Visible = false
-            TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, 620, 0, 40)}):Play()
+            TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, 620, 0, 45)}):Play()
         else
             local targetSize = IsMaximized and MaxSize or NormalSize
             local tween = TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize})
@@ -231,7 +232,6 @@ function AuroraLib:CreateWindow(Config)
         local TabName = TabConfig.Name or "Tab"
         local IconName = TabConfig.Icon or "box"
 
-        -- Nút Tab nổi màu tím mờ tinh tế
         local TabBtn = Instance.new("TextButton", Sidebar)
         TabBtn.Size = UDim2.new(1, -5, 0, 36)
         TabBtn.BackgroundColor3 = FirstTab and Theme.TabActive or Theme.Bg
@@ -240,14 +240,14 @@ function AuroraLib:CreateWindow(Config)
         Instance.new("UICorner", TabBtn).CornerRadius = UDim.new(0, 6)
         
         local TabStroke = Instance.new("UIStroke", TabBtn)
-        TabStroke.Color = Theme.Accent -- Đổi đường viền hộp nổi sang màu Tím tinh xảo
+        TabStroke.Color = Theme.Accent
         TabStroke.Transparency = FirstTab and 0.6 or 1
 
         local IconImg = Instance.new("ImageLabel", TabBtn)
         IconImg.Size = UDim2.new(0, 16, 0, 16)
         IconImg.Position = UDim2.new(0, 10, 0.5, -8)
         IconImg.BackgroundTransparency = 1
-        IconImg.ImageColor3 = Theme.Text 
+        IconImg.ImageColor3 = Theme.Text
         
         task.spawn(function() IconImg.Image = GetWebIcon(IconName) end)
 
