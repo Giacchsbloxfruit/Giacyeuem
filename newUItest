@@ -1,4 +1,4 @@
--- [[ GIACYEUEM HUB UI LIBRARY CORE - V8 ]]
+-- [[ GIACYEUEM HUB UI LIBRARY CORE - V8.1 (DEFAULT FONT FIXED) ]]
 local AuroraLib = {}
 
 local CoreGui = game:GetService("CoreGui")
@@ -10,13 +10,17 @@ local Stats = game:GetService("Stats")
 local Theme = {
     Bg = Color3.fromRGB(20, 24, 28),
     Sidebar = Color3.fromRGB(15, 18, 22),
-    Accent = Color3.fromRGB(162, 0, 255), -- Tím Neon cực ngầu
-    Text = Color3.fromRGB(255, 255, 255), -- Chữ chính trắng
-    Muted = Color3.fromRGB(150, 155, 165), -- Chữ mô tả xám mờ
+    Accent = Color3.fromRGB(162, 0, 255),
+    Text = Color3.fromRGB(255, 255, 255),
+    Muted = Color3.fromRGB(150, 155, 165),
     Element = Color3.fromRGB(28, 33, 40),
     TabActive = Color3.fromRGB(38, 45, 54),
     TabHover = Color3.fromRGB(30, 35, 42)
 }
+
+-- Đổi font mặc định ở đây để dễ quản lý
+local FontMain = Enum.Font.SourceSans
+local FontBold = Enum.Font.SourceSansBold
 
 local function GetWebIcon(iconName)
     if not iconName or iconName == "" then return "" end
@@ -38,7 +42,6 @@ local function GetWebIcon(iconName)
 end
 
 function AuroraLib:CreateWindow(Config)
-    -- FIX CHỮ PHỤ: Đặt giá trị mặc định luôn nếu ông không truyền vào
     local MainTitleText = Config.Name or "Giacyeuem Hub"
     local SubTitleText = Config.SubName or "ver 1.0 by Giacdz Hub"
     local HideKey = Config.HideKey or Enum.KeyCode.RightControl
@@ -62,30 +65,27 @@ function AuroraLib:CreateWindow(Config)
     MainStroke.Color = Theme.Accent
     MainStroke.Transparency = 0.75
 
-    -- Header cao hơn một chút để chứa 2 dòng chữ không bị đè
     local Header = Instance.new("Frame", MainFrame)
     Header.Size = UDim2.new(1, 0, 0, 50)
     Header.BackgroundTransparency = 1
     
-    -- Tiêu đề chính to đậm
     local TitleLabel = Instance.new("TextLabel", Header)
     TitleLabel.Size = UDim2.new(0, 350, 0, 22)
     TitleLabel.Position = UDim2.new(0, 15, 0, 6)
     TitleLabel.Text = MainTitleText
     TitleLabel.TextColor3 = Theme.Text
-    TitleLabel.Font = Enum.Font.GothamBold
-    TitleLabel.TextSize = 15
+    TitleLabel.Font = FontBold
+    TitleLabel.TextSize = 17 -- Tăng nhẹ size vì font mặc định nhỏ hơn gotham một chút
     TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     TitleLabel.BackgroundTransparency = 1
 
-    -- Tiêu đề phụ nhỏ mờ nằm ngay dưới
     local SubTitleLabel = Instance.new("TextLabel", Header)
     SubTitleLabel.Size = UDim2.new(0, 350, 0, 14)
     SubTitleLabel.Position = UDim2.new(0, 15, 0, 26)
     SubTitleLabel.Text = SubTitleText
     SubTitleLabel.TextColor3 = Theme.Muted
-    SubTitleLabel.Font = Enum.Font.GothamSemibold
-    SubTitleLabel.TextSize = 10
+    SubTitleLabel.Font = FontMain
+    SubTitleLabel.TextSize = 13
     SubTitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     SubTitleLabel.BackgroundTransparency = 1
 
@@ -100,7 +100,6 @@ function AuroraLib:CreateWindow(Config)
     ControlLayout.Padding = UDim.new(0, 6)
     Instance.new("UIPadding", ControlContainer).PaddingRight = UDim.new(0, 15)
 
-    -- Sidebar
     local Sidebar = Instance.new("Frame", MainFrame)
     Sidebar.Size = UDim2.new(0, 145, 1, -105)
     Sidebar.Position = UDim2.new(0, 0, 0, 50)
@@ -109,7 +108,6 @@ function AuroraLib:CreateWindow(Config)
     SidebarLayout.Padding = UDim.new(0, 6)
     Instance.new("UIPadding", Sidebar).PaddingLeft = UDim.new(0, 10)
 
-    -- Content
     local Content = Instance.new("Frame", MainFrame)
     Content.Size = UDim2.new(1, -160, 1, -65)
     Content.Position = UDim2.new(0, 150, 0, 55)
@@ -118,7 +116,6 @@ function AuroraLib:CreateWindow(Config)
     Content.ClipsDescendants = true 
     Instance.new("UICorner", Content).CornerRadius = UDim.new(0, 6)
 
-    -- FPS & Ping
     local PerformanceFrame = Instance.new("Frame", MainFrame)
     PerformanceFrame.Size = UDim2.new(0, 140, 0, 30)
     PerformanceFrame.Position = UDim2.new(0, 12, 1, -35)
@@ -127,8 +124,8 @@ function AuroraLib:CreateWindow(Config)
     local PerformanceLabel = Instance.new("TextLabel", PerformanceFrame)
     PerformanceLabel.Size = UDim2.new(1, 0, 1, 0)
     PerformanceLabel.BackgroundTransparency = 1
-    PerformanceLabel.Font = Enum.Font.GothamSemibold
-    PerformanceLabel.TextSize = 11
+    PerformanceLabel.Font = FontMain
+    PerformanceLabel.TextSize = 13
     PerformanceLabel.TextColor3 = Theme.Text
     PerformanceLabel.TextXAlignment = Enum.TextXAlignment.Left
     PerformanceLabel.RichText = true
@@ -156,8 +153,8 @@ function AuroraLib:CreateWindow(Config)
         Btn.BackgroundTransparency = 1
         Btn.Text = iconText
         Btn.TextColor3 = Theme.Text
-        Btn.Font = Enum.Font.GothamBold
-        Btn.TextSize = 14 + sizeOffset
+        Btn.Font = FontBold
+        Btn.TextSize = 15 + sizeOffset
         Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 5)
         
         Btn.MouseEnter:Connect(function() TweenService:Create(Btn, TweenInfo.new(0.15), {BackgroundTransparency = 0.3, TextColor3 = hoverColor}):Play() end)
@@ -199,7 +196,6 @@ function AuroraLib:CreateWindow(Config)
 
     CreateControlButton("X", 0, Color3.fromRGB(255, 70, 70), function() ScreenGui:Destroy() end)
 
-    -- Kéo thả
     local dragging, dragInput, dragStart, startPos
     Header.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -247,8 +243,8 @@ function AuroraLib:CreateWindow(Config)
         TabLabel.BackgroundTransparency = 1
         TabLabel.Text = TabName
         TabLabel.TextColor3 = Theme.Text
-        TabLabel.Font = Enum.Font.GothamSemibold
-        TabLabel.TextSize = 13
+        TabLabel.Font = FontBold
+        TabLabel.TextSize = 14
         TabLabel.TextXAlignment = Enum.TextXAlignment.Left
 
         local Page = Instance.new("Frame", Content)
@@ -265,7 +261,6 @@ function AuroraLib:CreateWindow(Config)
         Scroll.ScrollBarImageColor3 = Theme.Accent
         Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
         
-        -- FIX THỨ TỰ: Ép SortOrder dùng LayoutOrder của Element
         local PageLayout = Instance.new("UIListLayout", Scroll)
         PageLayout.Padding = UDim.new(0, 6)
         PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -274,7 +269,6 @@ function AuroraLib:CreateWindow(Config)
         table.insert(TabsList, TabData)
         FirstTab = false
 
-        -- Logic Tab Click & Hover giữ nguyên mượt mà...
         TabBtn.MouseEnter:Connect(function() if TabBtn.BackgroundTransparency ~= 0 then TweenService:Create(TabBtn, TweenInfo.new(0.15), {BackgroundTransparency = 0.5, BackgroundColor3 = Theme.TabHover}):Play() end end)
         TabBtn.MouseLeave:Connect(function() if TabBtn.BackgroundTransparency ~= 0 then TweenService:Create(TabBtn, TweenInfo.new(0.15), {BackgroundTransparency = 1, BackgroundColor3 = Theme.Bg}):Play() end end)
         TabBtn.MouseButton1Click:Connect(function()
@@ -294,9 +288,9 @@ function AuroraLib:CreateWindow(Config)
         end)
 
         local TabElements = {}
-        local elementCount = 0 -- Biến đếm thứ tự cục bộ trong mỗi Tab
+        local elementCount = 0
 
-        -- [[ 1. SECTION KIỂU ( -------- CHỮ -------- ) ]]
+        -- [[ 1. SECTION ]]
         function TabElements:AddSection(SectionConfig)
             elementCount = elementCount + 1
             local SecName = SectionConfig.Name or "Section"
@@ -312,8 +306,8 @@ function AuroraLib:CreateWindow(Config)
             TextLabel.BackgroundTransparency = 1
             TextLabel.Text = SecName:upper()
             TextLabel.TextColor3 = Theme.Muted
-            TextLabel.Font = Enum.Font.GothamBold
-            TextLabel.TextSize = 11
+            TextLabel.Font = FontBold
+            TextLabel.TextSize = 13
 
             local LeftLine = Instance.new("Frame", SecFrame)
             LeftLine.Size = UDim2.new(0.5, -90, 0, 1)
@@ -328,7 +322,7 @@ function AuroraLib:CreateWindow(Config)
             RightLine.BorderSizePixel = 0
         end
 
-        -- [[ 2. TOGGLE + HỖ TRỢ DESC ]]
+        -- [[ 2. TOGGLE ]]
         function TabElements:AddToggle(ToggleConfig)
             elementCount = elementCount + 1
             local TName = ToggleConfig.Name or "Toggle"
@@ -349,8 +343,8 @@ function AuroraLib:CreateWindow(Config)
             TTitle.Position = UDim2.new(0, 12, 0, hasDesc and 4 or 9)
             TTitle.Text = TName
             TTitle.TextColor3 = Theme.Text
-            TTitle.Font = Enum.Font.GothamSemibold
-            TTitle.TextSize = 13
+            TTitle.Font = FontBold
+            TTitle.TextSize = 14
             TTitle.TextXAlignment = Enum.TextXAlignment.Left
             TTitle.BackgroundTransparency = 1
 
@@ -360,8 +354,8 @@ function AuroraLib:CreateWindow(Config)
                 TDesc.Position = UDim2.new(0, 12, 0, 24)
                 TDesc.Text = Desc
                 TDesc.TextColor3 = Theme.Muted
-                TDesc.Font = Enum.Font.Gotham
-                TDesc.TextSize = 11
+                TDesc.Font = FontMain
+                TDesc.TextSize = 12
                 TDesc.TextXAlignment = Enum.TextXAlignment.Left
                 TDesc.BackgroundTransparency = 1
             end
@@ -388,7 +382,7 @@ function AuroraLib:CreateWindow(Config)
             end)
         end
 
-        -- [[ 3. BUTTON + HỖ TRỢ DESC ]]
+        -- [[ 3. BUTTON ]]
         function TabElements:AddButton(BtnConfig)
             elementCount = elementCount + 1
             local BName = BtnConfig.Name or "Button"
@@ -409,8 +403,8 @@ function AuroraLib:CreateWindow(Config)
             BTitle.Position = UDim2.new(0, 12, 0, hasDesc and 4 or 7)
             BTitle.Text = BName
             BTitle.TextColor3 = Theme.Text
-            BTitle.Font = Enum.Font.GothamSemibold
-            BTitle.TextSize = 13
+            BTitle.Font = FontBold
+            BTitle.TextSize = 14
             BTitle.TextXAlignment = Enum.TextXAlignment.Left
             BTitle.BackgroundTransparency = 1
 
@@ -420,8 +414,8 @@ function AuroraLib:CreateWindow(Config)
                 BDesc.Position = UDim2.new(0, 12, 0, 24)
                 BDesc.Text = Desc
                 BDesc.TextColor3 = Theme.Muted
-                BDesc.Font = Enum.Font.Gotham
-                BDesc.TextSize = 11
+                BDesc.Font = FontMain
+                BDesc.TextSize = 12
                 BDesc.TextXAlignment = Enum.TextXAlignment.Left
                 BDesc.BackgroundTransparency = 1
             end
@@ -434,7 +428,7 @@ function AuroraLib:CreateWindow(Config)
             end)
         end
 
-        -- [[ 4. SLIDER (THANH TRƯỢT) + HỖ TRỢ DESC ]]
+        -- [[ 4. SLIDER ]]
         function TabElements:AddSlider(SliderConfig)
             elementCount = elementCount + 1
             local SName = SliderConfig.Name or "Slider"
@@ -457,8 +451,8 @@ function AuroraLib:CreateWindow(Config)
             STitle.Position = UDim2.new(0, 12, 0, 4)
             STitle.Text = SName
             STitle.TextColor3 = Theme.Text
-            STitle.Font = Enum.Font.GothamSemibold
-            STitle.TextSize = 13
+            STitle.Font = FontBold
+            STitle.TextSize = 14
             STitle.TextXAlignment = Enum.TextXAlignment.Left
             STitle.BackgroundTransparency = 1
 
@@ -468,8 +462,8 @@ function AuroraLib:CreateWindow(Config)
                 SDesc.Position = UDim2.new(0, 12, 0, 22)
                 SDesc.Text = Desc
                 SDesc.TextColor3 = Theme.Muted
-                SDesc.Font = Enum.Font.Gotham
-                SDesc.TextSize = 11
+                SDesc.Font = FontMain
+                SDesc.TextSize = 12
                 SDesc.TextXAlignment = Enum.TextXAlignment.Left
                 SDesc.BackgroundTransparency = 1
             end
@@ -479,8 +473,8 @@ function AuroraLib:CreateWindow(Config)
             ValueLabel.Position = UDim2.new(1, -72, 0, 4)
             ValueLabel.Text = tostring(Default)
             ValueLabel.TextColor3 = Theme.Text
-            ValueLabel.Font = Enum.Font.GothamBold
-            ValueLabel.TextSize = 12
+            ValueLabel.Font = FontBold
+            ValueLabel.TextSize = 13
             ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
             ValueLabel.BackgroundTransparency = 1
 
@@ -510,7 +504,7 @@ function AuroraLib:CreateWindow(Config)
             UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then sliding = false end end)
         end
 
-        -- [[ 5. DROPDOWN (MENU CHỌN) + HỖ TRỢ DESC ]]
+        -- [[ 5. DROPDOWN ]]
         function TabElements:AddDropdown(DropdownConfig)
             elementCount = elementCount + 1
             local DName = DropdownConfig.Name or "Dropdown"
@@ -535,8 +529,8 @@ function AuroraLib:CreateWindow(Config)
             DTitle.Position = UDim2.new(0, 12, 0, hasDesc and 5 or 10)
             DTitle.Text = DName
             DTitle.TextColor3 = Theme.Text
-            DTitle.Font = Enum.Font.GothamSemibold
-            DTitle.TextSize = 13
+            DTitle.Font = FontBold
+            DTitle.TextSize = 14
             DTitle.TextXAlignment = Enum.TextXAlignment.Left
             DTitle.BackgroundTransparency = 1
 
@@ -546,8 +540,8 @@ function AuroraLib:CreateWindow(Config)
                 DDesc.Position = UDim2.new(0, 12, 0, 25)
                 DDesc.Text = Desc
                 DDesc.TextColor3 = Theme.Muted
-                DDesc.Font = Enum.Font.Gotham
-                DDesc.TextSize = 11
+                DDesc.Font = FontMain
+                DDesc.TextSize = 12
                 DDesc.TextXAlignment = Enum.TextXAlignment.Left
                 DDesc.BackgroundTransparency = 1
             end
@@ -558,8 +552,8 @@ function AuroraLib:CreateWindow(Config)
             DropBtn.BackgroundColor3 = Color3.fromRGB(40, 47, 56)
             DropBtn.Text = Default ~= "" and Default or "Chọn..."
             DropBtn.TextColor3 = Theme.Text
-            DropBtn.Font = Enum.Font.Gotham
-            DropBtn.TextSize = 12
+            DropBtn.Font = FontMain
+            DropBtn.TextSize = 13
             Instance.new("UICorner", DropBtn).CornerRadius = UDim.new(0, 4)
 
             local ListContainer = Instance.new("Frame", DFrame)
@@ -575,8 +569,8 @@ function AuroraLib:CreateWindow(Config)
                 OptBtn.BackgroundColor3 = Color3.fromRGB(34, 39, 47)
                 OptBtn.Text = tostring(opt)
                 OptBtn.TextColor3 = Theme.Text
-                OptBtn.Font = Enum.Font.Gotham
-                OptBtn.TextSize = 12
+                OptBtn.Font = FontMain
+                OptBtn.TextSize = 13
                 Instance.new("UICorner", OptBtn).CornerRadius = UDim.new(0, 4)
 
                 OptBtn.MouseButton1Click:Connect(function()
