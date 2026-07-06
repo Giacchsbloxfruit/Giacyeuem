@@ -1,4 +1,4 @@
--- [[ GIACYEUEM HUB UI LIBRARY CORE - V8.8 (PURE CLEAN TEXT ONLY) ]]
+-- [[ GIACYEUEM HUB UI LIBRARY CORE - V8.8 FIXED (PURE CLEAN TEXT ONLY) ]]
 local AuroraLib = {}
 
 local CoreGui = game:GetService("CoreGui")
@@ -24,7 +24,7 @@ local FontBold = Enum.Font.SourceSansBold
 local FontSection = Enum.Font.ArialBold
 
 function AuroraLib:CreateWindow(Config)
-    local MainTitleText = Config.Name or "Giacyeuem Hub"
+    local MainTitleText = Config.Name or "Giacyeuem Hub 8.8"
     local SubTitleText = Config.SubName or "ver 1.0 by Giacdz Hub"
 
     if CoreGui:FindFirstChild("AuroraUI") then
@@ -155,6 +155,7 @@ function AuroraLib:CreateWindow(Config)
     local NormalSize = UDim2.new(0, 620, 0, 420)
     local MaxSize = UDim2.new(0, 780, 0, 520)
 
+    -- [[ ĐÃ SỬA LỖI THU NHỎ / PHÓNG TO ]]
     CreateControlButton("-", 2, Theme.Text, function()
         IsMinimized = not IsMinimized
         if IsMinimized then
@@ -163,15 +164,13 @@ function AuroraLib:CreateWindow(Config)
             PerformanceFrame.Visible = false
             TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, 620, 0, 48)}):Play()
         else
+            -- Bật lại hiển thị ngay lập tức trước khi tween để không bị lỗi tàng hình
+            Sidebar.Visible = true
+            Content.Visible = true
+            PerformanceFrame.Visible = true
+            
             local targetSize = IsMaximized and MaxSize or NormalSize
-            local tween = TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize})
-            tween.Play()
-            tween.Completed:Wait()
-            if not IsMinimized then
-                Sidebar.Visible = true
-                Content.Visible = true
-                PerformanceFrame.Visible = true
-            end
+            TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play()
         end
     end)
 
@@ -182,12 +181,16 @@ function AuroraLib:CreateWindow(Config)
         TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play()
     end)
 
-    -- Nút X tắt luôn hoàn toàn UI, không để lại bất cứ thứ gì
+    -- [[ ĐÃ SỬA LỖI NÚT X TẮT UI ]]
     CreateControlButton("X", 0, Color3.fromRGB(255, 70, 70), function() 
         local closeTween = TweenService:Create(MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Size = UDim2.new(0, 620, 0, 0)})
-        closeTween.Play()
-        closeTween.Completed:Wait()
-        ScreenGui:Destroy()
+        closeTween:Play()
+        -- Dùng task.delay thay vì Wait() để đảm bảo lệnh xóa luôn được chạy
+        task.delay(0.2, function()
+            if ScreenGui then
+                ScreenGui:Destroy()
+            end
+        end)
     end)
 
     local dragging, dragInput, dragStart, startPos
@@ -265,7 +268,7 @@ function AuroraLib:CreateWindow(Config)
 
         local TabLabel = Instance.new("TextLabel", TabBtn)
         TabLabel.Size = UDim2.new(1, -24, 1, 0)
-        TabLabel.Position = UDim2.new(0, 12, 0, 0) -- Chữ căn lề trái cực kỳ thẳng hàng và gọn gàng
+        TabLabel.Position = UDim2.new(0, 12, 0, 0)
         TabLabel.BackgroundTransparency = 1
         TabLabel.Text = TabName
         TabLabel.TextColor3 = Theme.Text
