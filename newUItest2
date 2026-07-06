@@ -1,4 +1,4 @@
--- [[ GIACYEUEM HUB UI LIBRARY CORE - V8.7 (CLEAN TEXT & SEPARATED OUTSIDE LOGO) ]]
+-- [[ GIACYEUEM HUB UI LIBRARY CORE - V8.8 (PURE CLEAN TEXT ONLY) ]]
 local AuroraLib = {}
 
 local CoreGui = game:GetService("CoreGui")
@@ -26,7 +26,6 @@ local FontSection = Enum.Font.ArialBold
 function AuroraLib:CreateWindow(Config)
     local MainTitleText = Config.Name or "Giacyeuem Hub"
     local SubTitleText = Config.SubName or "ver 1.0 by Giacdz Hub"
-    local LogoId = Config.LogoID or "rbxassetid://4483345998"
 
     if CoreGui:FindFirstChild("AuroraUI") then
         CoreGui.AuroraUI:Destroy()
@@ -34,37 +33,6 @@ function AuroraLib:CreateWindow(Config)
 
     local ScreenGui = Instance.new("ScreenGui", CoreGui)
     ScreenGui.Name = "AuroraUI"
-
-    -- [[ LOGO ĐỘC LẬP NẰM BÊN NGOÀI UI ]]
-    local OutsideLogo = Instance.new("ImageButton", ScreenGui)
-    OutsideLogo.Name = "OutsideLogo"
-    OutsideLogo.Size = UDim2.new(0, 55, 0, 55)
-    OutsideLogo.Position = UDim2.new(0, 20, 0.5, -27)
-    OutsideLogo.BackgroundColor3 = Theme.Bg
-    OutsideLogo.BackgroundTransparency = 0.2
-    OutsideLogo.Image = LogoId
-    OutsideLogo.Visible = false -- Mặc định ẩn, chỉ hiện khi tắt UI chính
-    Instance.new("UICorner", OutsideLogo).CornerRadius = UDim.new(1, 0)
-    
-    local LogoStroke = Instance.new("UIStroke", OutsideLogo)
-    LogoStroke.Color = Theme.Accent
-    LogoStroke.Thickness = 1.5
-    LogoStroke.Transparency = 0.3
-
-    -- Hệ thống kéo thả cho Logo bên ngoài
-    local logoDragging, logoDragStart, logoStartPos
-    OutsideLogo.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            logoDragging = true; logoDragStart = input.Position; logoStartPos = OutsideLogo.Position
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if logoDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - logoDragStart
-            OutsideLogo.Position = UDim2.new(logoStartPos.X.Scale, logoStartPos.X.Offset + delta.X, logoStartPos.Y.Scale, logoStartPos.Y.Offset + delta.Y)
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then logoDragging = false end end)
 
     -- [[ KHUNG UI CHÍNH ]]
     local MainFrame = Instance.new("Frame", ScreenGui)
@@ -84,14 +52,6 @@ function AuroraLib:CreateWindow(Config)
     local RainbowConnection = nil
 
     table.insert(Window.AccentObjects, {Instance = MainStroke, Property = "Color"})
-    table.insert(Window.AccentObjects, {Instance = LogoStroke, Property = "Color"})
-
-    -- Click Logo ngoài để mở lại UI chính
-    OutsideLogo.MouseButton1Click:Connect(function()
-        OutsideLogo.Visible = false
-        MainFrame.Visible = true
-        MainFrame:TweenSize(UDim2.new(0, 620, 0, 420), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.25, true)
-    end)
 
     local Header = Instance.new("Frame", MainFrame)
     Header.Size = UDim2.new(1, 0, 0, 50)
@@ -222,12 +182,12 @@ function AuroraLib:CreateWindow(Config)
         TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play()
     end)
 
+    -- Nút X tắt luôn hoàn toàn UI, không để lại bất cứ thứ gì
     CreateControlButton("X", 0, Color3.fromRGB(255, 70, 70), function() 
         local closeTween = TweenService:Create(MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Size = UDim2.new(0, 620, 0, 0)})
         closeTween.Play()
         closeTween.Completed:Wait()
-        MainFrame.Visible = false
-        OutsideLogo.Visible = true
+        ScreenGui:Destroy()
     end)
 
     local dragging, dragInput, dragStart, startPos
@@ -305,7 +265,7 @@ function AuroraLib:CreateWindow(Config)
 
         local TabLabel = Instance.new("TextLabel", TabBtn)
         TabLabel.Size = UDim2.new(1, -24, 1, 0)
-        TabLabel.Position = UDim2.new(0, 12, 0, 0) -- Đẩy lề chữ sát lề trái cực đẹp vì không dùng icon nữa
+        TabLabel.Position = UDim2.new(0, 12, 0, 0) -- Chữ căn lề trái cực kỳ thẳng hàng và gọn gàng
         TabLabel.BackgroundTransparency = 1
         TabLabel.Text = TabName
         TabLabel.TextColor3 = Theme.Text
