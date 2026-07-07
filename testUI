@@ -937,4 +937,4 @@ function AuroraLib:CreateWindow(Config)
     return Window
 end
 
-return AuroraLibaLib
+return AuroraLib
