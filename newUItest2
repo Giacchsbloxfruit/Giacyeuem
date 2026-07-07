@@ -247,7 +247,7 @@ function AuroraLib:CreateWindow(Config)
     local NormalSize = UDim2.new(0, 620, 0, 420)
     local MaxSize = UDim2.new(0, 780, 0, 520)
 
-    CreateControlButton("-", 2, Theme.Text, function()
+    CreateControlButton("—", 2, Theme.Text, function()
         IsMinimized = not IsMinimized
         if IsMinimized then
             Sidebar.Visible = false
