@@ -1,5 +1,5 @@
 -- Khởi tạo Window như bình thường
-local AuroraLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/Giacchsbloxfruit/Giacyeuem/refs/heads/main/newUItest2"))()
+local AuroraLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/Giacchsbloxfruit/Giacyeuem/refs/heads/main/testUI"))()
 local Window = AuroraLib:CreateWindow({
     Name = "Giacyeuem Hub",
     SubName = "ver 1.0 by Giacdz Hub"
@@ -68,7 +68,7 @@ end)
 
 AuroraLib:Notification({
     Title = "Giacyeuem Hub",
-    Text = "Đã kích hoạt script thành công! Chúc ông farm vui vẻ.",
+    Text = "Welcome",
     Duration = 5 -- Thời gian hiển thị (giây)
 })
 -- Tạo một Tab Cài Đặt riêng
@@ -85,6 +85,29 @@ local Tabs = {
     Race = Window:MakeTab({ Name = "Tab Upgrade Race"}),
     Shop = Window:MakeTab({ Name = "Tab Shop"}),
 };
+-- Hàm server
+local function RejoinServer()
+    AuroraLib:Notification({Title = "Success", Text = "Rejoining...", Duration = 3})
+    task.spawn(function()
+        pcall(function()
+            game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, game.Players.LocalPlayer)
+        end)
+    end)
+end
+
+local function HopServer()
+    AuroraLib:Notification({Title = "Processing", Text = "Hopping...", Duration = 2})
+    task.spawn(function()
+        pcall(function()
+            game:GetService("ReplicatedStorage").__ServerBrowser:InvokeServer("hop")
+        end)
+        task.wait(1)
+        pcall(function()
+            game:GetService("TeleportService"):Teleport(game.PlaceId, game.Players.LocalPlayer)
+        end)
+    end)
+end
+
 Tabs.Setting:AddToggle({
     Name = "Tự động Gom Quái",
     Callback = function(state)
@@ -97,6 +120,19 @@ Tabs.Setting:AddButton({Name = "Tùy Biến Giao Diện"})
 Tabs.Info:AddParagraph({
     Name = "Thanks for using our script",
     Desc = "If you encounter any errors, please send us your feedback"
+})
+Tabs.Info:AddSection({Name = "Social media" })
+Tabs.Info:AddButton({
+    Name = "Copy Link Discord",
+    Callback = function()
+        local copyFunc = setclipboard or toclipboard
+        if copyFunc then
+            copyFunc("https://discord.gg/abc") -- Thay link vào đây
+            AuroraLib:Notification({Title = "Thành Công", Text = "Đã copy link Discord!", Duration = 3})
+        else
+            AuroraLib:Notification({Title = "Thất Bại", Text = "Executor không hỗ trợ!", Duration = 3})
+        end
+    end
 })
 Tabs.Info:AddSection({ Name = "Check Stock Fruits" })
 
@@ -198,78 +234,56 @@ task.spawn(function()
         UpdateStock()
     end
 end)
+
+Tabs.Info:AddSection({ Name = "Server"})
+Tabs.Info:AddButton({
+    Name = "Rejoin Server",
+    Callback = RejoinServer
+})
+
+Tabs.Info:AddButton({
+    Name = "Server Hop",
+    Callback = HopServer
+})
+-- 1. NÚT COPY JOBID HIỆN TẠI
+Tabs.Info:AddButton({
+    Name = "Copy JobID",
+    Callback = function()
+        local copyFunc = setclipboard or toclipboard
+        if copyFunc then
+            copyFunc(tostring(game.JobId))
+            AuroraLib:Notification({Title = "Success", Text = "Copied to clipboard!", Duration = 3})
+        else
+            AuroraLib:Notification({Title = "Failed", Text = "Copy failed!", Duration = 3})
+        end
+    end
+})
+
+-- 2. Ô NHẬP JOBID ĐỂ DỊCH CHUYỂN
+Tabs.Info:AddInput({
+    Name = "Join Server by JobID",
+    Placeholder = "Paste JobID and enter",
+    Callback = function(text)
+        if text and text ~= "" then
+            AuroraLib:Notification({Title = "Waiting", Text = "Hopping to " .. text, Duration = 3})
+            pcall(function()
+                -- Lệnh dịch chuyển theo yêu cầu của bạn
+                game:GetService("ReplicatedStorage").__ServerBrowser:InvokeServer("teleport", text)
+            end)
+        end
+    end
+})
+
 Tabs.Visual:AddDropdown({
-    Name = "Đổi Màu Giao Diện",
-    Desc = "Chọn màu sắc chủ đạo cho Hub của bạn",
-    Options = {"Trắng", "Tím", "Hồng", "Đỏ", "Xanh biển", "Lá", "Cam", "Vàng", "Rainbow"},
-    Default = "Trắng",
+    Name = "Change theme color",
+    Desc = "Chọn màu sắc cho Giacyeuem Hub",
+    Options = {"White", "Purple", "Pink", "Red", "Blue", "Green", "Orange", "Yellow", "Rainbow"},
+    Default = "White",
     Callback = function(SelectedColor)
         -- Gọi thẳng hàm SetAccent có sẵn trong hình của ông
         Window:SetAccent(SelectedColor)
     end
 })
-TabSettings:AddDropdown({
-    Name = "Màu sắc chủ đạo",
-    Desc = "Thay đổi màu sắc đường viền và các nút chức năng",
-    Options = {"Trắng", "Tím", "Hồng", "Đỏ", "Xanh biển", "Lá", "Cam", "Vàng", "Rainbow"},
-    Default = "Trắng", -- Mặc định ban đầu là Màu Trắng
-    Callback = function(selectedColor)
-        -- Gọi lệnh core đổi màu cực kỳ đơn giản
-        Window:SetAccent(selectedColor)
-    end
-})
-TabSettings:AddToggle({
-    Name = "Auto Farm Level",
-    Desc = "Tự động nhận nhiệm vụ và gom quái tăng cấp nhanh",
-    Default = false,
-    Callback = function(State) print("Auto Farm:", State) end
-})
-Tabs.Info:AddLabel({
-    Name = "Giacyeuem Hub - Version 1.0",
-    Desc = "Script được phát triển bởi Giacdz Hub.\nHỗ trợ tự động tối ưu hóa, an toàn và cập nhật liên tục."
-})
-local RunService = game:GetService("RunService")
-local RainbowConnection = nil
 
 Tabs.Setting:AddSection({ Name = "Tùy Biến Giao Diện" })
 
--- Bảng mã màu tĩnh
-local ThemeColors = {
-    ["Trắng"] = Color3.fromRGB(255, 255, 255),
-    ["Đỏ"] = Color3.fromRGB(255, 75, 75),
-    ["Xanh lá"] = Color3.fromRGB(75, 255, 75),
-    ["Xanh dương"] = Color3.fromRGB(75, 175, 255),
-    ["Tím"] = Color3.fromRGB(170, 85, 255),
-    ["Hồng"] = Color3.fromRGB(255, 105, 180),
-    ["Vàng"] = Color3.fromRGB(255, 215, 0),
-    ["Cam"] = Color3.fromRGB(255, 150, 50)
-}
-
--- DROPDOWN GỘP CHUNG MÀU TĨNH VÀ RAINBOW
-Tabs.Setting:AddDropdown({
-    Name = "Đổi màu giao diện",
-    -- Thêm "Rainbow" vào cuối danh sách
-    Options = {"Trắng", "Đỏ", "Cam", "Vàng", "Xanh lá", "Xanh dương", "Tím", "Hồng", "Rainbow"},
-    Default = "Trắng",
-    Callback = function(colorName)
-        -- 1. Việc đầu tiên: Tắt chế độ Rainbow nếu nó đang chạy để tránh lỗi chồng chéo
-        if RainbowConnection then
-            RainbowConnection:Disconnect()
-            RainbowConnection = nil
-        end
-
-        -- 2. Kiểm tra xem người chơi chọn gì
-        if colorName == "Rainbow" then
-            -- Nếu chọn Rainbow thì bật vòng lặp nháy màu
-            local hue = 0
-            RainbowConnection = RunService.RenderStepped:Connect(function(deltaTime)
-                hue = hue + (deltaTime * 0.15) -- 0.15 là tốc độ nháy
-                if hue > 1 then hue = 0 end
-                Window:ChangeThemeColor(Color3.fromHSV(hue, 1, 1))
-            end)
-        elseif ThemeColors[colorName] then
-            -- Nếu chọn màu bình thường thì đổi thẳng sang màu đó
-            Window:ChangeThemeColor(ThemeColors[colorName])
-        end
-    end
-})
