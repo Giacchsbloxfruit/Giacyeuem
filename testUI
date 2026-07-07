@@ -848,7 +848,7 @@ function AuroraLib:CreateWindow(Config)
             end)
         end
 
-            [[ 6. INPUT (TEXTBOX) ]]
+            -- [[ 6. INPUT (TEXTBOX) ]]
         function TabElements:AddInput(InputConfig)
             elementCount = elementCount + 1
             local IName = InputConfig.Name or "Input"
