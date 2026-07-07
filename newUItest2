@@ -1,4 +1,4 @@
--- [[ GIACYEUEM HUB UI LIBRARY CORE - V8.9 FIXED SIDEBAR SCROLL ]]
+-- [[ GIACYEUEM HUB UI LIBRARY CORE - V12 NOTIFICATION & PARAGRAPH UPDATE ]]
 local AuroraLib = {}
 
 local CoreGui = game:GetService("CoreGui")
@@ -23,18 +23,109 @@ local FontMain = Enum.Font.SourceSans
 local FontBold = Enum.Font.SourceSansBold
 local FontSection = Enum.Font.ArialBold
 
+-- [[ HỆ THỐNG QUẢN LÝ THÔNG BÁO GÓC PHẢI DƯỚI ]]
+local NotifContainer = nil
+local function BuildNotifContainer()
+    if NotifContainer and NotifContainer.Parent then return end
+    local TargetGui = CoreGui:FindFirstChild("AuroraUI")
+    if not TargetGui then
+        TargetGui = Instance.new("ScreenGui", CoreGui)
+        TargetGui.Name = "AuroraUI"
+    end
+    NotifContainer = Instance.new("Frame", TargetGui)
+    NotifContainer.Size = UDim2.new(0, 280, 1, -20)
+    NotifContainer.Position = UDim2.new(1, -290, 0, 10)
+    NotifContainer.BackgroundTransparency = 1
+    
+    local Layout = Instance.new("UIListLayout", NotifContainer)
+    Layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+    Layout.Padding = UDim.new(0, 8)
+end
+
+function AuroraLib:Notification(Config)
+    BuildNotifContainer()
+    
+    local Title = Config.Title or "Thông Báo"
+    local Text = Config.Text or "Nội dung thông báo..."
+    local Duration = Config.Duration or 4
+    
+    local BoxWidth = 260
+    local TitleHeight = TextService:GetTextSize(Title, 14, FontBold, Vector2.new(BoxWidth - 24, 1000)).Y
+    local TextHeight = TextService:GetTextSize(Text, 13, FontMain, Vector2.new(BoxWidth - 24, 1000)).Y
+    local TotalHeight = math.clamp(TitleHeight + TextHeight + 22, 54, 150)
+    
+    local NotifBox = Instance.new("Frame", NotifContainer)
+    NotifBox.Size = UDim2.new(1, 0, 0, TotalHeight)
+    NotifBox.BackgroundColor3 = Theme.Bg
+    NotifBox.BackgroundTransparency = 0.15
+    NotifBox.Position = UDim2.new(1, 40, 0, 0)
+    NotifBox.ClipsDescendants = true
+    Instance.new("UICorner", NotifBox).CornerRadius = UDim.new(0, 6)
+    
+    local NStroke = Instance.new("UIStroke", NotifBox)
+    NStroke.Color = Theme.Accent
+    NStroke.Transparency = 0.8
+    
+    local NTitle = Instance.new("TextLabel", NotifBox)
+    NTitle.Size = UDim2.new(1, -24, 0, TitleHeight)
+    NTitle.Position = UDim2.new(0, 12, 0, 8)
+    NTitle.Text = Title
+    NTitle.TextColor3 = Theme.Accent
+    NTitle.Font = FontBold
+    NTitle.TextSize = 14
+    NTitle.TextXAlignment = Enum.TextXAlignment.Left
+    NTitle.BackgroundTransparency = 1
+    
+    local NText = Instance.new("TextLabel", NotifBox)
+    NText.Size = UDim2.new(1, -24, 0, TextHeight)
+    NText.Position = UDim2.new(0, 12, 0, TitleHeight + 10)
+    NText.Text = Text
+    NText.TextColor3 = Theme.Text
+    NText.Font = FontMain
+    NText.TextSize = 13
+    NText.TextXAlignment = Enum.TextXAlignment.Left
+    NText.TextYAlignment = Enum.TextYAlignment.Top
+    NText.BackgroundTransparency = 1
+    NText.TextWrapped = true
+    
+    local ProgressBar = Instance.new("Frame", NotifBox)
+    ProgressBar.Size = UDim2.new(1, 0, 0, 3)
+    ProgressBar.Position = UDim2.new(0, 0, 1, -3)
+    ProgressBar.BackgroundColor3 = Theme.Accent
+    ProgressBar.BorderSizePixel = 0
+    
+    -- Animation xuất hiện từ bên phải lướt vào
+    TweenService:Create(NotifBox, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = UDim2.new(0, 0, 0, 0)}):Play()
+    
+    -- Chạy thanh thời gian co lại
+    TweenService:Create(ProgressBar, TweenInfo.new(Duration, Enum.EasingStyle.Linear), {Size = UDim2.new(0, 0, 0, 3)}):Play()
+    
+    task.delay(Duration, function()
+        local CloseTween = TweenService:Create(NotifBox, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Position = UDim2.new(1, 40, 0, 0)})
+        CloseTween:Play()
+        CloseTween.Completed:Connect(function()
+            NotifBox:Destroy()
+        end)
+    end)
+end
+
 function AuroraLib:CreateWindow(Config)
     local MainTitleText = Config.Name or "Giacyeuem Hub"
     local SubTitleText = Config.SubName or "ver 1.0 by Giacdz Hub"
 
     if CoreGui:FindFirstChild("AuroraUI") then
-        CoreGui.AuroraUI:Destroy()
+        local OldGui = CoreGui.AuroraUI
+        -- Giữ lại phần thông báo nếu có khi clear UI cũ
+        local OldContainer = OldGui:FindFirstChildOfClass("Frame")
+        if OldContainer and #OldContainer:GetChildren() > 1 then
+            -- Không destroy hoàn toàn ScreenGui ngay lập tức nếu đang có thông báo chạy
+        end
+        OldGui:Destroy()
     end
 
     local ScreenGui = Instance.new("ScreenGui", CoreGui)
     ScreenGui.Name = "AuroraUI"
 
-    -- [[ KHUNG UI CHÍNH ]]
     local MainFrame = Instance.new("Frame", ScreenGui)
     MainFrame.Size = UDim2.new(0, 620, 0, 420)
     MainFrame.Position = UDim2.new(0.5, -310, 0.5, -210)
@@ -88,16 +179,15 @@ function AuroraLib:CreateWindow(Config)
     ControlLayout.Padding = UDim.new(0, 6)
     Instance.new("UIPadding", ControlContainer).PaddingRight = UDim.new(0, 15)
 
-    -- [[ ĐÃ FIX: CHUYỂN THANH SIDEBAR THÀNH SCROLLINGFRAME ĐỂ KÉO ĐƯỢC ]]
     local Sidebar = Instance.new("ScrollingFrame", MainFrame)
     Sidebar.Size = UDim2.new(0, 145, 1, -105)
     Sidebar.Position = UDim2.new(0, 0, 0, 50)
     Sidebar.BackgroundTransparency = 1
-    Sidebar.ScrollBarThickness = 2 -- Độ dày thanh cuộn siêu nhỏ để không thô
+    Sidebar.ScrollBarThickness = 2 
     Sidebar.ScrollBarImageColor3 = Theme.Accent
     Sidebar.BorderSizePixel = 0
     Sidebar.CanvasSize = UDim2.new(0, 0, 0, 0)
-    Sidebar.AutomaticCanvasSize = Enum.AutomaticSize.Y -- Tự tăng độ dài khi có thêm Tab
+    Sidebar.AutomaticCanvasSize = Enum.AutomaticSize.Y 
     
     table.insert(Window.AccentObjects, {Instance = Sidebar, Property = "ScrollBarImageColor3"})
 
@@ -176,7 +266,6 @@ function AuroraLib:CreateWindow(Config)
             Sidebar.Visible = true
             Content.Visible = true
             PerformanceFrame.Visible = true
-            
             local targetSize = IsMaximized and MaxSize or NormalSize
             TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play()
         end
@@ -192,11 +281,7 @@ function AuroraLib:CreateWindow(Config)
     CreateControlButton("X", 0, Color3.fromRGB(255, 70, 70), function() 
         local closeTween = TweenService:Create(MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Size = UDim2.new(0, 620, 0, 0)})
         closeTween:Play()
-        task.delay(0.2, function()
-            if ScreenGui then
-                ScreenGui:Destroy()
-            end
-        end)
+        task.delay(0.2, function() if ScreenGui then ScreenGui:Destroy() end end)
     end)
 
     local dragging, dragInput, dragStart, startPos
@@ -260,7 +345,7 @@ function AuroraLib:CreateWindow(Config)
         local TabName = TabConfig.Name or "Tab"
 
         local TabBtn = Instance.new("TextButton", Sidebar)
-        TabBtn.Size = UDim2.new(1, -12, 0, 36) -- Đã chỉnh lại kích thước để vừa khít khung cuộn
+        TabBtn.Size = UDim2.new(1, -12, 0, 36) 
         TabBtn.BackgroundColor3 = FirstTab and Theme.TabActive or Theme.Bg
         TabBtn.BackgroundTransparency = FirstTab and 0 or 1
         TabBtn.Text = ""
@@ -269,7 +354,6 @@ function AuroraLib:CreateWindow(Config)
         local TabStroke = Instance.new("UIStroke", TabBtn)
         TabStroke.Color = Theme.Accent
         TabStroke.Transparency = FirstTab and 0.6 or 1
-
         table.insert(Window.AccentObjects, {Instance = TabStroke, Property = "Color"})
 
         local TabLabel = Instance.new("TextLabel", TabBtn)
@@ -295,7 +379,6 @@ function AuroraLib:CreateWindow(Config)
         Scroll.ScrollBarThickness = 2
         Scroll.ScrollBarImageColor3 = Theme.Accent
         Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-        
         table.insert(Window.AccentObjects, {Instance = Scroll, Property = "ScrollBarImageColor3"})
 
         local PageLayout = Instance.new("UIListLayout", Scroll)
@@ -327,11 +410,54 @@ function AuroraLib:CreateWindow(Config)
         local TabElements = {}
         local elementCount = 0
 
+        -- [[ THÊM MỚI: PARAGRAPH ELEMENT ]]
+        function TabElements:AddParagraph(ParaConfig)
+            elementCount = elementCount + 1
+            local PName = ParaConfig.Name or "Thông báo / Hướng dẫn"
+            local PText = ParaConfig.Desc or ParaConfig.Text or ""
+            
+            -- Tính toán chiều cao linh hoạt dựa vào số lượng kí tự
+            local titleHeight = TextService:GetTextSize(PName, 14, FontBold, Vector2.new(410, 1000)).Y
+            local textHeight = PText ~= "" and TextService:GetTextSize(PText, 12, FontMain, Vector2.new(410, 1000)).Y or 0
+            local totalHeight = titleHeight + textHeight + (PText ~= "" and 14 or 12)
+
+            local PFrame = Instance.new("Frame", Scroll)
+            PFrame.Size = UDim2.new(1, -5, 0, totalHeight)
+            PFrame.BackgroundColor3 = Theme.Element
+            PFrame.BackgroundTransparency = 0.3
+            PFrame.LayoutOrder = elementCount
+            Instance.new("UICorner", PFrame).CornerRadius = UDim.new(0, 5)
+
+            local PTitle = Instance.new("TextLabel", PFrame)
+            PTitle.Size = UDim2.new(1, -24, 0, titleHeight)
+            PTitle.Position = UDim2.new(0, 12, 0, 6)
+            PTitle.Text = PName
+            PTitle.TextColor3 = Theme.Accent
+            PTitle.Font = FontBold
+            PTitle.TextSize = 14
+            PTitle.TextXAlignment = Enum.TextXAlignment.Left
+            PTitle.BackgroundTransparency = 1
+            table.insert(Window.AccentObjects, {Instance = PTitle, Property = "TextColor3"})
+
+            if PText ~= "" then
+                local PDesc = Instance.new("TextLabel", PFrame)
+                PDesc.Size = UDim2.new(1, -24, 0, textHeight)
+                PDesc.Position = UDim2.new(0, 12, 0, titleHeight + 8)
+                PDesc.Text = PText
+                PDesc.TextColor3 = Theme.Text
+                PDesc.Font = FontMain
+                PDesc.TextSize = 12
+                PDesc.TextXAlignment = Enum.TextXAlignment.Left
+                PDesc.TextYAlignment = Enum.TextYAlignment.Top
+                PDesc.BackgroundTransparency = 1
+                PDesc.TextWrapped = true
+            end
+        end
+
         -- [[ 1. SECTION ]]
         function TabElements:AddSection(SectionConfig)
             elementCount = elementCount + 1
             local SecName = SectionConfig.Name or "Section"
-            
             local SecFrame = Instance.new("Frame", Scroll)
             SecFrame.Size = UDim2.new(1, -5, 0, 26)
             SecFrame.BackgroundTransparency = 1
@@ -414,12 +540,7 @@ function AuroraLib:CreateWindow(Config)
             Instance.new("UICorner", Dot).CornerRadius = UDim.new(1, 0)
 
             local State = Default
-
-            table.insert(Window.AccentObjects, {
-                Instance = SwitchBtn, 
-                Property = "BackgroundColor3", 
-                Check = function() return State end
-            })
+            table.insert(Window.AccentObjects, {Instance = SwitchBtn, Property = "BackgroundColor3", Check = function() return State end})
 
             SwitchBtn.MouseButton1Click:Connect(function()
                 State = not State
@@ -536,7 +657,6 @@ function AuroraLib:CreateWindow(Config)
             SliderFill.Size = UDim2.new((Default - Min) / (Max - Min), 0, 1, 0)
             SliderFill.BackgroundColor3 = Theme.Accent
             Instance.new("UICorner", SliderFill).CornerRadius = UDim.new(1, 0)
-
             table.insert(Window.AccentObjects, {Instance = SliderFill, Property = "BackgroundColor3"})
 
             local sliding = false
