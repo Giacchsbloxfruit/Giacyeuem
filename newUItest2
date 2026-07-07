@@ -301,14 +301,14 @@ function AuroraLib:CreateWindow(Config)
         end
 
         local ColorMap = {
-            ["Trắng"] = Color3.fromRGB(255, 255, 255),
-            ["Tím"] = Color3.fromRGB(162, 0, 255),
-            ["Hồng"] = Color3.fromRGB(255, 105, 180),
-            ["Đỏ"] = Color3.fromRGB(255, 50, 50),
-            ["Xanh biển"] = Color3.fromRGB(0, 140, 255),
-            ["Lá"] = Color3.fromRGB(50, 255, 50),
-            ["Cam"] = Color3.fromRGB(255, 115, 0),
-            ["Vàng"] = Color3.fromRGB(255, 210, 0)
+            ["White"] = Color3.fromRGB(255, 255, 255),
+            ["Purple"] = Color3.fromRGB(162, 0, 255),
+            ["Pink"] = Color3.fromRGB(255, 105, 180),
+            ["Red"] = Color3.fromRGB(255, 50, 50),
+            ["Blue"] = Color3.fromRGB(0, 140, 255),
+            ["Green"] = Color3.fromRGB(50, 255, 50),
+            ["Orange"] = Color3.fromRGB(255, 115, 0),
+            ["Yellow"] = Color3.fromRGB(255, 210, 0)
         }
 
         local function UpdateAllElements(targetColor)
