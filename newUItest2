@@ -1,4 +1,4 @@
--- [[ GIACYEUEM HUB UI LIBRARY CORE - V12 NOTIFICATION & PARAGRAPH UPDATE ]]
+-- [[ GIACYEUEM HUB UI LIBRARY CORE - FIX PARAGRAPH & TABS DISPLAY ]]
 local AuroraLib = {}
 
 local CoreGui = game:GetService("CoreGui")
@@ -94,10 +94,7 @@ function AuroraLib:Notification(Config)
     ProgressBar.BackgroundColor3 = Theme.Accent
     ProgressBar.BorderSizePixel = 0
     
-    -- Animation xuất hiện từ bên phải lướt vào
     TweenService:Create(NotifBox, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = UDim2.new(0, 0, 0, 0)}):Play()
-    
-    -- Chạy thanh thời gian co lại
     TweenService:Create(ProgressBar, TweenInfo.new(Duration, Enum.EasingStyle.Linear), {Size = UDim2.new(0, 0, 0, 3)}):Play()
     
     task.delay(Duration, function()
@@ -115,11 +112,6 @@ function AuroraLib:CreateWindow(Config)
 
     if CoreGui:FindFirstChild("AuroraUI") then
         local OldGui = CoreGui.AuroraUI
-        -- Giữ lại phần thông báo nếu có khi clear UI cũ
-        local OldContainer = OldGui:FindFirstChildOfClass("Frame")
-        if OldContainer and #OldContainer:GetChildren() > 1 then
-            -- Không destroy hoàn toàn ScreenGui ngay lập tức nếu đang có thông báo chạy
-        end
         OldGui:Destroy()
     end
 
@@ -410,89 +402,80 @@ function AuroraLib:CreateWindow(Config)
         local TabElements = {}
         local elementCount = 0
 
-        -- [[ THÊM MỚI: PARAGRAPH ELEMENT ]]
-        function Pages:AddParagraph(Config)
-    local Config = Config or {}
-    local Name = Config.Name or "Paragraph"
-    local Desc = Config.Desc or ""
-    
-    local ParagraphFrame = Instance.new("Frame")
-    local UICorner = Instance.new("UICorner")
-    local TitleLabel = Instance.new("TextLabel")
-    local DescLabel = Instance.new("TextLabel")
-    local UIListLayout = Instance.new("UIListLayout")
-    local UIPadding = Instance.new("UIPadding")
-    
-    -- Cấu trúc giao diện Khung (Giữ alignment và size theo chuẩn Hub của ông)
-    ParagraphFrame.Name = "ParagraphElement"
-    ParagraphFrame.Parent = self.PageFrame -- Hoặc tên Frame chứa phần tử của ông
-    ParagraphFrame.BackgroundColor3 = Color3.fromRGB(30, 31, 35) -- Màu tối nền UI
-    ParagraphFrame.BackgroundTransparency = 0.2
-    ParagraphFrame.BorderSizePixel = 0
-    ParagraphFrame.Size = UDim2.new(1, -10, 0, 0) -- Tự động co giãn theo UIListLayout
-    ParagraphFrame.AutomaticSize = Enum.AutomaticSize.Y
-    
-    UICorner.CornerRadius = UDim.new(0, 6)
-    UICorner.Parent = ParagraphFrame
-    
-    UIListLayout.Parent = ParagraphFrame
-    UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    UIListLayout.Padding = UDim.new(0, 4)
-    
-    UIPadding.Parent = ParagraphFrame
-    UIPadding.PaddingBottom = UDim.new(0, 8)
-    UIPadding.PaddingLeft = UDim.new(0, 10)
-    UIPadding.PaddingRight = UDim.new(0, 10)
-    UIPadding.PaddingTop = UDim.new(0, 8)
-    
-    -- Tiêu đề chính (Ví dụ: Fruit Stock Status)
-    TitleLabel.Name = "TitleLabel"
-    TitleLabel.Parent = ParagraphFrame
-    TitleLabel.BackgroundTransparency = 1
-    TitleLabel.Size = UDim2.new(1, 0, 0, 20)
-    TitleLabel.Font = Enum.Font.GothamBold
-    TitleLabel.Text = Name
-    TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TitleLabel.TextSize = 18
-    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
-    
-    -- Nội dung hiển thị Stock (Bật RichText để nhận diện xuống dòng và định dạng chữ)
-    DescLabel.Name = "DescLabel"
-    DescLabel.Parent = ParagraphFrame
-    DescLabel.BackgroundTransparency = 1
-    DescLabel.Size = UDim2.new(1, 0, 0, 0)
-    DescLabel.AutomaticSize = Enum.AutomaticSize.Y
-    DescLabel.Font = Enum.Font.Gotham
-    DescLabel.Text = Desc
-    DescLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    DescLabel.TextSize = 15
-    DescLabel.TextXAlignment = Enum.TextXAlignment.Left
-    DescLabel.TextYAlignment = Enum.TextYAlignment.Top
-    DescLabel.TextWrapped = true
-    DescLabel.RichText = true -- QUAN TRỌNG: Giúp hiển thị các tùy chỉnh chữ nếu có
-    
-    -- Thêm vào danh sách quản lý màu nếu hệ thống SetAccent cần quét qua
-    if ParagraphFrame.Parent and ParagraphFrame.Parent:FindFirstChild("UIListLayout") then
-        -- Giữ nguyên logic layout gốc của Core ông để nó không bị lệch hàng
-    end
-    
-    -- ĐOẠN ĐỂ ÔNG GỌI TỪ BÊN NGOÀI
-    local ElementActions = {}
-    
-    function ElementActions:Set(newText)
-        if DescLabel then
-            DescLabel.Text = tostring(newText)
+        -- [[ ĐÃ FIX VÀ ĐƯA VÀO ĐÚNG VỊ TRÍ HỆ THỐNG KHỞI TẠO TAB ELEMENTS ]]
+        function TabElements:AddParagraph(Config)
+            elementCount = elementCount + 1
+            local Config = Config or {}
+            local Name = Config.Name or "Paragraph"
+            local Desc = Config.Desc or ""
+            
+            local ParagraphFrame = Instance.new("Frame")
+            local UICorner = Instance.new("UICorner")
+            local TitleLabel = Instance.new("TextLabel")
+            local DescLabel = Instance.new("TextLabel")
+            local UIListLayout = Instance.new("UIListLayout")
+            local UIPadding = Instance.new("UIPadding")
+            
+            ParagraphFrame.Name = "ParagraphElement"
+            ParagraphFrame.Parent = Scroll -- Gán chuẩn vào Scroll chứa phần tử của Tab
+            ParagraphFrame.BackgroundColor3 = Theme.Element
+            ParagraphFrame.BackgroundTransparency = 0.2
+            ParagraphFrame.BorderSizePixel = 0
+            ParagraphFrame.Size = UDim2.new(1, -5, 0, 0)
+            ParagraphFrame.AutomaticSize = Enum.AutomaticSize.Y
+            ParagraphFrame.LayoutOrder = elementCount
+            
+            UICorner.CornerRadius = UDim.new(0, 5)
+            UICorner.Parent = ParagraphFrame
+            
+            UIListLayout.Parent = ParagraphFrame
+            UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+            UIListLayout.Padding = UDim.new(0, 4)
+            
+            UIPadding.Parent = ParagraphFrame
+            UIPadding.PaddingBottom = UDim.new(0, 8)
+            UIPadding.PaddingLeft = UDim.new(0, 12)
+            UIPadding.PaddingRight = UDim.new(0, 12)
+            UIPadding.PaddingTop = UDim.new(0, 8)
+            
+            TitleLabel.Name = "TitleLabel"
+            TitleLabel.Parent = ParagraphFrame
+            TitleLabel.BackgroundTransparency = 1
+            TitleLabel.Size = UDim2.new(1, 0, 0, 20)
+            TitleLabel.Font = FontBold
+            TitleLabel.Text = Name
+            TitleLabel.TextColor3 = Theme.Text
+            TitleLabel.TextSize = 14
+            TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+            
+            DescLabel.Name = "DescLabel"
+            DescLabel.Parent = ParagraphFrame
+            DescLabel.BackgroundTransparency = 1
+            DescLabel.Size = UDim2.new(1, 0, 0, 0)
+            DescLabel.AutomaticSize = Enum.AutomaticSize.Y
+            DescLabel.Font = FontMain
+            DescLabel.Text = Desc
+            DescLabel.TextColor3 = Theme.Muted
+            DescLabel.TextSize = 13
+            DescLabel.TextXAlignment = Enum.TextXAlignment.Left
+            DescLabel.TextYAlignment = Enum.TextYAlignment.Top
+            DescLabel.TextWrapped = true
+            DescLabel.RichText = true
+            
+            local ElementActions = {}
+            function ElementActions:Set(newText)
+                if DescLabel then
+                    DescLabel.Text = tostring(newText)
+                end
+            end
+            function ElementActions:Destroy()
+                if ParagraphFrame then
+                    ParagraphFrame:Destroy()
+                end
+            end
+            return ElementActions
         end
-    end
-    
-    function ElementActions:Destroy()
-        if ParagraphFrame then
-            ParagraphFrame:Destroy()
-        end
-    end
-    
-    return ElementActions -- Trả về Actions chứa hàm :Set()
-end
+
         -- [[ 1. SECTION ]]
         function TabElements:AddSection(SectionConfig)
             elementCount = elementCount + 1
