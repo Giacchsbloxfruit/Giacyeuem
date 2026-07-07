@@ -1,4 +1,4 @@
--- [[ GIACYEUEM HUB UI LIBRARY CORE - V8.8 FIXED (PURE CLEAN TEXT ONLY) ]]
+-- [[ GIACYEUEM HUB UI LIBRARY CORE - V8.9 FIXED SIDEBAR SCROLL ]]
 local AuroraLib = {}
 
 local CoreGui = game:GetService("CoreGui")
@@ -24,7 +24,7 @@ local FontBold = Enum.Font.SourceSansBold
 local FontSection = Enum.Font.ArialBold
 
 function AuroraLib:CreateWindow(Config)
-    local MainTitleText = Config.Name or "Giacyeuem Hub 8.8"
+    local MainTitleText = Config.Name or "Giacyeuem Hub"
     local SubTitleText = Config.SubName or "ver 1.0 by Giacdz Hub"
 
     if CoreGui:FindFirstChild("AuroraUI") then
@@ -88,12 +88,22 @@ function AuroraLib:CreateWindow(Config)
     ControlLayout.Padding = UDim.new(0, 6)
     Instance.new("UIPadding", ControlContainer).PaddingRight = UDim.new(0, 15)
 
-    local Sidebar = Instance.new("Frame", MainFrame)
+    -- [[ ĐÃ FIX: CHUYỂN THANH SIDEBAR THÀNH SCROLLINGFRAME ĐỂ KÉO ĐƯỢC ]]
+    local Sidebar = Instance.new("ScrollingFrame", MainFrame)
     Sidebar.Size = UDim2.new(0, 145, 1, -105)
     Sidebar.Position = UDim2.new(0, 0, 0, 50)
     Sidebar.BackgroundTransparency = 1
+    Sidebar.ScrollBarThickness = 2 -- Độ dày thanh cuộn siêu nhỏ để không thô
+    Sidebar.ScrollBarImageColor3 = Theme.Accent
+    Sidebar.BorderSizePixel = 0
+    Sidebar.CanvasSize = UDim2.new(0, 0, 0, 0)
+    Sidebar.AutomaticCanvasSize = Enum.AutomaticSize.Y -- Tự tăng độ dài khi có thêm Tab
+    
+    table.insert(Window.AccentObjects, {Instance = Sidebar, Property = "ScrollBarImageColor3"})
+
     local SidebarLayout = Instance.new("UIListLayout", Sidebar)
     SidebarLayout.Padding = UDim.new(0, 6)
+    SidebarLayout.SortOrder = Enum.SortOrder.LayoutOrder
     Instance.new("UIPadding", Sidebar).PaddingLeft = UDim.new(0, 10)
 
     local Content = Instance.new("Frame", MainFrame)
@@ -155,7 +165,6 @@ function AuroraLib:CreateWindow(Config)
     local NormalSize = UDim2.new(0, 620, 0, 420)
     local MaxSize = UDim2.new(0, 780, 0, 520)
 
-    -- [[ ĐÃ SỬA LỖI THU NHỎ / PHÓNG TO ]]
     CreateControlButton("-", 2, Theme.Text, function()
         IsMinimized = not IsMinimized
         if IsMinimized then
@@ -164,7 +173,6 @@ function AuroraLib:CreateWindow(Config)
             PerformanceFrame.Visible = false
             TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, 620, 0, 48)}):Play()
         else
-            -- Bật lại hiển thị ngay lập tức trước khi tween để không bị lỗi tàng hình
             Sidebar.Visible = true
             Content.Visible = true
             PerformanceFrame.Visible = true
@@ -181,11 +189,9 @@ function AuroraLib:CreateWindow(Config)
         TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play()
     end)
 
-    -- [[ ĐÃ SỬA LỖI NÚT X TẮT UI ]]
     CreateControlButton("X", 0, Color3.fromRGB(255, 70, 70), function() 
         local closeTween = TweenService:Create(MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Size = UDim2.new(0, 620, 0, 0)})
         closeTween:Play()
-        -- Dùng task.delay thay vì Wait() để đảm bảo lệnh xóa luôn được chạy
         task.delay(0.2, function()
             if ScreenGui then
                 ScreenGui:Destroy()
@@ -254,7 +260,7 @@ function AuroraLib:CreateWindow(Config)
         local TabName = TabConfig.Name or "Tab"
 
         local TabBtn = Instance.new("TextButton", Sidebar)
-        TabBtn.Size = UDim2.new(1, -5, 0, 36)
+        TabBtn.Size = UDim2.new(1, -12, 0, 36) -- Đã chỉnh lại kích thước để vừa khít khung cuộn
         TabBtn.BackgroundColor3 = FirstTab and Theme.TabActive or Theme.Bg
         TabBtn.BackgroundTransparency = FirstTab and 0 or 1
         TabBtn.Text = ""
