@@ -411,49 +411,88 @@ function AuroraLib:CreateWindow(Config)
         local elementCount = 0
 
         -- [[ THÊM MỚI: PARAGRAPH ELEMENT ]]
-        function TabElements:AddParagraph(ParaConfig)
-            elementCount = elementCount + 1
-            local PName = ParaConfig.Name or "Thông báo / Hướng dẫn"
-            local PText = ParaConfig.Desc or ParaConfig.Text or ""
-            
-            -- Tính toán chiều cao linh hoạt dựa vào số lượng kí tự
-            local titleHeight = TextService:GetTextSize(PName, 14, FontBold, Vector2.new(410, 1000)).Y
-            local textHeight = PText ~= "" and TextService:GetTextSize(PText, 12, FontMain, Vector2.new(410, 1000)).Y or 0
-            local totalHeight = titleHeight + textHeight + (PText ~= "" and 14 or 12)
-
-            local PFrame = Instance.new("Frame", Scroll)
-            PFrame.Size = UDim2.new(1, -5, 0, totalHeight)
-            PFrame.BackgroundColor3 = Theme.Element
-            PFrame.BackgroundTransparency = 0.3
-            PFrame.LayoutOrder = elementCount
-            Instance.new("UICorner", PFrame).CornerRadius = UDim.new(0, 5)
-
-            local PTitle = Instance.new("TextLabel", PFrame)
-            PTitle.Size = UDim2.new(1, -24, 0, titleHeight)
-            PTitle.Position = UDim2.new(0, 12, 0, 6)
-            PTitle.Text = PName
-            PTitle.TextColor3 = Theme.Accent
-            PTitle.Font = FontBold
-            PTitle.TextSize = 14
-            PTitle.TextXAlignment = Enum.TextXAlignment.Left
-            PTitle.BackgroundTransparency = 1
-            table.insert(Window.AccentObjects, {Instance = PTitle, Property = "TextColor3"})
-
-            if PText ~= "" then
-                local PDesc = Instance.new("TextLabel", PFrame)
-                PDesc.Size = UDim2.new(1, -24, 0, textHeight)
-                PDesc.Position = UDim2.new(0, 12, 0, titleHeight + 8)
-                PDesc.Text = PText
-                PDesc.TextColor3 = Theme.Text
-                PDesc.Font = FontMain
-                PDesc.TextSize = 12
-                PDesc.TextXAlignment = Enum.TextXAlignment.Left
-                PDesc.TextYAlignment = Enum.TextYAlignment.Top
-                PDesc.BackgroundTransparency = 1
-                PDesc.TextWrapped = true
-            end
+        function Pages:AddParagraph(Config)
+    local Config = Config or {}
+    local Name = Config.Name or "Paragraph"
+    local Desc = Config.Desc or ""
+    
+    local ParagraphFrame = Instance.new("Frame")
+    local UICorner = Instance.new("UICorner")
+    local TitleLabel = Instance.new("TextLabel")
+    local DescLabel = Instance.new("TextLabel")
+    local UIListLayout = Instance.new("UIListLayout")
+    local UIPadding = Instance.new("UIPadding")
+    
+    -- Cấu trúc giao diện Khung (Giữ alignment và size theo chuẩn Hub của ông)
+    ParagraphFrame.Name = "ParagraphElement"
+    ParagraphFrame.Parent = self.PageFrame -- Hoặc tên Frame chứa phần tử của ông
+    ParagraphFrame.BackgroundColor3 = Color3.fromRGB(30, 31, 35) -- Màu tối nền UI
+    ParagraphFrame.BackgroundTransparency = 0.2
+    ParagraphFrame.BorderSizePixel = 0
+    ParagraphFrame.Size = UDim2.new(1, -10, 0, 0) -- Tự động co giãn theo UIListLayout
+    ParagraphFrame.AutomaticSize = Enum.AutomaticSize.Y
+    
+    UICorner.CornerRadius = UDim.new(0, 6)
+    UICorner.Parent = ParagraphFrame
+    
+    UIListLayout.Parent = ParagraphFrame
+    UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    UIListLayout.Padding = UDim.new(0, 4)
+    
+    UIPadding.Parent = ParagraphFrame
+    UIPadding.PaddingBottom = UDim.new(0, 8)
+    UIPadding.PaddingLeft = UDim.new(0, 10)
+    UIPadding.PaddingRight = UDim.new(0, 10)
+    UIPadding.PaddingTop = UDim.new(0, 8)
+    
+    -- Tiêu đề chính (Ví dụ: Fruit Stock Status)
+    TitleLabel.Name = "TitleLabel"
+    TitleLabel.Parent = ParagraphFrame
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Size = UDim2.new(1, 0, 0, 20)
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.Text = Name
+    TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TitleLabel.TextSize = 18
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    
+    -- Nội dung hiển thị Stock (Bật RichText để nhận diện xuống dòng và định dạng chữ)
+    DescLabel.Name = "DescLabel"
+    DescLabel.Parent = ParagraphFrame
+    DescLabel.BackgroundTransparency = 1
+    DescLabel.Size = UDim2.new(1, 0, 0, 0)
+    DescLabel.AutomaticSize = Enum.AutomaticSize.Y
+    DescLabel.Font = Enum.Font.Gotham
+    DescLabel.Text = Desc
+    DescLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    DescLabel.TextSize = 15
+    DescLabel.TextXAlignment = Enum.TextXAlignment.Left
+    DescLabel.TextYAlignment = Enum.TextYAlignment.Top
+    DescLabel.TextWrapped = true
+    DescLabel.RichText = true -- QUAN TRỌNG: Giúp hiển thị các tùy chỉnh chữ nếu có
+    
+    -- Thêm vào danh sách quản lý màu nếu hệ thống SetAccent cần quét qua
+    if ParagraphFrame.Parent and ParagraphFrame.Parent:FindFirstChild("UIListLayout") then
+        -- Giữ nguyên logic layout gốc của Core ông để nó không bị lệch hàng
+    end
+    
+    -- ĐOẠN ĐỂ ÔNG GỌI TỪ BÊN NGOÀI
+    local ElementActions = {}
+    
+    function ElementActions:Set(newText)
+        if DescLabel then
+            DescLabel.Text = tostring(newText)
         end
-
+    end
+    
+    function ElementActions:Destroy()
+        if ParagraphFrame then
+            ParagraphFrame:Destroy()
+        end
+    end
+    
+    return ElementActions -- Trả về Actions chứa hàm :Set()
+end
         -- [[ 1. SECTION ]]
         function TabElements:AddSection(SectionConfig)
             elementCount = elementCount + 1
