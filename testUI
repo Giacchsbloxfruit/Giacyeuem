@@ -34,7 +34,7 @@ local function BuildNotifContainer()
     NotifContainer = Instance.new("Frame", TargetGui)
     NotifContainer.Size = UDim2.new(0, 280, 1, -20)
     NotifContainer.Position = UDim2.new(1, -290, 0, 10)
-    NotifContainer.BackgroundTransparency = 0.9
+    NotifContainer.BackgroundTransparency = 1
     
     local Layout = Instance.new("UIListLayout", NotifContainer)
     Layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
@@ -401,7 +401,7 @@ function AuroraLib:CreateWindow(Config)
         local TabElements = {}
         local elementCount = 0
 
-        -- [[ 0. PARAGRAPH (Thêm viền Accent để dễ phân biệt) ]]
+        -- [[ 0. PARAGRAPH (Đã trả về nguyên bản) ]]
         function TabElements:AddParagraph(Config)
             elementCount = elementCount + 1
             local Config = Config or {}
@@ -418,12 +418,6 @@ function AuroraLib:CreateWindow(Config)
             ParagraphFrame.LayoutOrder = elementCount
             
             Instance.new("UICorner", ParagraphFrame).CornerRadius = UDim.new(0, 5)
-            
-            -- Thêm viền Stroke mờ để nhấn mạnh Paragraph
-            local PStroke = Instance.new("UIStroke", ParagraphFrame)
-            PStroke.Color = Theme.Accent
-            PStroke.Transparency = 0.6
-            table.insert(Window.AccentObjects, {Instance = PStroke, Property = "Color"})
             
             local UIListLayout = Instance.new("UIListLayout", ParagraphFrame)
             UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -467,7 +461,7 @@ function AuroraLib:CreateWindow(Config)
             return ElementActions
         end
 
-        -- [[ 1. SECTION (Giữ nguyên) ]]
+        -- [[ 1. SECTION ]]
         function TabElements:AddSection(SectionConfig)
             elementCount = elementCount + 1
             local SecName = SectionConfig.Name or "Section"
@@ -501,7 +495,7 @@ function AuroraLib:CreateWindow(Config)
             RightLine.BorderSizePixel = 0
         end
 
-        -- [[ 2. TOGGLE (Giữ nguyên) ]]
+        -- [[ 2. TOGGLE ]]
         function TabElements:AddToggle(ToggleConfig)
             elementCount = elementCount + 1
             local TName = ToggleConfig.Name or "Toggle"
@@ -563,7 +557,7 @@ function AuroraLib:CreateWindow(Config)
             end)
         end
 
-        -- [[ 3. BUTTON (Thêm icon vân tay góc phải) ]]
+        -- [[ 3. BUTTON (Vẽ Icon Chuột Máy Tính bằng code, đảm bảo 100% hoạt động) ]]
         function TabElements:AddButton(BtnConfig)
             elementCount = elementCount + 1
             local BName = BtnConfig.Name or "Button"
@@ -601,25 +595,37 @@ function AuroraLib:CreateWindow(Config)
                 BDesc.BackgroundTransparency = 1
             end
 
-            -- Icon Vân Tay (Sử dụng ImageLabel chuẩn của Roblox)
-            local ActionIcon = Instance.new("ImageLabel", BFrame)
-            ActionIcon.Size = UDim2.new(0, 16, 0, 16)
-            ActionIcon.Position = UDim2.new(1, -26, 0.5, -8)
-            ActionIcon.BackgroundTransparency = 1
-            ActionIcon.Image = "rbxassetid://10828130003" -- ID icon vân tay
-            ActionIcon.ImageColor3 = Theme.Muted
+            -- Vẽ Icon con chuột bằng Frame
+            local MouseIcon = Instance.new("Frame", BFrame)
+            MouseIcon.Size = UDim2.new(0, 12, 0, 18)
+            MouseIcon.Position = UDim2.new(1, -26, 0.5, -9)
+            MouseIcon.BackgroundColor3 = Theme.Muted
+            MouseIcon.BackgroundTransparency = 1
+            Instance.new("UICorner", MouseIcon).CornerRadius = UDim.new(0, 6)
+            
+            local MouseStroke = Instance.new("UIStroke", MouseIcon)
+            MouseStroke.Color = Theme.Muted
+            MouseStroke.Thickness = 1.5
+            
+            local ScrollWheel = Instance.new("Frame", MouseIcon)
+            ScrollWheel.Size = UDim2.new(0, 2, 0, 4)
+            ScrollWheel.Position = UDim2.new(0.5, -1, 0, 3)
+            ScrollWheel.BackgroundColor3 = Theme.Muted
+            Instance.new("UICorner", ScrollWheel).CornerRadius = UDim.new(1, 0)
 
             BFrame.MouseButton1Click:Connect(function()
                 TweenService:Create(BFrame, TweenInfo.new(0.1), {BackgroundTransparency = 0.5}):Play()
-                TweenService:Create(ActionIcon, TweenInfo.new(0.1), {ImageColor3 = Theme.Text}):Play()
+                TweenService:Create(MouseStroke, TweenInfo.new(0.1), {Color = Theme.Accent}):Play()
+                TweenService:Create(ScrollWheel, TweenInfo.new(0.1), {BackgroundColor3 = Theme.Accent}):Play()
                 task.wait(0.08)
                 TweenService:Create(BFrame, TweenInfo.new(0.1), {BackgroundTransparency = 0.2}):Play()
-                TweenService:Create(ActionIcon, TweenInfo.new(0.1), {ImageColor3 = Theme.Muted}):Play()
+                TweenService:Create(MouseStroke, TweenInfo.new(0.1), {Color = Theme.Muted}):Play()
+                TweenService:Create(ScrollWheel, TweenInfo.new(0.1), {BackgroundColor3 = Theme.Muted}):Play()
                 Callback()
             end)
         end
 
-        -- [[ 4. SLIDER (Kết hợp TextBox nhập số trực tiếp) ]]
+        -- [[ 4. SLIDER ]]
         function TabElements:AddSlider(SliderConfig)
             elementCount = elementCount + 1
             local SName = SliderConfig.Name or "Slider"
@@ -659,7 +665,6 @@ function AuroraLib:CreateWindow(Config)
                 SDesc.BackgroundTransparency = 1
             end
 
-            -- Chuyển từ TextLabel sang TextBox
             local ValueInput = Instance.new("TextBox", SFrame)
             ValueInput.Size = UDim2.new(0, 60, 0, 20)
             ValueInput.Position = UDim2.new(1, -72, 0, 4)
@@ -697,7 +702,6 @@ function AuroraLib:CreateWindow(Config)
             UserInputService.InputChanged:Connect(function(input) if sliding and input.UserInputType == Enum.UserInputType.MouseMovement then updateSlider(input) end end)
             UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then sliding = false end end)
             
-            -- Xử lý khi người dùng tự gõ số vào TextBox
             ValueInput.FocusLost:Connect(function()
                 local num = tonumber(ValueInput.Text)
                 if num then
@@ -713,7 +717,7 @@ function AuroraLib:CreateWindow(Config)
             end)
         end
 
-        -- [[ 5. DROPDOWN (Thêm mũi tên xuống) ]]
+        -- [[ 5. DROPDOWN (Thêm hiệu ứng Drop/Slide xuống mượt mà) ]]
         function TabElements:AddDropdown(DropdownConfig)
             elementCount = elementCount + 1
             local DName = DropdownConfig.Name or "Dropdown"
@@ -764,7 +768,6 @@ function AuroraLib:CreateWindow(Config)
             DropBtn.TextXAlignment = Enum.TextXAlignment.Left
             Instance.new("UICorner", DropBtn).CornerRadius = UDim.new(0, 4)
             
-            -- Thêm icon mũi tên xuống cho DropBtn
             local ArrowIcon = Instance.new("TextLabel", DropBtn)
             ArrowIcon.Size = UDim2.new(0, 20, 1, 0)
             ArrowIcon.Position = UDim2.new(1, -22, 0, 0)
@@ -784,10 +787,12 @@ function AuroraLib:CreateWindow(Config)
             CloseOverlay.Visible = false
             CloseOverlay.ZIndex = 50
             
+            local targetHeight = #Options * 28 + 8
             local ListContainer = Instance.new("Frame", CloseOverlay)
-            ListContainer.Size = UDim2.new(0, 130, 0, #Options * 28 + 8)
+            ListContainer.Size = UDim2.new(0, 130, 0, 0) -- Chiều cao ban đầu = 0 để làm hiệu ứng
             ListContainer.BackgroundColor3 = Theme.Bg
             ListContainer.BackgroundTransparency = 0.15
+            ListContainer.ClipsDescendants = true -- Cắt nội dung tràn ra để làm hiệu ứng cuộn
             ListContainer.ZIndex = 51
             Instance.new("UICorner", ListContainer).CornerRadius = UDim.new(0, 6)
             
@@ -804,6 +809,19 @@ function AuroraLib:CreateWindow(Config)
             
             local OptionIndicators = {}
             local SelectedOpt = Default
+            
+            -- Hàm đóng Dropdown kèm Animation
+            local function CloseDropdown()
+                TweenService:Create(ArrowIcon, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Rotation = 0}):Play()
+                local closeTween = TweenService:Create(ListContainer, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, 130, 0, 0)})
+                closeTween:Play()
+                
+                task.delay(0.25, function()
+                    if closeTween.PlaybackState == Enum.PlaybackState.Completed then
+                        CloseOverlay.Visible = false
+                    end
+                end)
+            end
             
             for _, opt in pairs(Options) do
                 local OptBtn = Instance.new("TextButton", ListContainer)
@@ -842,7 +860,8 @@ function AuroraLib:CreateWindow(Config)
                 OptBtn.MouseButton1Click:Connect(function()
                     SelectedOpt = opt
                     DropBtn.Text = "   " .. tostring(opt)
-                    CloseOverlay.Visible = false
+                    CloseDropdown()
+                    
                     for k, ind in pairs(OptionIndicators) do
                         ind.BackgroundTransparency = (k == SelectedOpt) and 0 or 1
                     end
@@ -852,19 +871,26 @@ function AuroraLib:CreateWindow(Config)
             
             DropBtn.MouseButton1Click:Connect(function()
                 if CloseOverlay.Visible then
-                    CloseOverlay.Visible = false
+                    CloseDropdown()
                 else
                     local absPos = DropBtn.AbsolutePosition
                     local absSize = DropBtn.AbsoluteSize
                     ListContainer.Position = UDim2.new(0, absPos.X, 0, absPos.Y + absSize.Y + 4)
+                    
                     CloseOverlay.Visible = true
+                    
+                    -- Animation rổ xuống + Mũi tên quay ngược
+                    TweenService:Create(ArrowIcon, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Rotation = 180}):Play()
+                    TweenService:Create(ListContainer, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, 130, 0, targetHeight)}):Play()
                 end
             end)
             
-            CloseOverlay.MouseButton1Click:Connect(function() CloseOverlay.Visible = false end)
+            CloseOverlay.MouseButton1Click:Connect(function()
+                CloseDropdown()
+            end)
         end
 
-        -- [[ 6. INPUT (TEXTBOX) - GIỮ NGUYÊN ]]
+        -- [[ 6. INPUT ]]
         function TabElements:AddInput(InputConfig)
             elementCount = elementCount + 1
             local IName = InputConfig.Name or "Input"
@@ -911,4 +937,4 @@ function AuroraLib:CreateWindow(Config)
     return Window
 end
 
-return AuroraLib
+return AuroraLibaLib
