@@ -849,6 +849,47 @@ function AuroraLib:CreateWindow(Config)
             end)
         end
 
+            [[ 6. INPUT (TEXTBOX) ]]
+        function TabElements:AddInput(InputConfig)
+            elementCount = elementCount + 1
+            local IName = InputConfig.Name or "Input"
+            local Placeholder = InputConfig.Placeholder or ""
+            local Callback = InputConfig.Callback or function() end
+            
+            local IFrame = Instance.new("Frame", Scroll)
+            IFrame.Size = UDim2.new(1, -5, 0, 40)
+            IFrame.BackgroundColor3 = Theme.Element
+            IFrame.BackgroundTransparency = 0.2
+            IFrame.LayoutOrder = elementCount
+            Instance.new("UICorner", IFrame).CornerRadius = UDim.new(0, 5)
+            
+            local ITitle = Instance.new("TextLabel", IFrame)
+            ITitle.Size = UDim2.new(1, -150, 1, 0)
+            ITitle.Position = UDim2.new(0, 12, 0, 0)
+            ITitle.Text = IName
+            ITitle.TextColor3 = Theme.Text
+            ITitle.Font = FontBold
+            ITitle.TextSize = 14
+            ITitle.TextXAlignment = Enum.TextXAlignment.Left
+            ITitle.BackgroundTransparency = 1
+            
+            local TextBox = Instance.new("TextBox", IFrame)
+            TextBox.Size = UDim2.new(0, 130, 0, 26)
+            TextBox.Position = UDim2.new(1, -142, 0, 7)
+            TextBox.BackgroundColor3 = Color3.fromRGB(40, 47, 56)
+            TextBox.Text = ""
+            TextBox.PlaceholderText = Placeholder
+            TextBox.TextColor3 = Theme.Text
+            TextBox.Font = FontMain
+            TextBox.TextSize = 13
+            TextBox.ClearTextOnFocus = false
+            Instance.new("UICorner", TextBox).CornerRadius = UDim.new(0, 4)
+            
+            -- Chạy Callback khi người dùng nhập xong và bấm Enter hoặc click ra ngoài
+            TextBox.FocusLost:Connect(function()
+                Callback(TextBox.Text)
+            end)
+        end
 
         return TabElements
     end
