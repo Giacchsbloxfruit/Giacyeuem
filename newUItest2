@@ -1,4 +1,3 @@
--- [[ GIACYEUEM HUB UI LIBRARY CORE - FIX PARAGRAPH & TABS DISPLAY ]]
 local AuroraLib = {}
 
 local CoreGui = game:GetService("CoreGui")
