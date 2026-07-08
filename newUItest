@@ -1,3 +1,45 @@
+-- Ham autocode
+local function AutoRedeem()
+    local Codes = {
+        "NOMOREHACK","BANEXPLOIT","WildDares","BossBuild","GetPranked","EARN_FRUITS","FIGHT4FRUIT",
+        "NOEXPLOITER","NOOB2ADMIN","CODESLIDE","ADMINHACKED","ADMINDARES","fruitconcepts","krazydares",
+        "TRIPLEABUSE","SEATROLLING","24NOADMIN","REWARDFUN","Chandler","NEWTROLL","KITT_RESET",
+        "Sub2CaptainMaui","kittgaming","Sub2Fer999","Enyu_is_Pro","Magicbus","JCWK","Starcodeheo",
+        "Bluxxy","fudd10_v2","SUB2GAMERROBOT_EXP1","Sub2NoobMaster123","Sub2UncleKizaru","Sub2Daigrock",
+        "Axiore","TantaiGaming","StrawHatMaine","Sub2OfficialNoobie","Fudd10","Bignews","TheGreatAce",
+        "SECRET_ADMIN","SUB2GAMERROBOT_RESET1","SUB2OFFICIALNOOBIE","AXIORE","BIGNEWS","BLUXXY",
+        "CHANDLER","ENYU_IS_PRO","FUDD10","FUDD10_V2","KITTGAMING","MAGICBUS","STARCODEHEO",
+        "STRAWHATMAINE","SUB2CAPTAINMAUI","SUB2DAIGROCK","SUB2FER999","SUB2NOOBMASTER123",
+        "SUB2UNCLEKIZARU","TANTAIGAMING","THEGREATACE","1LOSTADMIN","EASTEREXP","LIGHTNINGABUSE"
+    }
+    local Remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Redeem")
+    
+    -- Đợi cho đến khi chọn Team xong (Tránh lỗi gửi dữ liệu trống)
+    while not game.Players.LocalPlayer.Team do task.wait(1) end
+
+    -- Vòng lặp nhập mã
+    for _, code in ipairs(Codes) do
+        pcall(function() Remote:InvokeServer(code) end)
+        task.wait(0.2) -- Tăng lên 0.2s để an toàn hơn với hệ thống Rate Limit mới của Blox Fruits
+    end
+end
+
+--Ham autobuso
+task.spawn(function()
+    while task.wait(0.5) do
+        pcall(function()
+            local player = game.Players.LocalPlayer
+            -- Chỉ chạy khi đã chọn Team (Hải tặc/Hải quân)
+            if player.Team ~= nil then 
+                local char = player.Character
+                if char and not char:FindFirstChild("HasBuso") then
+                    -- Gửi lệnh bật Haki lên server
+                    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Buso")
+                end
+            end
+        end)
+    end
+end)
 --Hàm autolevel
 _G.AutoFarmLevel = false
 local VirtualUser = game:GetService("VirtualUser")
@@ -174,7 +216,7 @@ function EquipWeapon(WeaponType)
 end
 
 --Window
-local AuroraLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/Giacchsbloxfruit/Giacyeuem/refs/heads/main/testUI"))()
+local AuroraLib = loadstring(game:HttpGet("https://gitlab.com/-/snippets/6008105/raw/main/snippetfile1.txt"))()
 local Window = AuroraLib:CreateWindow({
     Name = "Giacyeuem Hub",
     SubName = "ver 1.0 by Giacdz Hub"
@@ -271,7 +313,7 @@ local function RejoinServer()
 end
 
 local function HopServer()
-    AuroraLib:Notification({Title = "Processing", Text = "Hopping...", Duration = 2})
+    AuroraLib:Notification({Title = "Processing", Text = "Hopping...", Duration = 3})
     task.spawn(function()
         pcall(function()
             game:GetService("ReplicatedStorage").__ServerBrowser:InvokeServer("hop")
@@ -434,6 +476,13 @@ Tabs.Info:AddButton({
     end
 })
 
+Tabs.Info:AddButton({
+    Name = "Redeem All Codes", -- Đổi Title thành Name để đồng bộ với thư viện UI AuroraLib của bạn
+    Callback = function()
+        task.spawn(AutoRedeem)
+    end
+})
+
 -- 2. Ô NHẬP JOBID ĐỂ DỊCH CHUYỂN
 Tabs.Info:AddInput({
     Name = "Join Server by JobID",
@@ -492,10 +541,24 @@ Tabs.Main:AddToggle({
                     pcall(function()
                         if not _G.AutoFarmLevel then return end
                         
+                        -- LUÔN KHÓA LỰC CHỐNG RƠI: Không bao giờ giải phóng khi đang farm
+                        if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+                            local bv = LP.Character.HumanoidRootPart:FindFirstChild("AntiFall")
+                            if not bv then
+                                bv = Instance.new("BodyVelocity")
+                                bv.Name = "AntiFall"
+                                bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+                                bv.Velocity = Vector3.new(0, 0, 0)
+                                bv.Parent = LP.Character.HumanoidRootPart
+                            end
+                        end
+                        
+                        -- 1. Luôn cập nhật thông tin Quest theo Level hiện tại
                         CheckQuest()
                         
+                        -- 2. Kiểm tra trạng thái bảng nhiệm vụ
                         if not LP.PlayerGui.Main.Quest.Visible then
-                            -- Nếu đi nhận nhiệm vụ
+                            -- CHƯA CÓ NV (Hoặc vừa hủy nv cũ xong): Đi nhận nhiệm vụ mới
                             if (LP.Character.HumanoidRootPart.Position - CFrameQuest.Position).Magnitude > 15 then
                                 if _G.AutoFarmLevel then toPos(CFrameQuest) end
                             else
@@ -504,28 +567,43 @@ Tabs.Main:AddToggle({
                                 game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StartQuest", NameQuest, LevelQuest)
                             end
                         else
-                            local Monster = GetMonster()
-                            if Monster then
-                                -- TẠO TỌA ĐỘ Ở ĐỘ CAO 20 STUDS (ĐỨNG THẲNG BÌNH THƯỜNG, KHÔNG ÚP MẶT)
-                                local mobPos = Monster.HumanoidRootPart.Position
-                                local farmCFrame = CFrame.new(mobPos.X, mobPos.Y + 20, mobPos.Z)
+                            -- ĐANG CÓ NV: Lấy chữ từ bảng nhiệm vụ (Hỗ trợ cả UI bản cũ lẫn mới)
+                            local questText = ""
+                            pcall(function() questText = LP.PlayerGui.Main.Quest.Container.QuestTitle.Text end)
+                            if questText == "" then
+                                pcall(function() questText = LP.PlayerGui.Main.Quest.Container.Title.Text end)
+                            end
+                            
+                            -- Nếu tên quái mục tiêu (NameMon) KHÔNG nằm trong chữ của bảng nhiệm vụ cũ -> Hủy ngay!
+                            if questText ~= "" and not string.find(string.lower(questText), string.lower(NameMon)) then
+                                if _G.CurrentTween then _G.CurrentTween:Cancel() end
+                                _G.IsTweening = false
                                 
-                                -- Nếu xa trên 5 stud thì bay tới
-                                if (LP.Character.HumanoidRootPart.Position - farmCFrame.Position).Magnitude > 5 then
-                                    if _G.AutoFarmLevel then toPos(farmCFrame) end
-                                else
-                                    -- Nếu đã lại gần, Hủy Tween, để BodyVelocity khóa tọa độ
-                                    if _G.CurrentTween then _G.CurrentTween:Cancel() end
-                                    _G.IsTweening = false
-                                    LP.Character.HumanoidRootPart.CFrame = farmCFrame
-                                end
-                                
-                                EquipWeapon(_G.SelectWeapon)
-                                VirtualUser:CaptureController()
-                                VirtualUser:ClickButton1(Vector2.new(850, 520))
+                                game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("AbandonQuest")
+                                task.wait(0.2) -- Delay một chút để game xóa bảng Quest hoàn toàn rồi mới chạy tiếp
                             else
-                                -- Về chỗ chờ quái nếu quái chết
-                                if _G.AutoFarmLevel then toPos(CFrameMon) end
+                                -- ĐÚNG NV RỒI: Tiến hành vác kiếm đi đấm quái
+                                local Monster = GetMonster()
+                                if Monster then
+                                    local mobPos = Monster.HumanoidRootPart.Position
+                                    local farmCFrame = CFrame.new(mobPos.X, mobPos.Y + 20, mobPos.Z)
+                                    
+                                    -- Về lại mốc gốc > 5 studs của bạn cho chuẩn
+                                    if (LP.Character.HumanoidRootPart.Position - farmCFrame.Position).Magnitude > 5 then
+                                        if _G.AutoFarmLevel then toPos(farmCFrame) end
+                                    else
+                                        if _G.CurrentTween then _G.CurrentTween:Cancel() end
+                                        _G.IsTweening = false
+                                        LP.Character.HumanoidRootPart.CFrame = farmCFrame
+                                    end
+                                    
+                                    EquipWeapon(_G.SelectWeapon)
+                                    VirtualUser:CaptureController()
+                                    VirtualUser:ClickButton1(Vector2.new(850, 520))
+                                else
+                                    -- Về chỗ chờ quái nếu quái chưa hồi sinh
+                                    if _G.AutoFarmLevel then toPos(CFrameMon) end
+                                end
                             end
                         end
                     end)
