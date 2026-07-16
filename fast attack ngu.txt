@@ -1,0 +1,57 @@
+local plr = game.Players.LocalPlayer
+local vim = game:GetService("VirtualInputManager")
+local sec = 0.67
+local function mobNear()
+    local c = plr.Character
+    local hrp = c and c:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    for _,v in pairs(workspace:GetDescendants()) do
+        if v:IsA("Humanoid") and v.Health>0 and v.Parent~=c then
+            local r=v.Parent:FindFirstChild("HumanoidRootPart")
+            if r and (r.Position-hrp.Position).Magnitude<125 then
+                return true
+            end
+        end
+    end
+end
+
+task.spawn(function()
+    while task.wait(sec) do
+        if mobNear() then
+            vim:SendMouseButtonEvent(0,0,0,true,game,0)
+            vim:SendMouseButtonEvent(0,0,0,false,game,0)
+        end
+    end
+end)
+local old
+old = hookfunction(task.delay,function(t,f,...)
+    if t > 0.1 then
+        return old(0,f,...)
+    end
+    return old(t,f,...)
+end)
+
+local patched = {}
+
+local function patch(t)
+    if patched[t] then return end
+    if rawget(t,"HitboxMagnitude") then t.HitboxMagnitude = 360 end
+    if rawget(t,"Damage") then t.Damage = 0 end
+    patched[t] = true
+end
+
+local function scan()
+    for _,v in pairs(getgc(true)) do
+        if type(v)=="table" then
+            patch(v)
+        end
+    end
+end
+
+scan()
+
+backpack.ChildAdded:Connect(function()
+    task.wait(.2)
+    scan()
+end)
