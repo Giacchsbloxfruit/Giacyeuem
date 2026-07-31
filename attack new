@@ -27,7 +27,7 @@ local Modules = SafeWaitForChild(ReplicatedStorage, "Modules")
 local Net = SafeWaitForChild(Modules, "Net")
 
 -- Configuration
-FastAttackModule.Rate = 0.15 -- Tốc độ vung chiêu (Để 0.05 mượt và khó bị kick hơn)
+FastAttackModule.Rate = 0.05 -- Tốc độ vung chiêu (Để 0.05 mượt và khó bị kick hơn)
 FastAttackModule.Range = 60  -- Bán kính quét quái
 FastAttackModule.Enabled = true
 
