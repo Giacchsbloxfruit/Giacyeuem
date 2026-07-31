@@ -27,7 +27,7 @@ local Modules = SafeWaitForChild(ReplicatedStorage, "Modules")
 local Net = SafeWaitForChild(Modules, "Net")
 
 -- Configuration
-FastAttackModule.Rate = 0.05 -- Tốc độ vung chiêu (Để 0.05 mượt và khó bị kick hơn)
+FastAttackModule.Rate = 0.15 -- Tốc độ vung chiêu (Để 0.05 mượt và khó bị kick hơn)
 FastAttackModule.Range = 60  -- Bán kính quét quái
 FastAttackModule.Enabled = true
 
@@ -65,21 +65,13 @@ function FastAttackModule.ExecuteAttack(targets)
     local char = LocalPlayer.Character
     if not char then return end
     
-    -- Tự động lấy Melee/Combat ra cầm
+    -- Chỉ kiểm tra xem nhân vật CÓ ĐANG CẦM VŨ KHÍ trên tay hay không
     local currentTool = char:FindFirstChildOfClass("Tool")
-    if not currentTool then
-        for _, v in pairs(LocalPlayer.Backpack:GetChildren()) do
-            if v.ToolTip == "Melee" or v.Name == "Combat" then 
-                char.Humanoid:EquipTool(v)
-                currentTool = v
-                break 
-            end
-        end
-    end
 
+    -- Nếu đang cầm vũ khí thì xả đòn, nếu cất đi thì không đánh
     if currentTool and Net then
         pcall(function()
-            -- Click chuột mồi để client nhận lệnh vung vũ khí
+            -- Click chuột mồi để client nhận lệnh vung vũ khí đang cầm
             currentTool:Activate()
             
             -- Gửi packet đăng ký nhịp đánh với tham số 0
