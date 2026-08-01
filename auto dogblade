@@ -1,0 +1,392 @@
+-- ==========================================
+-- [ 1. HỆ THỐNG CHECK PLACE ID BẢO MẬT ]
+-- ==========================================
+local PlaceId = game.PlaceId
+local World = 0
+
+if PlaceId == 85211729168715 then
+    World = 1
+    print("Đã nhận diện: World 1. Bắt đầu load Script...")
+elseif PlaceId == 79091703265657 then
+    World = 2
+    print("Đã nhận diện: World 2. Bắt đầu load Script...")
+else
+    game:GetService("Players").LocalPlayer:Kick("Script không hỗ trợ Map này!")
+    return 
+end
+
+-- ==========================================
+-- [ 2. AUTO JOIN TEAM HẢI TẶC ]
+-- ==========================================
+pcall(function()
+    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("SetTeam", "Pirates")
+end)
+
+-- ==========================================
+-- [ 3. TẠO NÚT BẬT/TẮT UI CHO MOBILE ]
+-- ==========================================
+local CoreGui = game:GetService("CoreGui")
+local ToggleUI = Instance.new("ScreenGui")
+local ToggleBtn = Instance.new("TextButton")
+local UICorner = Instance.new("UICorner")
+
+ToggleUI.Name = "GiacdzToggleUI"
+ToggleUI.Parent = CoreGui
+
+ToggleBtn.Parent = ToggleUI
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ToggleBtn.Position = UDim2.new(0, 15, 0, 15) -- Nằm ở góc trái trên cùng
+ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
+ToggleBtn.Font = Enum.Font.SourceSansBold
+ToggleBtn.Text = "Mở/Đóng\nUI"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.TextSize = 14
+ToggleBtn.Active = true
+ToggleBtn.Draggable = true -- Có thể kéo thả nút đi chỗ khác
+
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = ToggleBtn
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    -- Giả lập bấm phím End để ẩn/hiện Fluent UI
+    local vim = game:GetService("VirtualInputManager")
+    vim:SendKeyEvent(true, Enum.KeyCode.End, false, game)
+    vim:SendKeyEvent(false, Enum.KeyCode.End, false, game)
+end)
+
+-- ==========================================
+-- [ 4. KHỞI TẠO GIAO DIỆN FLUENT ]
+-- ==========================================
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+
+local Window = Fluent:CreateWindow({
+    Title = "Giacyeuem Hub",
+    SubTitle = "By Giacdz",
+    TabWidth = 150,
+    Theme = "Dark",
+    Acrylic = false,
+    Size = UDim2.fromOffset(500, 320),
+    MinimizeKey = Enum.KeyCode.End -- Phím End được dùng để bật/tắt
+})
+
+local Tabs = {
+    AutoEvent = Window:AddTab({ Title = "Auto event", Icon = "" }),
+}
+
+-- ==========================================
+-- [ 5. HÀM TWEEN VIP & CÁC HÀM HỖ TRỢ FARM ]
+-- ==========================================
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local CurrentTween = nil
+local NoclipConnection = nil
+
+local function StopTween()
+    _G.IsTweening = false
+    if CurrentTween then 
+        CurrentTween:Cancel() 
+        CurrentTween = nil 
+    end
+    if NoclipConnection then 
+        NoclipConnection:Disconnect() 
+        NoclipConnection = nil 
+    end
+    pcall(function()
+        local hrp = LocalPlayer.Character.HumanoidRootPart
+        if hrp:FindFirstChild("VIP_Hover") then hrp.VIP_Hover:Destroy() end
+    end)
+end
+
+local function VIP_Tween(TargetCFrame)
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    
+    local Distance = (hrp.Position - TargetCFrame.Position).Magnitude
+    local Speed = 240
+    local Time = Distance / Speed
+    
+    if Time <= 0 then Time = 0.01 end 
+    
+    local AntiFall = hrp:FindFirstChild("VIP_Hover") or Instance.new("BodyVelocity", hrp)
+    AntiFall.Name = "VIP_Hover"
+    AntiFall.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+    AntiFall.Velocity = Vector3.zero
+
+    if not NoclipConnection then
+        NoclipConnection = RunService.Stepped:Connect(function()
+            if char then
+                for _, v in pairs(char:GetDescendants()) do
+                    if v:IsA("BasePart") then v.CanCollide = false end
+                end
+            end
+        end)
+    end
+
+    if CurrentTween then CurrentTween:Cancel() end
+
+    local TInfo = TweenInfo.new(Time, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+    CurrentTween = TweenService:Create(hrp, TInfo, {CFrame = TargetCFrame})
+    
+    _G.IsTweening = true
+    CurrentTween:Play()
+    return CurrentTween 
+end
+
+local function EquipWeapon()
+    pcall(function()
+        local char = LocalPlayer.Character
+        if char:FindFirstChildOfClass("Tool") then return end 
+        
+        for _, v in pairs(LocalPlayer.Backpack:GetChildren()) do
+            if v.ToolTip == "Melee" or v.Name == "Combat" then 
+                char.Humanoid:EquipTool(v)
+                break 
+            end
+        end
+    end)
+end
+
+local function topos(TargetCFrame)
+    pcall(function()
+        local hrp = LocalPlayer.Character.HumanoidRootPart
+        local dist = (hrp.Position - TargetCFrame.Position).Magnitude
+        
+        if dist > 0.5 then
+            VIP_Tween(TargetCFrame)
+        end
+    end)
+end
+
+-- ==========================================
+-- [ 6. CHỨC NĂNG TRONG MENU (TOGGLE) ]
+-- ==========================================
+
+-- Toggle Auto Dog House
+local ToggleAutoDog = Tabs.AutoEvent:AddToggle("DogHouseToggle", {
+    Title = "Auto bay đến dog house",
+    Default = true
+})
+
+ToggleAutoDog:OnChanged(function(Value)
+    _G.AutoDogHouse = Value
+    if Value then
+        task.spawn(function()
+            local TargetPos
+            if World == 1 then
+                TargetPos = CFrame.new(1421.41, 87.59, -1282.55)
+            elseif World == 2 then
+                TargetPos = CFrame.new(4719.06, 8.25, 2765.41)
+            end
+            
+            if TargetPos then
+                local ActiveTween = VIP_Tween(TargetPos)
+                ActiveTween.Completed:Wait()
+                if _G.AutoDogHouse then 
+                    StopTween()
+                    ToggleAutoDog:SetValue(false) 
+                    Fluent:Notify({ Title = "Hoàn thành", Content = "Đã đến Dog House!", Duration = 3 })
+                end
+            end
+        end)
+    else
+        StopTween()
+    end
+end)
+
+-- Toggle Farm Nearest
+Tabs.AutoEvent:AddToggle("FarmNearToggle", {
+    Title = "Auto Farm Quái Ở Gần",
+    Default = false,
+    Callback = function(Value)
+        _G.FarmNearest = Value
+        if not Value then 
+            pcall(function() StopTween() end) 
+        end
+    end
+})
+
+-- Toggle Auto Buso (Haki)
+Tabs.AutoEvent:AddToggle("AutoBusoToggle", {
+    Title = "Auto Bật Haki (Buso)",
+    Default = true,
+    Callback = function(Value)
+        _G.AutoBuso = Value
+    end
+})
+
+-- Toggle Fast Attack (Kiểm soát đoạn mã ghép bên dưới)
+Tabs.AutoEvent:AddToggle("FastAttackUI", {
+    Title = "Auto Fast Attack (Kill Aura)",
+    Default = true,
+    Callback = function(Value)
+        _G.EnableFastAttack = Value
+    end
+})
+
+-- ==========================================
+-- [ 7. CÁC VÒNG LẶP CHẠY NGẦM ]
+-- ==========================================
+
+-- Hàm Farm Nearest
+local function KillNearestMob()
+    local MaxDistance = 1000 
+    local enemies = game:GetService("Workspace"):FindFirstChild("Enemies")
+    local player = game:GetService("Players").LocalPlayer
+    
+    if not enemies or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
+
+    local targetMob = nil
+    local minDist = MaxDistance
+
+    pcall(function()
+        for _, v in pairs(enemies:GetChildren()) do
+            if v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") and v.Humanoid.Health > 0 then
+                local dist = (player.Character.HumanoidRootPart.Position - v.HumanoidRootPart.Position).Magnitude
+                if dist < minDist then
+                    minDist = dist
+                    targetMob = v
+                end
+            end
+        end
+
+        if targetMob then
+            EquipWeapon()
+            local targetCF = targetMob.HumanoidRootPart.CFrame * CFrame.new(0, 8, 0)
+            topos(targetCF)
+
+            local vu = game:GetService("VirtualUser")
+            vu:CaptureController()
+            vu:Button1Down(Vector2.new(1280, 672))
+
+            targetMob.HumanoidRootPart.CanCollide = false
+            targetMob.Humanoid.WalkSpeed = 0
+            if targetMob.HumanoidRootPart.Size ~= Vector3.new(2, 2, 1) then
+                targetMob.HumanoidRootPart.Size = Vector3.new(2, 2, 1)
+            end
+        end
+    end)
+end
+
+-- Vòng lặp chính quản lý Auto Farm & Auto Buso
+task.spawn(function()
+    while true do
+        task.wait()
+        -- Chạy Auto Farm
+        if _G.FarmNearest then
+            KillNearestMob()
+        end
+        
+        -- Chạy Auto Buso
+        if _G.AutoBuso then
+            pcall(function()
+                local char = LocalPlayer.Character
+                -- Kích hoạt nếu nhân vật chưa có aura Buso
+                if char and not char:FindFirstChild("HasBuso") then
+                    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Buso")
+                end
+            end)
+        end
+    end
+end)
+
+Fluent:Notify({
+    Title = "Giacyeuem Hub",
+    Content = "Script loaded thành công tại World " .. World,
+    Duration = 5
+})
+
+
+-- ==========================================
+-- [ 8. STANDALONE FAST ATTACK / KILL AURA (GHÉP DƯỚI CÙNG) ]
+-- ==========================================
+local FastAttackModule = {}
+local GameService = game
+local ReplicatedStorage = GameService:GetService("ReplicatedStorage")
+local Workspace = GameService:GetService("Workspace")
+
+local function SafeWaitForChild(parent, childName)
+    local success, result = pcall(function()
+        return parent:WaitForChild(childName, 5)
+    end)
+    return success and result or nil
+end
+
+local Enemies = SafeWaitForChild(Workspace, "Enemies")
+local Modules = SafeWaitForChild(ReplicatedStorage, "Modules")
+local Net = SafeWaitForChild(Modules, "Net")
+
+FastAttackModule.Rate = 0.05 
+FastAttackModule.Range = 60  
+
+function FastAttackModule.IsAlive(target)
+    local humanoid = target:FindFirstChild("Humanoid")
+    return humanoid and humanoid.Health > 0
+end
+
+function FastAttackModule.GetNearbyTargets(character, folder)
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if not root or not folder then return {} end
+    
+    local characterPosition = root.Position
+    local nearbyTargets = {}
+    local children = folder:GetChildren()
+    
+    for i = 1, #children do
+        local target = children[i]
+        local rootPart = target:FindFirstChild("HumanoidRootPart")
+        
+        if rootPart and FastAttackModule.IsAlive(target) then
+            local distance = (rootPart.Position - characterPosition).Magnitude
+            if distance <= FastAttackModule.Range then
+                table.insert(nearbyTargets, target)
+            end
+        end
+    end
+    return nearbyTargets
+end
+
+function FastAttackModule.ExecuteAttack(targets)
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    local currentTool = char:FindFirstChildOfClass("Tool")
+    if currentTool and Net then
+        pcall(function()
+            currentTool:Activate()
+            local regAttack = Net:FindFirstChild("RE/RegisterAttack")
+            if regAttack then regAttack:FireServer(0) end
+            
+            local regHit = Net:FindFirstChild("RE/RegisterHit")
+            if regHit then
+                for i = 1, #targets do
+                    local target = targets[i]
+                    local targetRoot = target:FindFirstChild("HumanoidRootPart") or target.PrimaryPart
+                    if targetRoot then
+                        regHit:FireServer(targetRoot, {{target, targetRoot}})
+                    end
+                end
+            end
+        end)
+    end
+end
+
+-- Chạy Bypass Animation
+pcall(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Giacchsbloxfruit/Giacyeuem/refs/heads/main/attack"))()
+end)
+
+-- Vòng lặp Fast Attack (Đã được liên kết với Toggle UI phía trên)
+task.spawn(function()
+    print(">>> FAST ATTACK STANDALONE ENABLED - RANGE: 60 <<<")
+    while task.wait(FastAttackModule.Rate) do
+        if _G.EnableFastAttack and LocalPlayer.Character then
+            local targets = FastAttackModule.GetNearbyTargets(LocalPlayer.Character, Enemies)
+            if #targets > 0 then
+                FastAttackModule.ExecuteAttack(targets)
+            end
+        end
+    end
+end)
