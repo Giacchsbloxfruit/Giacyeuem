@@ -1,0 +1,250 @@
+-- ========================================================
+-- [[ ⚪ SLIM WHITE MUSIC PLAYER (MINIMALIST + RIPPLE + FPS/PING) ]]
+-- ========================================================
+
+local Playlist = {
+    {Name = "Ai đưa em về (low cortisol)", Id = 110919391228823},
+    {Name = "SUICIDAL-IDOL - ecstacy", Id = 92950955480719},
+    {Name = "Aaron Smith - Dancin", Id = 86871862745375},
+    {Name = "Alan Walker - Faded", Id = 1843403332},
+    -- Thêm nhạc theo mẫu: {Name = "Tên", Id = Mã}
+}
+
+local CoreGui = game:GetService("CoreGui")
+local SoundService = game:GetService("SoundService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local Stats = game:GetService("Stats")
+local Mouse = Players.LocalPlayer:GetMouse()
+
+if CoreGui:FindFirstChild("WhiteMusicPlayer") then
+    CoreGui.WhiteMusicPlayer:Destroy()
+end
+
+local Sound = SoundService:FindFirstChild("CustomMusicPlayerSound")
+if not Sound then
+    Sound = Instance.new("Sound")
+    Sound.Name = "CustomMusicPlayerSound"
+    Sound.Volume = 0.5
+    Sound.Looped = false
+    Sound.Parent = SoundService
+end
+
+local CurrentIndex = 1
+local IsPlaying = false
+local ListOpen = false
+
+-- [[ 1. TẠO GIAO DIỆN CHÍNH ]]
+local ScreenGui = Instance.new("ScreenGui", CoreGui)
+ScreenGui.Name = "WhiteMusicPlayer"
+ScreenGui.ResetOnSpawn = false
+
+-- Khung chính: Thanh mảnh, dài
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 420, 0, 26)
+MainFrame.Position = UDim2.new(0.5, -210, 0, 15)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+MainFrame.BackgroundTransparency = 0.1
+MainFrame.BorderSizePixel = 0
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 6)
+
+-- Viền trắng tối giản cho khung chính
+local MainStroke = Instance.new("UIStroke", MainFrame)
+MainStroke.Thickness = 1
+MainStroke.Color = Color3.fromRGB(255, 255, 255)
+
+-- [[ 2. HIỆU ỨNG RIPPLE (GỢN SÓNG) ]]
+local function CreateRipple(button)
+    button.ClipsDescendants = true
+    local ripple = Instance.new("Frame")
+    ripple.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    ripple.BackgroundTransparency = 0.5
+    ripple.BorderSizePixel = 0
+    Instance.new("UICorner", ripple).CornerRadius = UDim.new(1, 0)
+    
+    local absX, absY = button.AbsolutePosition.X, button.AbsolutePosition.Y
+    local relX, relY = Mouse.X - absX, Mouse.Y - absY
+    
+    ripple.Position = UDim2.new(0, relX, 0, relY)
+    ripple.Size = UDim2.new(0, 0, 0, 0)
+    ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+    ripple.Parent = button
+    
+    local maxSize = math.max(button.AbsoluteSize.X, button.AbsoluteSize.Y) * 2
+    local tween = TweenService:Create(ripple, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, maxSize, 0, maxSize),
+        BackgroundTransparency = 1
+    })
+    tween:Play()
+    tween.Completed:Connect(function() ripple:Destroy() end)
+end
+
+-- Hàm tạo nút cơ bản
+local function CreateBtn(text, posX, width)
+    local btn = Instance.new("TextButton", MainFrame)
+    btn.Size = UDim2.new(0, width, 0, 20)
+    btn.Position = UDim2.new(0, posX, 0.5, -10)
+    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 11
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+    
+    btn.MouseButton1Down:Connect(function() CreateRipple(btn) end)
+    return btn
+end
+
+-- [[ 3. BỐ CỤC NÚT & TEXT ]]
+local PrevBtn = CreateBtn("⏮", 5, 24)
+local PlayBtn = CreateBtn("▶", 33, 24)
+local NextBtn = CreateBtn("⏭", 61, 24)
+
+local TitleLabel = Instance.new("TextLabel", MainFrame)
+TitleLabel.Size = UDim2.new(0, 140, 0, 20)
+TitleLabel.Position = UDim2.new(0, 90, 0.5, -10)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "Chưa chọn nhạc"
+TitleLabel.TextColor3 = Color3.fromRGB(240, 240, 255)
+TitleLabel.Font = Enum.Font.GothamSemibold
+TitleLabel.TextSize = 11
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.TextTruncate = Enum.TextTruncate.AtEnd
+
+local StatsLabel = Instance.new("TextLabel", MainFrame)
+StatsLabel.Size = UDim2.new(0, 130, 0, 20)
+StatsLabel.Position = UDim2.new(0, 240, 0.5, -10)
+StatsLabel.BackgroundTransparency = 1
+StatsLabel.Text = "FPS: -- | Ping: --ms"
+StatsLabel.TextColor3 = Color3.fromRGB(150, 255, 150)
+StatsLabel.Font = Enum.Font.Code
+StatsLabel.TextSize = 11
+StatsLabel.TextXAlignment = Enum.TextXAlignment.Right
+
+local ToggleBtn = CreateBtn("▼", 385, 30)
+
+-- [[ 4. KHUNG PLAYLIST ]]
+local ListFrame = Instance.new("Frame", ScreenGui)
+ListFrame.Size = UDim2.new(0, 420, 0, 0)
+ListFrame.Position = UDim2.new(0.5, -210, 0, 45)
+ListFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+ListFrame.BackgroundTransparency = 0.1
+ListFrame.ClipsDescendants = true
+ListFrame.Visible = false
+Instance.new("UICorner", ListFrame).CornerRadius = UDim.new(0, 6)
+
+-- Viền trắng tối giản cho Playlist
+local ListStroke = Instance.new("UIStroke", ListFrame)
+ListStroke.Thickness = 1
+ListStroke.Color = Color3.fromRGB(255, 255, 255)
+
+local SearchBox = Instance.new("TextBox", ListFrame)
+SearchBox.Size = UDim2.new(1, -10, 0, 22)
+SearchBox.Position = UDim2.new(0, 5, 0, 5)
+SearchBox.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+SearchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+SearchBox.PlaceholderText = "🔍 Tìm bài hát..."
+SearchBox.Text = "" -- FIXED LỖI HIỂN THỊ CHỮ TEXTBOX Ở ĐÂY
+SearchBox.Font = Enum.Font.Gotham
+SearchBox.TextSize = 11
+Instance.new("UICorner", SearchBox).CornerRadius = UDim.new(0, 4)
+
+local Scroll = Instance.new("ScrollingFrame", ListFrame)
+Scroll.Size = UDim2.new(1, -10, 1, -32)
+Scroll.Position = UDim2.new(0, 5, 0, 30)
+Scroll.BackgroundTransparency = 1
+Scroll.BorderSizePixel = 0
+Scroll.ScrollBarThickness = 2
+local UIListLayout = Instance.new("UIListLayout", Scroll)
+UIListLayout.Padding = UDim.new(0, 3)
+
+-- [[ 5. LOGIC HOẠT ĐỘNG ]]
+-- Cập nhật FPS & Ping
+local frames = 0
+RunService.RenderStepped:Connect(function() frames = frames + 1 end)
+
+task.spawn(function()
+    while task.wait(1) do
+        local fps = frames
+        frames = 0
+        local success, pingStr = pcall(function() return Stats.Network.ServerStatsItem["Data Ping"]:GetValueString() end)
+        local ping = success and string.match(pingStr, "%d+") or "--"
+        StatsLabel.Text = string.format("FPS: %d | Ping: %sms", fps, tostring(ping))
+    end
+end)
+
+local function PlayIndex(index)
+    if not Playlist[index] then return end
+    CurrentIndex = index
+    Sound.SoundId = "rbxassetid://" .. tostring(Playlist[index].Id)
+    Sound:Play()
+    IsPlaying = true
+    PlayBtn.Text = "⏸"
+    TitleLabel.Text = Playlist[index].Name
+end
+
+PlayBtn.MouseButton1Click:Connect(function()
+    if not Sound.SoundId or Sound.SoundId == "" then PlayIndex(CurrentIndex) return end
+    if IsPlaying then Sound:Pause() PlayBtn.Text = "▶"
+    else Sound:Resume() PlayBtn.Text = "⏸" end
+    IsPlaying = not IsPlaying
+end)
+
+NextBtn.MouseButton1Click:Connect(function()
+    CurrentIndex = (CurrentIndex % #Playlist) + 1
+    PlayIndex(CurrentIndex)
+end)
+
+PrevBtn.MouseButton1Click:Connect(function()
+    CurrentIndex = CurrentIndex - 1
+    if CurrentIndex < 1 then CurrentIndex = #Playlist end
+    PlayIndex(CurrentIndex)
+end)
+
+Sound.Ended:Connect(function()
+    CurrentIndex = (CurrentIndex % #Playlist) + 1
+    PlayIndex(CurrentIndex)
+end)
+
+local function PopulateList(filterText)
+    for _, v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+    filterText = filterText and filterText:lower() or ""
+    
+    for i, song in ipairs(Playlist) do
+        if filterText == "" or song.Name:lower():find(filterText) then
+            local btn = Instance.new("TextButton", Scroll)
+            btn.Size = UDim2.new(1, -4, 0, 22)
+            btn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+            btn.Text = "  " .. i .. ". " .. song.Name
+            btn.TextColor3 = Color3.fromRGB(220, 220, 220)
+            btn.TextXAlignment = Enum.TextXAlignment.Left
+            btn.Font = Enum.Font.Gotham
+            btn.TextSize = 11
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+            
+            btn.MouseButton1Down:Connect(function() CreateRipple(btn) end)
+            btn.MouseButton1Click:Connect(function() PlayIndex(i) end)
+        end
+    end
+    Scroll.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y)
+end
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    ListOpen = not ListOpen
+    ToggleBtn.Text = ListOpen and "▲" or "▼"
+    if ListOpen then
+        ListFrame.Visible = true
+        PopulateList(SearchBox.Text)
+        TweenService:Create(ListFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart), {Size = UDim2.new(0, 420, 0, 150)}):Play()
+    else
+        local t = TweenService:Create(ListFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quart), {Size = UDim2.new(0, 420, 0, 0)})
+        t:Play()
+        t.Completed:Connect(function() if not ListOpen then ListFrame.Visible = false end end)
+    end
+end)
+
+SearchBox:GetPropertyChangedSignal("Text"):Connect(function() PopulateList(SearchBox.Text) end)
+
+-- Khởi tạo danh sách lần đầu
+PopulateList("")
