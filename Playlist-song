@@ -6,7 +6,13 @@ local Playlist = {
     {Name = "Ai đưa em về (low cortisol)", Id = 110919391228823},
     {Name = "SUICIDAL-IDOL - ecstacy", Id = 92950955480719},
     {Name = "Aaron Smith - Dancin", Id = 86871862745375},
-    {Name = "Alan Walker - Faded", Id = 1843403332},
+    {Name = "Erika - I Don't Know", Id = 94308954886862},
+    {Name = "Furacão 2000 - Mimosa 2000", Id = 13732944749260},
+    {Name = "Clover! - Pretty Scene Girl!", Id = 104138506628857},
+    {Name = "KLYN - Slowed", Id = 90521568613709},
+    {Name = "Limbo - Airplane mod", Id = 90521568613709},
+    {Name = "noevdv - want u", Id = 138067913531622},
+    {Name = "Deamn - Save me", Id = 972360440},
     -- Thêm nhạc theo mẫu: {Name = "Tên", Id = Mã}
 }
 
