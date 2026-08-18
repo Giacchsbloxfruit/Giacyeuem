@@ -1,9 +1,3 @@
---============================================================
--- AXIOM UI LIBRARY
--- CLEAN BLACK / WHITE / SUBTLE NEON
--- FIXED TAB OVERLAP + CLEANER BACKGROUND
---============================================================
-
 local Axiom = {}
 Axiom.__index = Axiom
 
@@ -22,58 +16,68 @@ local LocalPlayer = Players.LocalPlayer
 --============================================================
 
 local Theme = {
-
     Background = Color3.fromRGB(5, 5, 7),
     Background2 = Color3.fromRGB(8, 8, 10),
 
     Sidebar = Color3.fromRGB(7, 7, 9),
 
     Card = Color3.fromRGB(11, 11, 14),
-    CardHover = Color3.fromRGB(16, 16, 19),
+    CardHover = Color3.fromRGB(17, 17, 20),
+    CardPressed = Color3.fromRGB(21, 21, 24),
 
-    White = Color3.fromRGB(245, 245, 248),
-    SoftWhite = Color3.fromRGB(205, 205, 212),
+    Text = Color3.fromRGB(240, 240, 244),
+    SubText = Color3.fromRGB(150, 150, 158),
+    Muted = Color3.fromRGB(92, 92, 100),
 
-    Text = Color3.fromRGB(235, 235, 240),
-    SubText = Color3.fromRGB(145, 145, 153),
-    Muted = Color3.fromRGB(90, 90, 97),
+    White = Color3.fromRGB(248, 248, 250),
+    Black = Color3.fromRGB(3, 3, 4),
 
-    Border = Color3.fromRGB(43, 43, 48),
-    BorderLight = Color3.fromRGB(64, 64, 70),
+    Border = Color3.fromRGB(42, 42, 48),
+    BorderLight = Color3.fromRGB(70, 70, 78),
 
     Neon = Color3.fromRGB(220, 220, 255),
+    NeonDim = Color3.fromRGB(120, 120, 140),
 
     Success = Color3.fromRGB(90, 255, 145),
-    Danger = Color3.fromRGB(255, 85, 85)
+    Danger = Color3.fromRGB(255, 90, 90),
 }
+
+--============================================================
+-- SETTINGS
+--============================================================
+
+local WINDOW_WIDTH = 900
+local WINDOW_HEIGHT = 560
+
+local SIDEBAR_WIDTH = 214
+local TOPBAR_HEIGHT = 54
+
+local TAB_HEIGHT = 38
+local TAB_GAP = 5
 
 --============================================================
 -- UTILITY
 --============================================================
 
-local function Create(Class, Props)
-
+local function Create(Class, Properties)
     local Object = Instance.new(Class)
 
-    for Property, Value in pairs(Props or {}) do
+    for Property, Value in pairs(Properties or {}) do
         Object[Property] = Value
     end
 
     return Object
 end
 
-local function Tween(Object, Props, Time)
-
+local function Tween(Object, Properties, Duration)
     local Animation = TweenService:Create(
         Object,
-
         TweenInfo.new(
-            Time or 0.2,
+            Duration or 0.18,
             Enum.EasingStyle.Quint,
             Enum.EasingDirection.Out
         ),
-
-        Props
+        Properties
     )
 
     Animation:Play()
@@ -82,64 +86,53 @@ local function Tween(Object, Props, Time)
 end
 
 local function Corner(Object, Radius)
-
-    local C = Instance.new("UICorner")
-    C.CornerRadius = UDim.new(0, Radius or 8)
-    C.Parent = Object
-
-    return C
+    local UI = Instance.new("UICorner")
+    UI.CornerRadius = UDim.new(0, Radius or 8)
+    UI.Parent = Object
+    return UI
 end
 
 local function Stroke(Object, Color, Transparency, Thickness)
+    local UI = Instance.new("UIStroke")
 
-    local S = Instance.new("UIStroke")
+    UI.Color = Color or Theme.Border
+    UI.Transparency = Transparency or 0
+    UI.Thickness = Thickness or 1
 
-    S.Color = Color or Theme.Border
-    S.Transparency = Transparency or 0
-    S.Thickness = Thickness or 1
+    UI.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
-    S.ApplyStrokeMode =
-        Enum.ApplyStrokeMode.Border
+    UI.Parent = Object
 
-    S.Parent = Object
-
-    return S
+    return UI
 end
 
-local function Label(Parent, Text, TextSize, Color, Font)
-
+local function Label(
+    Parent,
+    Text,
+    TextSize,
+    Color,
+    Font
+)
     return Create("TextLabel", {
-
         Parent = Parent,
 
         BackgroundTransparency = 1,
 
         Text = Text or "",
-
         TextSize = TextSize or 14,
+        TextColor3 = Color or Theme.Text,
 
-        TextColor3 =
-            Color or Theme.Text,
+        Font = Font or Enum.Font.Gotham,
 
-        Font =
-            Font or Enum.Font.Gotham,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Center,
 
-        TextXAlignment =
-            Enum.TextXAlignment.Left,
-
-        TextYAlignment =
-            Enum.TextYAlignment.Center,
-
-        RichText = true
-
+        RichText = true,
     })
-
 end
 
 local function TextButton(Parent)
-
     return Create("TextButton", {
-
         Parent = Parent,
 
         BackgroundTransparency = 1,
@@ -148,10 +141,8 @@ local function TextButton(Parent)
 
         AutoButtonColor = false,
 
-        BorderSizePixel = 0
-
+        BorderSizePixel = 0,
     })
-
 end
 
 --============================================================
@@ -167,6 +158,7 @@ function Axiom:CreateWindow(Settings)
     Window.__index = Window
 
     Window.Tabs = {}
+    Window.TabOrder = {}
     Window.CurrentTab = nil
     Window.Visible = true
 
@@ -175,235 +167,300 @@ function Axiom:CreateWindow(Settings)
     --========================================================
 
     local ScreenGui = Create("ScreenGui", {
-
         Name = "AxiomUI",
 
-        Parent =
-            LocalPlayer:WaitForChild("PlayerGui"),
+        Parent = LocalPlayer:WaitForChild("PlayerGui"),
 
         IgnoreGuiInset = true,
 
         ResetOnSpawn = false,
 
-        ZIndexBehavior =
-            Enum.ZIndexBehavior.Sibling
-
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
     })
 
-    --========================================================
-    -- MAIN WINDOW
-    --========================================================
+    Window.ScreenGui = ScreenGui
 
-    local Main = Create("Frame", {
+    --========================================================
+    -- OUTER SHELL
+    --========================================================
+    -- This layer owns ALL four corners.
+    -- Nothing else is allowed to touch the outer boundary.
 
+    local Shell = Create("Frame", {
         Parent = ScreenGui,
 
-        AnchorPoint =
-            Vector2.new(0.5, 0.5),
+        AnchorPoint = Vector2.new(0.5, 0.5),
 
-        Position =
-            UDim2.fromScale(0.5, 0.5),
+        Position = UDim2.fromScale(0.5, 0.5),
 
-        Size =
-            UDim2.fromOffset(900, 560),
+        Size = UDim2.fromOffset(
+            WINDOW_WIDTH,
+            WINDOW_HEIGHT
+        ),
 
-        BackgroundColor3 =
-            Theme.Background,
+        BackgroundTransparency = 1,
+
+        BorderSizePixel = 0,
+    })
+
+    Window.Shell = Shell
+
+    --========================================================
+    -- OUTER BORDER
+    --========================================================
+
+    local OuterBorder = Create("Frame", {
+        Parent = Shell,
+
+        Position = UDim2.fromOffset(0, 0),
+
+        Size = UDim2.fromScale(1, 1),
+
+        BackgroundColor3 = Theme.Background,
 
         BorderSizePixel = 0,
 
-        ClipsDescendants = true
+        ClipsDescendants = true,
 
+        ZIndex = 1,
     })
 
-    -- FIX:
-    -- Rounded outer window
-
-    Corner(Main, 14)
+    Corner(OuterBorder, 15)
 
     Stroke(
-        Main,
+        OuterBorder,
         Theme.White,
         0.72,
         1
     )
 
-    --========================================================
-    -- SUBTLE BACKGROUND
-    --========================================================
-
-    -- Very soft vertical gradient.
-    -- Keeps it looking like a real interface instead
-    -- of a generated sci-fi wallpaper.
-
-    local BackgroundGradient =
-        Create("UIGradient", {
-
-            Parent = Main,
-
-            Rotation = 90,
-
-            Color = ColorSequence.new({
-
-                ColorSequenceKeypoint.new(
-                    0,
-                    Color3.fromRGB(12,12,15)
-                ),
-
-                ColorSequenceKeypoint.new(
-                    0.45,
-                    Theme.Background
-                ),
-
-                ColorSequenceKeypoint.new(
-                    1,
-                    Color3.fromRGB(4,4,6)
-                )
-
-            })
-
-        })
+    Window.Main = OuterBorder
 
     --========================================================
-    -- SMALL NEON GLOW
+    -- INNER CONTENT
     --========================================================
+    -- Slight inset ensures the border can never be covered.
 
-    local Glow = Create("Frame", {
+    local Inner = Create("Frame", {
+        Parent = OuterBorder,
 
-        Parent = Main,
+        Position = UDim2.fromOffset(1, 1),
 
-        Position =
-            UDim2.new(-0.08,0,-0.05,0),
+        Size = UDim2.new(1, -2, 1, -2),
 
-        Size =
-            UDim2.fromOffset(240,240),
-
-        BackgroundColor3 =
-            Color3.fromRGB(255,255,255),
-
-        BackgroundTransparency =
-            0.975,
+        BackgroundColor3 = Theme.Background,
 
         BorderSizePixel = 0,
 
-        ZIndex = 0
+        ClipsDescendants = true,
 
+        ZIndex = 2,
     })
 
-    Corner(Glow, 200)
+    Corner(Inner, 14)
 
-    Stroke(
-        Glow,
-        Theme.Neon,
-        0.88,
-        2
-    )
+    --========================================================
+    -- BACKGROUND GRADIENT
+    --========================================================
 
-    local Glow2 = Create("Frame", {
+    local Gradient = Create("UIGradient", {
+        Parent = Inner,
 
-        Parent = Main,
+        Rotation = 90,
 
-        Position =
-            UDim2.new(0.78,0,0.75,0),
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(
+                0,
+                Color3.fromRGB(10, 10, 13)
+            ),
 
-        Size =
-            UDim2.fromOffset(200,200),
+            ColorSequenceKeypoint.new(
+                0.45,
+                Color3.fromRGB(6, 6, 8)
+            ),
 
-        BackgroundColor3 =
-            Color3.fromRGB(230,230,255),
-
-        BackgroundTransparency =
-            0.982,
-
-        BorderSizePixel = 0,
-
-        ZIndex = 0
-
+            ColorSequenceKeypoint.new(
+                1,
+                Color3.fromRGB(4, 4, 6)
+            ),
+        }),
     })
 
-    Corner(Glow2, 200)
-
-    Stroke(
-        Glow2,
-        Theme.Neon,
-        0.92,
-        2
-    )
-
     --========================================================
-    -- SUBTLE PARTICLES
+    -- ORB BACKGROUND SYSTEM
     --========================================================
 
-    local ParticleLayer = Create("Frame", {
+    local BackgroundLayer = Create("Frame", {
+        Parent = Inner,
 
-        Parent = Main,
-
-        Size = UDim2.fromScale(1,1),
+        Size = UDim2.fromScale(1, 1),
 
         BackgroundTransparency = 1,
 
         ClipsDescendants = true,
 
-        ZIndex = 1
-
+        ZIndex = 3,
     })
 
-    math.randomseed(os.clock())
+    local Orb1 = Create("Frame", {
+        Parent = BackgroundLayer,
 
-    for i = 1, 10 do
+        Size = UDim2.fromOffset(270, 270),
 
-        local Particle = Create("Frame", {
+        BackgroundColor3 = Theme.Neon,
 
-            Parent = ParticleLayer,
+        BackgroundTransparency = 0.975,
 
-            Position =
-                UDim2.fromScale(
-                    math.random(10,90)/100,
-                    math.random(10,90)/100
-                ),
+        BorderSizePixel = 0,
 
-            Size =
-                UDim2.fromOffset(
-                    math.random(1,2),
-                    math.random(1,2)
-                ),
+        ZIndex = 3,
+    })
 
-            BackgroundColor3 =
-                Theme.White,
+    Corner(Orb1, 270)
 
-            BackgroundTransparency =
-                math.random(70,90)/100,
+    Stroke(
+        Orb1,
+        Theme.Neon,
+        0.92,
+        2
+    )
 
-            BorderSizePixel = 0
+    local Orb1Glow = Create("Frame", {
+        Parent = Orb1,
 
-        })
+        AnchorPoint = Vector2.new(0.5, 0.5),
 
-        Corner(Particle, 5)
+        Position = UDim2.fromScale(0.5, 0.5),
 
-        task.spawn(function()
+        Size = UDim2.new(1, -26, 1, -26),
 
-            while Particle.Parent do
+        BackgroundColor3 = Theme.Neon,
 
-                Tween(
+        BackgroundTransparency = 0.985,
 
-                    Particle,
+        BorderSizePixel = 0,
 
-                    {
-                        BackgroundTransparency =
-                            math.random(65,92)/100
-                    },
+        ZIndex = 3,
+    })
 
-                    math.random(15,30)/10
+    Corner(Orb1Glow, 270)
 
-                )
+    local Orb2 = Create("Frame", {
+        Parent = BackgroundLayer,
 
-                task.wait(
-                    math.random(15,30)/10
-                )
+        Size = UDim2.fromOffset(220, 220),
 
-            end
+        BackgroundColor3 = Theme.Neon,
 
-        end)
+        BackgroundTransparency = 0.978,
+
+        BorderSizePixel = 0,
+
+        ZIndex = 3,
+    })
+
+    Corner(Orb2, 220)
+
+    Stroke(
+        Orb2,
+        Theme.Neon,
+        0.94,
+        2
+    )
+
+    local Orb2Glow = Create("Frame", {
+        Parent = Orb2,
+
+        AnchorPoint = Vector2.new(0.5, 0.5),
+
+        Position = UDim2.fromScale(0.5, 0.5),
+
+        Size = UDim2.new(1, -22, 1, -22),
+
+        BackgroundColor3 = Theme.Neon,
+
+        BackgroundTransparency = 0.988,
+
+        BorderSizePixel = 0,
+
+        ZIndex = 3,
+    })
+
+    Corner(Orb2Glow, 220)
+
+    -- Initial positions
+    Orb1.Position = UDim2.new(
+        -0.08,
+        0,
+        -0.08,
+        0
+    )
+
+    Orb2.Position = UDim2.new(
+        0.80,
+        0,
+        0.72,
+        0
+    )
+
+    --========================================================
+    -- ORB MOVEMENT
+    --========================================================
+
+    local OrbPositions = {
+        {
+            UDim2.new(-0.08, 0, -0.08, 0),
+            UDim2.new(0.79, 0, 0.70, 0),
+        },
+
+        {
+            UDim2.new(0.12, 0, -0.18, 0),
+            UDim2.new(0.71, 0, 0.56, 0),
+        },
+
+        {
+            UDim2.new(-0.13, 0, 0.28, 0),
+            UDim2.new(0.84, 0, 0.18, 0),
+        },
+
+        {
+            UDim2.new(0.20, 0, 0.64, 0),
+            UDim2.new(-0.08, 0, 0.66, 0),
+        },
+
+        {
+            UDim2.new(0.60, 0, -0.18, 0),
+            UDim2.new(0.25, 0, 0.76, 0),
+        },
+    }
+
+    local CurrentOrbSet = 1
+
+    local function MoveOrbs()
+
+        CurrentOrbSet += 1
+
+        if CurrentOrbSet > #OrbPositions then
+            CurrentOrbSet = 1
+        end
+
+        local Pair = OrbPositions[CurrentOrbSet]
+
+        Tween(
+            Orb1,
+            {
+                Position = Pair[1]
+            },
+            0.75
+        )
+
+        Tween(
+            Orb2,
+            {
+                Position = Pair[2]
+            },
+            0.9
+        )
 
     end
 
@@ -412,155 +469,159 @@ function Axiom:CreateWindow(Settings)
     --========================================================
 
     local TopBar = Create("Frame", {
+        Parent = Inner,
 
-        Parent = Main,
+        Position = UDim2.fromOffset(0, 0),
 
-        Size =
-            UDim2.new(1,0,0,54),
+        Size = UDim2.new(
+            1,
+            0,
+            0,
+            TOPBAR_HEIGHT
+        ),
 
-        BackgroundColor3 =
-            Theme.Background2,
-
-        BackgroundTransparency =
-            0.04,
+        BackgroundColor3 = Theme.Background2,
 
         BorderSizePixel = 0,
 
-        ZIndex = 10
-
+        ZIndex = 20,
     })
 
     local TopLine = Create("Frame", {
-
         Parent = TopBar,
 
-        Position =
-            UDim2.new(0,0,1,-1),
+        Position = UDim2.new(0, 0, 1, -1),
 
-        Size =
-            UDim2.new(1,0,0,1),
+        Size = UDim2.new(1, 0, 0, 1),
 
-        BackgroundColor3 =
-            Theme.Border,
+        BackgroundColor3 = Theme.Border,
 
-        BorderSizePixel = 0
+        BorderSizePixel = 0,
 
+        ZIndex = 21,
     })
 
     local LogoDot = Create("Frame", {
-
         Parent = TopBar,
 
-        Position =
-            UDim2.new(0,22,0.5,-5),
+        Position = UDim2.new(
+            0,
+            21,
+            0.5,
+            -5
+        ),
 
-        Size =
-            UDim2.fromOffset(10,10),
+        Size = UDim2.fromOffset(10, 10),
 
-        BackgroundColor3 =
-            Theme.White,
+        BackgroundColor3 = Theme.White,
 
-        BorderSizePixel = 0
+        BorderSizePixel = 0,
 
+        ZIndex = 22,
     })
 
     Corner(LogoDot, 10)
 
     local Title = Label(
-
         TopBar,
-
-        Settings.Title or
-            "Axiom UI Library",
-
+        Settings.Title or "Axiom UI Library",
         15,
-
         Theme.Text,
-
         Enum.Font.GothamMedium
-
     )
 
-    Title.Position =
-        UDim2.new(0,46,0,0)
+    Title.Position = UDim2.new(
+        0,
+        45,
+        0,
+        0
+    )
 
-    Title.Size =
-        UDim2.fromOffset(200,54)
+    Title.Size = UDim2.fromOffset(
+        205,
+        TOPBAR_HEIGHT
+    )
+
+    Title.ZIndex = 22
 
     local Divider = Create("Frame", {
-
         Parent = TopBar,
 
-        Position =
-            UDim2.new(0,250,0.5,-10),
+        Position = UDim2.new(
+            0,
+            248,
+            0.5,
+            -10
+        ),
 
-        Size =
-            UDim2.fromOffset(1,20),
+        Size = UDim2.fromOffset(1, 20),
 
-        BackgroundColor3 =
-            Theme.Border,
+        BackgroundColor3 = Theme.Border,
 
-        BorderSizePixel = 0
+        BorderSizePixel = 0,
 
+        ZIndex = 22,
     })
 
     local Version = Label(
-
         TopBar,
-
-        Settings.Version or "v3.1.0",
-
+        Settings.Version or "v4.0.0",
         10,
-
         Theme.SubText,
-
         Enum.Font.GothamMedium
-
     )
 
-    Version.Position =
-        UDim2.new(0,269,0,0)
+    Version.Position = UDim2.new(
+        0,
+        267,
+        0,
+        0
+    )
 
-    Version.Size =
-        UDim2.fromOffset(70,54)
+    Version.Size = UDim2.fromOffset(
+        70,
+        TOPBAR_HEIGHT
+    )
 
-    -- Close
+    Version.ZIndex = 22
 
-    local Close =
-        TextButton(TopBar)
+    local Close = TextButton(TopBar)
 
     Close.AnchorPoint =
-        Vector2.new(1,0.5)
+        Vector2.new(1, 0.5)
 
     Close.Position =
-        UDim2.new(1,-16,0.5,0)
+        UDim2.new(1, -13, 0.5, 0)
 
     Close.Size =
-        UDim2.fromOffset(28,28)
+        UDim2.fromOffset(28, 28)
+
+    Close.ZIndex = 23
 
     local CloseText = Label(
         Close,
         "×",
-        19,
+        18,
         Theme.SubText,
         Enum.Font.Gotham
     )
 
     CloseText.Size =
-        UDim2.fromScale(1,1)
+        UDim2.fromScale(1, 1)
 
     CloseText.TextXAlignment =
         Enum.TextXAlignment.Center
+
+    CloseText.ZIndex = 24
 
     Close.MouseEnter:Connect(function()
 
         Tween(
             CloseText,
             {
-                TextColor3 =
-                    Theme.Danger
+                TextColor3 = Theme.Danger
             },
-            0.15
+            0.12
         )
 
     end)
@@ -570,10 +631,9 @@ function Axiom:CreateWindow(Settings)
         Tween(
             CloseText,
             {
-                TextColor3 =
-                    Theme.SubText
+                TextColor3 = Theme.SubText
             },
-            0.15
+            0.12
         )
 
     end)
@@ -589,98 +649,107 @@ function Axiom:CreateWindow(Settings)
     --========================================================
 
     local Sidebar = Create("Frame", {
+        Parent = Inner,
 
-        Parent = Main,
+        Position = UDim2.fromOffset(
+            0,
+            TOPBAR_HEIGHT
+        ),
 
-        Position =
-            UDim2.new(0,0,0,54),
+        Size = UDim2.new(
+            0,
+            SIDEBAR_WIDTH,
+            1,
+            -TOPBAR_HEIGHT
+        ),
 
-        Size =
-            UDim2.new(0,214,1,-54),
-
-        BackgroundColor3 =
-            Theme.Sidebar,
+        BackgroundColor3 = Theme.Sidebar,
 
         BorderSizePixel = 0,
 
-        ZIndex = 5
-
+        ZIndex = 10,
     })
-
-    -- IMPORTANT:
-    -- Do NOT round sidebar itself.
-    -- Outer Main handles all four corners.
 
     local SidebarLine = Create("Frame", {
-
         Parent = Sidebar,
 
-        Position =
-            UDim2.new(1,-1,0,0),
+        Position = UDim2.new(1, -1, 0, 0),
 
-        Size =
-            UDim2.new(0,1,1,0),
+        Size = UDim2.new(0, 1, 1, 0),
 
-        BackgroundColor3 =
-            Theme.Border,
+        BackgroundColor3 = Theme.Border,
 
-        BorderSizePixel = 0
+        BorderSizePixel = 0,
 
+        ZIndex = 11,
     })
 
+    --========================================================
+    -- SIDEBAR BRAND
+    --========================================================
+
     local Brand = Label(
-
         Sidebar,
-
         "AXIOM",
-
         18,
-
         Theme.White,
-
         Enum.Font.GothamBlack
-
     )
 
-    Brand.Position =
-        UDim2.new(0,20,0,18)
+    Brand.Position = UDim2.fromOffset(
+        20,
+        17
+    )
 
-    Brand.Size =
-        UDim2.fromOffset(150,24)
+    Brand.Size = UDim2.fromOffset(
+        150,
+        24
+    )
+
+    Brand.ZIndex = 12
 
     local BrandSub = Label(
-
         Sidebar,
-
         "UI LIBRARY",
-
         9,
-
         Theme.Muted,
-
         Enum.Font.GothamMedium
-
     )
 
-    BrandSub.Position =
-        UDim2.new(0,21,0,39)
+    BrandSub.Position = UDim2.fromOffset(
+        21,
+        38
+    )
 
-    BrandSub.Size =
-        UDim2.fromOffset(120,18)
+    BrandSub.Size = UDim2.fromOffset(
+        130,
+        17
+    )
+
+    BrandSub.ZIndex = 12
 
     --========================================================
-    -- TAB CONTAINER
+    -- TAB HOLDER
     --========================================================
+    -- IMPORTANT:
+    -- No AutomaticSize on tab buttons.
+    -- No UIListLayout with dynamic button height.
+    -- CanvasSize is calculated manually.
 
     local TabHolder = Create("ScrollingFrame", {
-
         Parent = Sidebar,
 
-        Position =
-            UDim2.new(0,12,0,73),
+        Position = UDim2.fromOffset(
+            11,
+            69
+        ),
 
-        Size =
-            UDim2.new(1,-24,1,-160),
+        Size = UDim2.new(
+            1,
+            -22,
+            1,
+            -152
+        ),
 
         BackgroundTransparency = 1,
 
@@ -688,77 +757,109 @@ function Axiom:CreateWindow(Settings)
 
         ScrollBarThickness = 2,
 
-        ScrollBarImageColor3 =
-            Theme.White,
+        ScrollBarImageColor3 = Theme.White,
 
-        CanvasSize =
-            UDim2.new(0,0,0,0),
-
-        AutomaticCanvasSize =
-            Enum.AutomaticSize.Y,
+        CanvasSize = UDim2.fromOffset(
+            0,
+            0
+        ),
 
         ScrollingDirection =
-            Enum.ScrollingDirection.Y
+            Enum.ScrollingDirection.Y,
 
+        ZIndex = 12,
     })
 
-    local TabLayout = Create("UIListLayout", {
+    local TabLayout = Create(
+        "UIListLayout",
+        {
+            Parent = TabHolder,
 
-        Parent = TabHolder,
+            FillDirection =
+                Enum.FillDirection.Vertical,
 
-        Padding =
-            UDim.new(0,5),
+            HorizontalAlignment =
+                Enum.HorizontalAlignment.Center,
 
-        SortOrder =
-            Enum.SortOrder.LayoutOrder
+            VerticalAlignment =
+                Enum.VerticalAlignment.Top,
 
-    })
+            Padding =
+                UDim.new(0, TAB_GAP),
 
-    -- Prevent layout from collapsing / overlapping.
+            SortOrder =
+                Enum.SortOrder.LayoutOrder,
+        }
+    )
 
-    TabLayout.HorizontalAlignment =
-        Enum.HorizontalAlignment.Center
+    local function UpdateTabCanvas()
+
+        local Count = #Window.TabOrder
+
+        local Height =
+            Count * TAB_HEIGHT
+            + math.max(0, Count - 1)
+              * TAB_GAP
+
+        TabHolder.CanvasSize =
+            UDim2.fromOffset(
+                0,
+                Height
+            )
+
+    end
 
     --========================================================
     -- USER CARD
     --========================================================
 
     local UserCard = Create("Frame", {
-
         Parent = Sidebar,
 
         AnchorPoint =
-            Vector2.new(0.5,1),
+            Vector2.new(0.5, 1),
 
         Position =
-            UDim2.new(0.5,0,1,-13),
+            UDim2.new(
+                0.5,
+                0,
+                1,
+                -12
+            ),
 
         Size =
-            UDim2.new(1,-24,0,72),
+            UDim2.new(
+                1,
+                -22,
+                0,
+                68
+            ),
 
         BackgroundColor3 =
             Theme.Card,
 
-        BorderSizePixel = 0
+        BorderSizePixel = 0,
 
+        ZIndex = 12,
     })
 
-    Corner(UserCard,9)
+    Corner(UserCard, 8)
 
     Stroke(
         UserCard,
-        Theme.Border
+        Theme.Border,
+        0,
+        1
     )
 
     local Avatar = Create("ImageLabel", {
-
         Parent = UserCard,
 
         Position =
-            UDim2.new(0,10,0,10),
+            UDim2.fromOffset(9, 9),
 
         Size =
-            UDim2.fromOffset(42,42),
+            UDim2.fromOffset(40, 40),
 
         BackgroundColor3 =
             Theme.Background,
@@ -768,111 +869,106 @@ function Axiom:CreateWindow(Settings)
         Image =
             "rbxthumb://type=AvatarHeadShot&id="
             .. tostring(LocalPlayer.UserId)
-            .. "&w=150&h=150"
+            .. "&w=150&h=150",
 
+        ZIndex = 13,
     })
 
-    Corner(Avatar,21)
+    Corner(Avatar, 20)
 
     local PlayerName = Label(
-
         UserCard,
-
         LocalPlayer.DisplayName,
-
         11,
-
         Theme.Text,
-
         Enum.Font.GothamMedium
-
     )
 
     PlayerName.Position =
-        UDim2.new(0,61,0,10)
+        UDim2.fromOffset(58, 9)
 
     PlayerName.Size =
-        UDim2.new(1,-70,0,18)
+        UDim2.new(1, -68, 0, 17)
+
+    PlayerName.ZIndex = 13
 
     local Username = Label(
-
         UserCard,
-
         "@" .. LocalPlayer.Name,
-
         9,
-
         Theme.Muted
-
     )
 
     Username.Position =
-        UDim2.new(0,61,0,29)
+        UDim2.fromOffset(58, 28)
 
     Username.Size =
-        UDim2.new(1,-70,0,16)
+        UDim2.new(1, -68, 0, 15)
 
-    local Dot = Create("Frame", {
+    Username.ZIndex = 13
 
+    local StatusDot = Create("Frame", {
         Parent = UserCard,
 
         Position =
-            UDim2.new(0,12,1,-17),
+            UDim2.fromOffset(11, 54),
 
         Size =
-            UDim2.fromOffset(6,6),
+            UDim2.fromOffset(6, 6),
 
-        BackgroundColor3 =
-            Theme.Success,
+        BackgroundColor3 = Theme.Success,
 
-        BorderSizePixel = 0
+        BorderSizePixel = 0,
 
+        ZIndex = 13,
     })
 
-    Corner(Dot,6)
+    Corner(StatusDot, 6)
 
-    local Ready = Label(
-
+    local Status = Label(
         UserCard,
-
         "Ready",
-
         9,
-
         Theme.Success,
-
         Enum.Font.GothamMedium
-
     )
 
-    Ready.Position =
-        UDim2.new(0,24,1,-24)
+    Status.Position =
+        UDim2.fromOffset(23, 48)
 
-    Ready.Size =
-        UDim2.fromOffset(60,18)
+    Status.Size =
+        UDim2.fromOffset(60, 17)
+
+    Status.ZIndex = 13
 
     --========================================================
     -- CONTENT
     --========================================================
 
     local Content = Create("Frame", {
+        Parent = Inner,
 
-        Parent = Main,
+        Position = UDim2.fromOffset(
+            SIDEBAR_WIDTH,
+            TOPBAR_HEIGHT
+        ),
 
-        Position =
-            UDim2.new(0,214,0,54),
-
-        Size =
-            UDim2.new(1,-214,1,-54),
+        Size = UDim2.new(
+            1,
+            -SIDEBAR_WIDTH,
+            1,
+            -TOPBAR_HEIGHT
+        ),
 
         BackgroundTransparency = 1,
 
-        ZIndex = 3
+        BorderSizePixel = 0,
 
+        ZIndex = 15,
     })
 
     --========================================================
-    -- DRAGGING
+    -- DRAG
     --========================================================
 
     local Dragging = false
@@ -886,11 +982,8 @@ function Axiom:CreateWindow(Settings)
 
             Dragging = true
 
-            DragStart =
-                Input.Position
-
-            StartPosition =
-                Main.Position
+            DragStart = Input.Position
+            StartPosition = Shell.Position
 
         end
 
@@ -915,28 +1008,37 @@ function Axiom:CreateWindow(Settings)
 
         if Input.UserInputType ~=
             Enum.UserInputType.MouseMovement then
+
             return
+
         end
 
         local Delta =
-            Input.Position - DragStart
+            Input.Position -
+            DragStart
 
-        Main.Position =
+        Shell.Position =
             UDim2.new(
-
                 StartPosition.X.Scale,
-
                 StartPosition.X.Offset +
                     Delta.X,
 
                 StartPosition.Y.Scale,
-
                 StartPosition.Y.Offset +
                     Delta.Y
-
             )
 
     end)
+
+    --========================================================
+    -- ORB MOVE WHEN CHANGING TAB
+    --========================================================
+
+    local function OnTabChanged()
+
+        MoveOrbs()
+
+    end
 
     --========================================================
     -- VISIBILITY
@@ -946,7 +1048,7 @@ function Axiom:CreateWindow(Settings)
 
         Window.Visible = Value
 
-        Main.Visible = Value
+        Shell.Visible = Value
 
     end
 
@@ -955,6 +1057,16 @@ function Axiom:CreateWindow(Settings)
     --========================================================
 
     function Window:AddTabs(Name)
+
+        assert(
+            type(Name) == "string",
+            "Tab name must be a string"
+        )
+
+        -- Prevent duplicate tab names.
+        if Window.Tabs[Name] then
+            return Window.Tabs[Name]
+        end
 
         local Tab = {}
 
@@ -968,18 +1080,34 @@ function Axiom:CreateWindow(Settings)
         local TabButton =
             TextButton(TabHolder)
 
-        -- FIX #1
-        -- Explicit fixed height.
-        -- Never AutomaticSize.
+        -- HARD FIX:
+        -- Absolute height + no automatic resizing.
 
         TabButton.Size =
-            UDim2.new(
-                1,0,
-                0,38
+            UDim2.fromOffset(
+                TabHolder.AbsoluteSize.X > 0
+                    and TabHolder.AbsoluteSize.X
+                    or SIDEBAR_WIDTH - 22,
+                TAB_HEIGHT
             )
 
+        -- Reapply width whenever sidebar changes.
+        local function UpdateTabWidth()
+
+            TabButton.Size =
+                UDim2.new(
+                    1,
+                    0,
+                    0,
+                    TAB_HEIGHT
+                )
+
+        end
+
+        UpdateTabWidth()
+
         TabButton.LayoutOrder =
-            #Window.Tabs + 1
+            #Window.TabOrder + 1
 
         TabButton.BackgroundColor3 =
             Theme.Card
@@ -987,85 +1115,124 @@ function Axiom:CreateWindow(Settings)
         TabButton.BackgroundTransparency =
             1
 
-        Corner(TabButton,7)
+        TabButton.BorderSizePixel = 0
+
+        TabButton.ZIndex = 13
+
+        Corner(TabButton, 7)
+
+        --====================================================
+        -- TAB INDICATOR
+        --====================================================
 
         local Indicator = Create("Frame", {
 
             Parent = TabButton,
 
             Position =
-                UDim2.new(0,0,0.5,-8),
+                UDim2.new(
+                    0,
+                    0,
+                    0.5,
+                    -8
+                ),
 
             Size =
-                UDim2.fromOffset(3,16),
+                UDim2.fromOffset(
+                    3,
+                    16
+                ),
 
             BackgroundColor3 =
                 Theme.White,
 
             BackgroundTransparency = 1,
 
-            BorderSizePixel = 0
+            BorderSizePixel = 0,
+
+            ZIndex = 14
 
         })
 
-        Corner(Indicator,3)
+        Corner(Indicator, 3)
+
+        --====================================================
+        -- TAB ICON
+        --====================================================
 
         local Icon = Label(
-
             TabButton,
-
             "◆",
-
             7,
-
             Theme.Muted,
-
             Enum.Font.GothamBold
-
         )
 
         Icon.Position =
-            UDim2.new(0,10,0,0)
+            UDim2.fromOffset(
+                9,
+                0
+            )
 
         Icon.Size =
-            UDim2.fromOffset(22,38)
+            UDim2.fromOffset(
+                22,
+                TAB_HEIGHT
+            )
 
         Icon.TextXAlignment =
             Enum.TextXAlignment.Center
 
+        Icon.ZIndex = 14
+
+        --====================================================
+        -- TAB TEXT
+        --====================================================
+
         local TabText = Label(
-
             TabButton,
-
             Name,
-
             11,
-
             Theme.SubText,
-
             Enum.Font.GothamMedium
-
         )
 
         TabText.Position =
-            UDim2.new(0,40,0,0)
+            UDim2.fromOffset(
+                39,
+                0
+            )
 
         TabText.Size =
-            UDim2.new(1,-45,1,0)
+            UDim2.new(
+                1,
+                -44,
+                1,
+                0
+            )
+
+        TabText.ZIndex = 14
 
         --====================================================
         -- PAGE
         --====================================================
 
         local Page = Create("ScrollingFrame", {
-
             Parent = Content,
 
             Position =
-                UDim2.new(0,25,0,23),
+                UDim2.fromOffset(
+                    25,
+                    23
+                ),
 
             Size =
-                UDim2.new(1,-50,1,-46),
+                UDim2.new(
+                    1,
+                    -50,
+                    1,
+                    -46
+                ),
 
             BackgroundTransparency = 1,
 
@@ -1079,16 +1246,20 @@ function Axiom:CreateWindow(Settings)
                 Theme.White,
 
             CanvasSize =
-                UDim2.new(0,0,0,0),
+                UDim2.fromOffset(
+                    0,
+                    0
+                ),
 
-            AutomaticCanvasSize =
-                Enum.AutomaticSize.Y
+            ScrollingDirection =
+                Enum.ScrollingDirection.Y,
 
+            ZIndex = 16,
         })
 
-        local PageLayout =
-            Create("UIListLayout", {
-
+        local PageLayout = Create(
+            "UIListLayout",
+            {
                 Parent = Page,
 
                 FillDirection =
@@ -1097,21 +1268,41 @@ function Axiom:CreateWindow(Settings)
                 HorizontalAlignment =
                     Enum.HorizontalAlignment.Center,
 
+                VerticalAlignment =
+                    Enum.VerticalAlignment.Top,
+
                 Padding =
-                    UDim.new(0,12),
+                    UDim.new(0, 12),
 
                 SortOrder =
-                    Enum.SortOrder.LayoutOrder
+                    Enum.SortOrder.LayoutOrder,
+            }
+        )
 
-            })
+        local function UpdatePageCanvas()
+
+            Page.CanvasSize =
+                UDim2.fromOffset(
+                    0,
+                    PageLayout.AbsoluteContentSize.Y
+                        + 12
+                )
+
+        end
+
+        PageLayout:GetPropertyChangedSignal(
+            "AbsoluteContentSize"
+        ):Connect(
+            UpdatePageCanvas
+        )
 
         --====================================================
-        -- ACTIVATE
+        -- ACTIVATE TAB
         --====================================================
 
         function Tab:Activate()
 
-            for _,Other in pairs(Window.Tabs) do
+            for _, Other in ipairs(Window.TabOrder) do
 
                 if Other ~= Tab then
 
@@ -1147,8 +1338,7 @@ function Axiom:CreateWindow(Settings)
                     Tween(
                         Other.Indicator,
                         {
-                            BackgroundTransparency =
-                                1
+                            BackgroundTransparency = 1
                         },
                         0.12
                     )
@@ -1162,13 +1352,11 @@ function Axiom:CreateWindow(Settings)
             Tween(
                 TabButton,
                 {
+                    BackgroundTransparency = 0,
                     BackgroundColor3 =
-                        Theme.CardHover,
-
-                    BackgroundTransparency =
-                        0
+                        Theme.CardHover
                 },
-                0.12
+                0.13
             )
 
             Tween(
@@ -1177,7 +1365,7 @@ function Axiom:CreateWindow(Settings)
                     TextColor3 =
                         Theme.White
                 },
-                0.12
+                0.13
             )
 
             Tween(
@@ -1186,29 +1374,28 @@ function Axiom:CreateWindow(Settings)
                     TextColor3 =
                         Theme.White
                 },
-                0.12
+                0.13
             )
 
             Tween(
                 Indicator,
                 {
-                    BackgroundTransparency =
-                        0
+                    BackgroundTransparency = 0
                 },
-                0.12
+                0.13
             )
 
             Window.CurrentTab = Tab
 
+            UpdatePageCanvas()
+
+            OnTabChanged()
+
         end
 
-        TabButton.MouseButton1Click:Connect(
-            function()
-
-                Tab:Activate()
-
-            end
-        )
+        --====================================================
+        -- HOVER
+        --====================================================
 
         TabButton.MouseEnter:Connect(
             function()
@@ -1218,11 +1405,10 @@ function Axiom:CreateWindow(Settings)
                     Tween(
                         TabButton,
                         {
-                            BackgroundColor3 =
-                                Theme.Card,
-
                             BackgroundTransparency =
-                                0.1
+                                0.12,
+                            BackgroundColor3 =
+                                Theme.Card
                         },
                         0.12
                     )
@@ -1251,6 +1437,14 @@ function Axiom:CreateWindow(Settings)
             end
         )
 
+        TabButton.MouseButton1Click:Connect(
+            function()
+
+                Tab:Activate()
+
+            end
+        )
+
         --====================================================
         -- SECTION
         --====================================================
@@ -1259,12 +1453,21 @@ function Axiom:CreateWindow(Settings)
 
             local Section = {}
 
+            --================================================
+            -- SECTION FRAME
+            --================================================
+
             local Frame = Create("Frame", {
 
                 Parent = Page,
 
                 Size =
-                    UDim2.new(1,0,0,0),
+                    UDim2.new(
+                        1,
+                        0,
+                        0,
+                        0
+                    ),
 
                 AutomaticSize =
                     Enum.AutomaticSize.Y,
@@ -1272,102 +1475,146 @@ function Axiom:CreateWindow(Settings)
                 BackgroundColor3 =
                     Theme.Card,
 
-                BorderSizePixel = 0
+                BorderSizePixel = 0,
+
+                ZIndex = 17
 
             })
 
-            Corner(Frame,9)
+            Corner(Frame, 9)
 
             Stroke(
                 Frame,
                 Theme.Border,
-                0
+                0,
+                1
             )
+
+            --================================================
+            -- HEADER
+            --================================================
 
             local Header = Create("Frame", {
 
                 Parent = Frame,
 
                 Size =
-                    UDim2.new(1,0,0,44),
+                    UDim2.new(
+                        1,
+                        0,
+                        0,
+                        44
+                    ),
 
-                BackgroundTransparency = 1
+                BackgroundTransparency = 1,
+
+                ZIndex = 18
 
             })
 
-            local HeaderText =
-                Label(
-
-                    Header,
-
-                    Name,
-
-                    12,
-
-                    Theme.Text,
-
-                    Enum.Font.GothamMedium
-
-                )
+            local HeaderText = Label(
+                Header,
+                Name,
+                12,
+                Theme.Text,
+                Enum.Font.GothamMedium
+            )
 
             HeaderText.Position =
-                UDim2.new(0,14,0,0)
+                UDim2.fromOffset(
+                    14,
+                    0
+                )
 
             HeaderText.Size =
-                UDim2.new(1,-28,1,0)
+                UDim2.new(
+                    1,
+                    -28,
+                    1,
+                    0
+                )
+
+            HeaderText.ZIndex = 19
 
             local HeaderLine = Create(
                 "Frame",
                 {
-
                     Parent = Frame,
 
                     Position =
-                        UDim2.new(0,14,0,43),
+                        UDim2.new(
+                            0,
+                            14,
+                            0,
+                            43
+                        ),
 
                     Size =
-                        UDim2.new(1,-28,0,1),
+                        UDim2.new(
+                            1,
+                            -28,
+                            0,
+                            1
+                        ),
 
                     BackgroundColor3 =
                         Theme.Border,
 
-                    BorderSizePixel = 0
+                    BorderSizePixel = 0,
 
+                    ZIndex = 19
                 }
             )
 
             local Container = Create(
                 "Frame",
                 {
-
                     Parent = Frame,
 
                     Position =
-                        UDim2.new(0,11,0,51),
+                        UDim2.fromOffset(
+                            11,
+                            51
+                        ),
 
                     Size =
-                        UDim2.new(1,-22,0,0),
+                        UDim2.new(
+                            1,
+                            -22,
+                            0,
+                            0
+                        ),
 
                     AutomaticSize =
                         Enum.AutomaticSize.Y,
 
-                    BackgroundTransparency = 1
+                    BackgroundTransparency = 1,
 
+                    ZIndex = 18
                 }
             )
 
-            local ContainerLayout =
-                Create("UIListLayout", {
-
+            local ContainerLayout = Create(
+                "UIListLayout",
+                {
                     Parent = Container,
 
+                    FillDirection =
+                        Enum.FillDirection.Vertical,
+
+                    HorizontalAlignment =
+                        Enum.HorizontalAlignment.Center,
+
+                    VerticalAlignment =
+                        Enum.VerticalAlignment.Top,
+
                     Padding =
-                        UDim.new(0,6),
+                        UDim.new(0, 6),
 
                     SortOrder =
-                        Enum.SortOrder.LayoutOrder
-
-                })
+                        Enum.SortOrder.LayoutOrder,
+                }
+            )
 
             --================================================
             -- TOGGLE
@@ -1386,124 +1633,147 @@ function Axiom:CreateWindow(Settings)
                     TextButton(Container)
 
                 Row.Size =
-                    UDim2.new(1,0,0,51)
+                    UDim2.new(
+                        1,
+                        0,
+                        0,
+                        51
+                    )
 
                 Row.BackgroundColor3 =
                     Theme.Background2
 
                 Row.BackgroundTransparency = 0
 
-                Corner(Row,7)
+                Row.ZIndex = 19
+
+                Corner(Row, 7)
 
                 Stroke(
                     Row,
-                    Theme.Border
+                    Theme.Border,
+                    0,
+                    1
                 )
 
-                local NameText =
-                    Label(
-
-                        Row,
-
-                        Config.Name or "Toggle",
-
-                        11,
-
-                        Theme.Text,
-
-                        Enum.Font.GothamMedium
-
-                    )
+                local NameText = Label(
+                    Row,
+                    Config.Name or "Toggle",
+                    11,
+                    Theme.Text,
+                    Enum.Font.GothamMedium
+                )
 
                 NameText.Position =
-                    UDim2.new(0,12,0,6)
+                    UDim2.fromOffset(
+                        12,
+                        5
+                    )
 
                 NameText.Size =
                     UDim2.new(
-                        1,-90,
-                        0,18
+                        1,
+                        -95,
+                        0,
+                        18
                     )
 
-                local Description =
-                    Label(
+                NameText.ZIndex = 20
 
-                        Row,
-
-                        Config.Description
-                            or "Toggle",
-
-                        9,
-
-                        Theme.Muted
-
-                    )
+                local Description = Label(
+                    Row,
+                    Config.Description
+                        or "Toggle description.",
+                    9,
+                    Theme.Muted
+                )
 
                 Description.Position =
-                    UDim2.new(0,12,0,26)
+                    UDim2.fromOffset(
+                        12,
+                        26
+                    )
 
                 Description.Size =
                     UDim2.new(
-                        1,-90,
-                        0,16
+                        1,
+                        -95,
+                        0,
+                        16
                     )
 
-                local Switch =
-                    Create("Frame", {
+                Description.ZIndex = 20
 
+                local Switch = Create(
+                    "Frame",
+                    {
                         Parent = Row,
 
                         AnchorPoint =
-                            Vector2.new(1,0.5),
+                            Vector2.new(
+                                1,
+                                0.5
+                            ),
 
                         Position =
                             UDim2.new(
-                                1,-12,
-                                0.5,0
+                                1,
+                                -12,
+                                0.5,
+                                0
                             ),
 
                         Size =
                             UDim2.fromOffset(
-                                42,22
+                                42,
+                                22
                             ),
 
                         BackgroundColor3 =
                             Theme.Background,
 
-                        BorderSizePixel = 0
+                        BorderSizePixel = 0,
 
-                    })
+                        ZIndex = 20
+                    }
+                )
 
-                Corner(Switch,11)
+                Corner(Switch, 11)
 
                 Stroke(
                     Switch,
                     Theme.Border
                 )
 
-                local Knob =
-                    Create("Frame", {
-
+                local Knob = Create(
+                    "Frame",
+                    {
                         Parent = Switch,
 
                         Position =
                             UDim2.new(
-                                0,4,
-                                0.5,-7
+                                0,
+                                4,
+                                0.5,
+                                -7
                             ),
 
                         Size =
                             UDim2.fromOffset(
-                                14,14
+                                14,
+                                14
                             ),
 
                         BackgroundColor3 =
                             Theme.Muted,
 
-                        BorderSizePixel = 0
+                        BorderSizePixel = 0,
 
-                    })
+                        ZIndex = 21
+                    }
+                )
 
-                Corner(Knob,7)
+                Corner(Knob, 8)
 
                 function Toggle:Set(Value)
 
@@ -1525,8 +1795,10 @@ function Axiom:CreateWindow(Settings)
                             {
                                 Position =
                                     UDim2.new(
-                                        1,-18,
-                                        0.5,-7
+                                        1,
+                                        -18,
+                                        0.5,
+                                        -7
                                     ),
 
                                 BackgroundColor3 =
@@ -1551,8 +1823,10 @@ function Axiom:CreateWindow(Settings)
                             {
                                 Position =
                                     UDim2.new(
-                                        0,4,
-                                        0.5,-7
+                                        0,
+                                        4,
+                                        0.5,
+                                        -7
                                     ),
 
                                 BackgroundColor3 =
@@ -1575,7 +1849,6 @@ function Axiom:CreateWindow(Settings)
                 end
 
                 Row.MouseButton1Click:Connect(
-
                     function()
 
                         Toggle:Set(
@@ -1583,7 +1856,6 @@ function Axiom:CreateWindow(Settings)
                         )
 
                     end
-
                 )
 
                 Toggle:Set(
@@ -1606,36 +1878,40 @@ function Axiom:CreateWindow(Settings)
                     TextButton(Container)
 
                 Object.Size =
-                    UDim2.new(1,0,0,40)
+                    UDim2.new(
+                        1,
+                        0,
+                        0,
+                        40
+                    )
 
                 Object.BackgroundColor3 =
                     Theme.White
 
                 Object.BorderSizePixel = 0
 
-                Corner(Object,7)
+                Object.ZIndex = 19
 
-                local Text =
-                    Label(
+                Corner(Object, 7)
 
-                        Object,
-
-                        Config.Name or
-                            "Execute",
-
-                        11,
-
-                        Theme.Black,
-
-                        Enum.Font.GothamMedium
-
-                    )
+                local Text = Label(
+                    Object,
+                    Config.Name or "Execute",
+                    11,
+                    Theme.Black,
+                    Enum.Font.GothamMedium
+                )
 
                 Text.Size =
-                    UDim2.fromScale(1,1)
+                    UDim2.fromScale(
+                        1,
+                        1
+                    )
 
                 Text.TextXAlignment =
                     Enum.TextXAlignment.Center
+
+                Text.ZIndex = 20
 
                 Object.MouseEnter:Connect(
                     function()
@@ -1644,7 +1920,7 @@ function Axiom:CreateWindow(Settings)
                             Object,
                             {
                                 BackgroundColor3 =
-                                    Theme.SoftWhite
+                                    Theme.Text
                             },
                             0.12
                         )
@@ -1668,7 +1944,6 @@ function Axiom:CreateWindow(Settings)
                 )
 
                 Object.MouseButton1Click:Connect(
-
                     function()
 
                         if Config.Callback then
@@ -1680,7 +1955,6 @@ function Axiom:CreateWindow(Settings)
                         end
 
                     end
-
                 )
 
                 return Object
@@ -1699,20 +1973,25 @@ function Axiom:CreateWindow(Settings)
 
                 Dropdown.Value =
                     Config.Default or
-                    (Config.Options and
-                        Config.Options[1])
+                    (
+                        Config.Options
+                        and
+                        Config.Options[1]
+                    )
 
                 local Open = false
 
-                local Holder =
-                    Create("Frame", {
-
+                local Holder = Create(
+                    "Frame",
+                    {
                         Parent = Container,
 
                         Size =
                             UDim2.new(
-                                1,0,
-                                0,40
+                                1,
+                                0,
+                                0,
+                                40
                             ),
 
                         BackgroundColor3 =
@@ -1720,16 +1999,19 @@ function Axiom:CreateWindow(Settings)
 
                         BorderSizePixel = 0,
 
-                        ClipsDescendants =
-                            true
+                        ClipsDescendants = true,
 
-                    })
+                        ZIndex = 19
+                    }
+                )
 
-                Corner(Holder,7)
+                Corner(Holder, 7)
 
                 Stroke(
                     Holder,
-                    Theme.Border
+                    Theme.Border,
+                    0,
+                    1
                 )
 
                 local Select =
@@ -1737,71 +2019,78 @@ function Axiom:CreateWindow(Settings)
 
                 Select.Size =
                     UDim2.new(
-                        1,0,
-                        0,40
+                        1,
+                        0,
+                        0,
+                        40
                     )
+
+                Select.ZIndex = 20
 
                 local NameText =
                     Label(
-
                         Select,
-
                         Config.Name
                             or "Dropdown",
-
                         11,
-
                         Theme.Text,
-
                         Enum.Font.GothamMedium
-
                     )
 
                 NameText.Position =
-                    UDim2.new(
-                        0,12,
-                        0,0
+                    UDim2.fromOffset(
+                        12,
+                        0
                     )
 
                 NameText.Size =
                     UDim2.new(
-                        0.5,0,
-                        1,0
+                        0.5,
+                        0,
+                        1,
+                        0
                     )
+
+                NameText.ZIndex = 21
 
                 local Current =
                     Label(
-
                         Select,
-
                         tostring(
-                            Dropdown.Value or
-                                "Select"
+                            Dropdown.Value
+                            or
+                            "Select"
                         ),
-
                         10,
-
                         Theme.SubText
-
                     )
 
                 Current.AnchorPoint =
-                    Vector2.new(1,0)
+                    Vector2.new(
+                        1,
+                        0
+                    )
 
                 Current.Position =
                     UDim2.new(
-                        1,-34,
-                        0,0
+                        1,
+                        -34,
+                        0,
+                        0
                     )
 
                 Current.Size =
                     UDim2.new(
-                        0.35,0,
-                        1,0
+                        0.35,
+                        0,
+                        1,
+                        0
                     )
 
                 Current.TextXAlignment =
                     Enum.TextXAlignment.Right
+
+                Current.ZIndex = 21
 
                 local Arrow =
                     Label(
@@ -1812,77 +2101,105 @@ function Axiom:CreateWindow(Settings)
                     )
 
                 Arrow.AnchorPoint =
-                    Vector2.new(1,0.5)
+                    Vector2.new(
+                        1,
+                        0.5
+                    )
 
                 Arrow.Position =
                     UDim2.new(
-                        1,-9,
-                        0.5,0
+                        1,
+                        -9,
+                        0.5,
+                        0
                     )
 
                 Arrow.Size =
                     UDim2.fromOffset(
-                        14,18
+                        14,
+                        18
                     )
 
                 Arrow.TextXAlignment =
                     Enum.TextXAlignment.Center
 
+                Arrow.ZIndex = 21
+
                 local List =
-                    Create("ScrollingFrame", {
+                    Create(
+                        "ScrollingFrame",
+                        {
+                            Parent = Holder,
 
-                        Parent = Holder,
+                            Position =
+                                UDim2.new(
+                                    0,
+                                    7,
+                                    0,
+                                    45
+                                ),
 
-                        Position =
-                            UDim2.new(
-                                0,7,
-                                0,45
-                            ),
+                            Size =
+                                UDim2.new(
+                                    1,
+                                    -14,
+                                    0,
+                                    110
+                                ),
 
-                        Size =
-                            UDim2.new(
-                                1,-14,
-                                0,115
-                            ),
+                            BackgroundTransparency = 1,
 
-                        BackgroundTransparency = 1,
+                            BorderSizePixel = 0,
 
-                        BorderSizePixel = 0,
+                            ScrollBarThickness = 2,
 
-                        ScrollBarThickness = 2,
+                            ScrollBarImageColor3 =
+                                Theme.White,
 
-                        ScrollBarImageColor3 =
-                            Theme.White
-
-                    })
+                            ZIndex = 21
+                        }
+                    )
 
                 local ListLayout =
-                    Create("UIListLayout", {
+                    Create(
+                        "UIListLayout",
+                        {
+                            Parent = List,
 
-                        Parent = List,
+                            Padding =
+                                UDim.new(
+                                    0,
+                                    4
+                                ),
 
-                        Padding =
-                            UDim.new(
-                                0,4
-                            )
+                            SortOrder =
+                                Enum.SortOrder.LayoutOrder
+                        }
+                    )
 
-                    })
+                local OptionCount = 0
 
-                for _,Option in ipairs(
+                for _, Option in ipairs(
                     Config.Options or {}
                 ) do
+
+                    OptionCount += 1
 
                     local OptionButton =
                         TextButton(List)
 
                     OptionButton.Size =
                         UDim2.new(
-                            1,-2,
-                            0,32
+                            1,
+                            -2,
+                            0,
+                            32
                         )
 
                     OptionButton.BackgroundColor3 =
                         Theme.Card
+
+                    OptionButton.ZIndex = 22
 
                     Corner(
                         OptionButton,
@@ -1891,29 +2208,25 @@ function Axiom:CreateWindow(Settings)
 
                     local OptionText =
                         Label(
-
                             OptionButton,
-
-                            tostring(
-                                Option
-                            ),
-
+                            tostring(Option),
                             10,
-
                             Theme.SubText
-
                         )
 
                     OptionText.Size =
                         UDim2.fromScale(
-                            1,1
+                            1,
+                            1
                         )
 
                     OptionText.Position =
-                        UDim2.new(
-                            0,10,
-                            0,0
+                        UDim2.fromOffset(
+                            10,
+                            0
                         )
+
+                    OptionText.ZIndex = 23
 
                     OptionButton.MouseEnter:Connect(
                         function()
@@ -1964,7 +2277,6 @@ function Axiom:CreateWindow(Settings)
                     )
 
                     OptionButton.MouseButton1Click:Connect(
-
                         function()
 
                             Dropdown.Value =
@@ -1982,8 +2294,10 @@ function Axiom:CreateWindow(Settings)
                                 {
                                     Size =
                                         UDim2.new(
-                                            1,0,
-                                            0,40
+                                            1,
+                                            0,
+                                            0,
+                                            40
                                         )
                                 },
                                 0.16
@@ -2001,39 +2315,36 @@ function Axiom:CreateWindow(Settings)
                             end
 
                         end
-
                     )
 
                 end
 
                 Select.MouseButton1Click:Connect(
-
                     function()
 
                         Open = not Open
 
                         if Open then
 
-                            local Count =
+                            local VisibleOptions =
                                 math.min(
-                                    #(
-                                        Config.Options
-                                        or {}
-                                    ),
+                                    OptionCount,
                                     3
                                 )
 
                             local Height =
                                 45 +
-                                (Count * 36)
+                                VisibleOptions * 36
 
                             Tween(
                                 Holder,
                                 {
                                     Size =
                                         UDim2.new(
-                                            1,0,
-                                            0,Height
+                                            1,
+                                            0,
+                                            0,
+                                            Height
                                         )
                                 },
                                 0.18
@@ -2048,8 +2359,10 @@ function Axiom:CreateWindow(Settings)
                                 {
                                     Size =
                                         UDim2.new(
-                                            1,0,
-                                            0,40
+                                            1,
+                                            0,
+                                            0,
+                                            40
                                         )
                                 },
                                 0.18
@@ -2060,13 +2373,11 @@ function Axiom:CreateWindow(Settings)
                         end
 
                     end
-
                 )
 
                 function Dropdown:Set(Value)
 
-                    Dropdown.Value =
-                        Value
+                    Dropdown.Value = Value
 
                     Current.Text =
                         tostring(Value)
@@ -2094,30 +2405,25 @@ function Axiom:CreateWindow(Settings)
 
                 local Object =
                     Label(
-
                         Container,
-
                         Text or "",
-
                         10,
-
                         Theme.Muted
-
                     )
 
                 Object.Size =
                     UDim2.new(
-                        1,0,
-                        0,26
+                        1,
+                        0,
+                        0,
+                        25
                     )
+
+                Object.ZIndex = 20
 
                 return Object
 
             end
-
-            --================================================
-            -- SAVE SECTION
-            --================================================
 
             table.insert(
                 Tab.Sections,
@@ -2132,28 +2438,42 @@ function Axiom:CreateWindow(Settings)
         -- SAVE TAB
         --====================================================
 
-        Tab.Button =
-            TabButton
+        Tab.TabButton = TabButton
+        Tab.Page = Page
+        Tab.Icon = Icon
+        Tab.TabText = TabText
+        Tab.Indicator = Indicator
 
-        Tab.Page =
-            Page
+        Window.Tabs[Name] = Tab
 
-        Tab.Icon =
-            Icon
-
-        Tab.TabText =
-            TabText
-
-        Tab.Indicator =
-            Indicator
-
-        Window.Tabs[Name] =
+        table.insert(
+            Window.TabOrder,
             Tab
+        )
 
-        -- First tab
+        UpdateTabCanvas()
+
+        --====================================================
+        -- IMPORTANT:
+        -- Update width AFTER the ScrollingFrame has rendered.
+        --====================================================
+
+        task.defer(function()
+            UpdateTabWidth()
+        end)
+
+        --====================================================
+        -- FIRST TAB
+        --====================================================
 
         if not Window.CurrentTab then
-            Tab:Activate()
+
+            task.defer(function()
+
+                Tab:Activate()
+
+            end)
+
         end
 
         return Tab
@@ -2164,11 +2484,38 @@ function Axiom:CreateWindow(Settings)
         Window.AddTabs
 
     --========================================================
-    -- RETURN WINDOW
+    -- OPEN ANIMATION
     --========================================================
 
-    return Window
+    Shell.Size =
+        UDim2.fromOffset(
+            850,
+            525
+        )
 
+    OuterBorder.BackgroundTransparency = 1
+
+    Tween(
+        Shell,
+        {
+            Size =
+                UDim2.fromOffset(
+                    WINDOW_WIDTH,
+                    WINDOW_HEIGHT
+                )
+        },
+        0.32
+    )
+
+    Tween(
+        OuterBorder,
+        {
+            BackgroundTransparency = 0
+        },
+        0.32
+    )
+
+    return Window
 end
 
 return Axiom
