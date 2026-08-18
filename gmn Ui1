@@ -1,22 +1,14 @@
 -- ====================================================================
--- SCRIPT LIBRARY HUB UI ENGINE v2.0
--- Built by Axiom | Full Pixel-Perfect Replica & Complete UI Library
+-- GITHUB HOSTING FILE (Upload file này lên GitHub, lấy link RAW)
 -- ====================================================================
+local Library = {}
+Library.__index = Library
 
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 
-local Library = {}
-Library.__index = Library
-
--- Global binding to prevent 'attempt to index nil with CreateWindow'
-if getgenv then
-    getgenv().AxiomLibrary = Library
-end
-
--- Helper functions
 local function Create(className, properties, children)
     local inst = Instance.new(className)
     for k, v in pairs(properties or {}) do
@@ -34,30 +26,24 @@ local function Tween(obj, props, time)
     return tw
 end
 
--- MAIN WINDOW CREATION
-function Library.CreateWindow(options)
+function Library:CreateWindow(options)
+    options = options or {}
     local Window = setmetatable({}, Library)
-    Window.Title = (type(options) == "table" and options.Title) or options or "SCRIPT LIBRARY HUB"
-    Window.Tabs = {}
-    Window.CurrentTab = nil
-
-    local targetGui = (gethui and gethui()) or CoreGui:FindFirstChild("RobloxGui") or Players.LocalPlayer.PlayerGui
+    Window.Title = options.Title or "SCRIPT LIBRARY HUB"
     
-    -- Cleanup previous instance
-    if targetGui:FindFirstChild("AxiomHub_Replica") then
-        targetGui:FindFirstChild("AxiomHub_Replica"):Destroy()
+    local targetGui = (gethui and gethui()) or CoreGui:FindFirstChild("RobloxGui") or Players.LocalPlayer.PlayerGui
+    if targetGui:FindFirstChild("AxiomHub_Production") then
+        targetGui:FindFirstChild("AxiomHub_Production"):Destroy()
     end
 
     Window.ScreenGui = Create("ScreenGui", {
-        Name = "AxiomHub_Replica",
+        Name = "AxiomHub_Production",
         ResetOnSpawn = false,
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
         Parent = targetGui
     })
 
-    -- Main Container Frame
     Window.MainFrame = Create("Frame", {
-        Name = "MainFrame",
         Size = UDim2.new(0, 920, 0, 520),
         Position = UDim2.new(0.5, -460, 0.5, -260),
         BackgroundColor3 = Color3.fromRGB(248, 249, 250),
@@ -69,7 +55,7 @@ function Library.CreateWindow(options)
         Create("UIStroke", {Color = Color3.fromRGB(230, 230, 235), Thickness = 1})
     })
 
-    -- Dragging functionality
+    -- Dragging logic
     local dragging, dragInput, dragStart, startPos
     Window.MainFrame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -91,19 +77,9 @@ function Library.CreateWindow(options)
         end
     end)
 
-    --------------------------------------------------------------------
-    -- TOP HEADER BAR
-    --------------------------------------------------------------------
-    Window.TopBar = Create("Frame", {
-        Name = "TopBar",
-        Size = UDim2.new(1, 0, 0, 60),
-        BackgroundTransparency = 1,
-        Parent = Window.MainFrame
-    })
-
-    -- Logo + Hub Title
+    -- Header Title
     Create("TextLabel", {
-        Size = UDim2.new(0, 220, 1, 0),
+        Size = UDim2.new(0, 300, 0, 60),
         Position = UDim2.new(0, 50, 0, 0),
         BackgroundTransparency = 1,
         Text = Window.Title,
@@ -111,85 +87,29 @@ function Library.CreateWindow(options)
         TextSize = 14,
         TextColor3 = Color3.fromRGB(15, 15, 15),
         TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = Window.TopBar
-    })
-
-    -- Search Bar
-    local SearchBar = Create("Frame", {
-        Size = UDim2.new(0, 220, 0, 32),
-        Position = UDim2.new(1, -340, 0.5, -16),
-        BackgroundColor3 = Color3.fromRGB(238, 240, 243),
-        Parent = Window.TopBar
-    }, {
-        Create("UICorner", {CornerRadius = UDim.new(1, 0)}),
-        Create("TextBox", {
-            Size = UDim2.new(1, -35, 1, 0),
-            Position = UDim2.new(0, 35, 0, 0),
-            BackgroundTransparency = 1,
-            PlaceholderText = "",
-            Text = "",
-            Font = Enum.Font.Gotham,
-            TextSize = 12,
-            TextColor3 = Color3.fromRGB(50, 50, 50),
-            TextXAlignment = Enum.TextXAlignment.Left
-        })
-    })
-
-    -- Top Right Controls (Bell & Avatar)
-    Create("Frame", {
-        Size = UDim2.new(0, 32, 0, 32),
-        Position = UDim2.new(1, -100, 0.5, -16),
-        BackgroundColor3 = Color3.fromRGB(238, 240, 243),
-        Parent = Window.TopBar
-    }, {
-        Create("UICorner", {CornerRadius = UDim.new(1, 0)})
-    })
-
-    Create("ImageLabel", {
-        Size = UDim2.new(0, 32, 0, 32),
-        Position = UDim2.new(1, -55, 0.5, -16),
-        BackgroundColor3 = Color3.fromRGB(0, 120, 255),
-        Image = "rbxassetid://6031782531", -- Default avatar placeholder
-        Parent = Window.TopBar
-    }, {
-        Create("UICorner", {CornerRadius = UDim.new(1, 0)})
-    })
-
-    --------------------------------------------------------------------
-    -- SIDEBAR NAVIGATION
-    --------------------------------------------------------------------
-    Window.Sidebar = Create("Frame", {
-        Name = "Sidebar",
-        Size = UDim2.new(0, 200, 1, -60),
-        Position = UDim2.new(0, 0, 0, 60),
-        BackgroundTransparency = 1,
         Parent = Window.MainFrame
     })
 
-    -- Vertical Divider
-    Create("Frame", {
-        Size = UDim2.new(0, 1, 1, -20),
-        Position = UDim2.new(1, -1, 0, 0),
-        BackgroundColor3 = Color3.fromRGB(230, 230, 235),
-        BorderSizePixel = 0,
-        Parent = Window.Sidebar
-    })
-
-    Window.TabContainer = Create("ScrollingFrame", {
-        Size = UDim2.new(1, 0, 1, 0),
+    -- Sidebar Container
+    Window.Sidebar = Create("ScrollingFrame", {
+        Size = UDim2.new(0, 200, 1, -60),
+        Position = UDim2.new(0, 0, 0, 60),
         BackgroundTransparency = 1,
         ScrollBarThickness = 0,
-        Parent = Window.Sidebar
+        Parent = Window.MainFrame
     }, {
         Create("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 6)}),
-        Create("UIPadding", {PaddingLeft = UDim.new(0, 15), PaddingRight = UDim.new(0, 15)})
+        Create("UIPadding", {PaddingLeft = UDim.new(0, 15), PaddingRight = UDim.new(0, 15)}),
+        Create("Frame", {
+            Size = UDim2.new(0, 1, 1, 0),
+            Position = UDim2.new(1, 0, 0, 0),
+            BackgroundColor3 = Color3.fromRGB(230, 230, 235),
+            BorderSizePixel = 0
+        })
     })
 
-    --------------------------------------------------------------------
-    -- CONTENT AREA
-    --------------------------------------------------------------------
+    -- Content Area
     Window.ContentArea = Create("Frame", {
-        Name = "ContentArea",
         Size = UDim2.new(1, -210, 1, -60),
         Position = UDim2.new(0, 205, 0, 60),
         BackgroundTransparency = 1,
@@ -199,20 +119,20 @@ function Library.CreateWindow(options)
     return Window
 end
 
--- ADD TAB FUNCTION
-function Library:AddTab(name)
-    local tab = {Name = name, Window = self}
+function Library:AddTab(options)
+    local tabName = (type(options) == "table" and options.Title) or options
+    local tab = {Name = tabName, Window = self}
 
     local TabBtn = Create("TextButton", {
         Size = UDim2.new(1, 0, 0, 40),
         BackgroundColor3 = Color3.fromRGB(248, 249, 250),
-        Text = "    " .. name,
+        Text = "    " .. tabName,
         Font = Enum.Font.GothamBold,
         TextSize = 11,
         TextColor3 = Color3.fromRGB(120, 120, 125),
         TextXAlignment = Enum.TextXAlignment.Left,
         AutoButtonColor = false,
-        Parent = self.TabContainer
+        Parent = self.Window.Sidebar
     }, {
         Create("UICorner", {CornerRadius = UDim.new(0, 8)})
     })
@@ -233,7 +153,7 @@ function Library:AddTab(name)
         ScrollBarThickness = 2,
         ScrollBarImageColor3 = Color3.fromRGB(200, 200, 200),
         Visible = false,
-        Parent = self.ContentArea
+        Parent = self.Window.ContentArea
     }, {
         Create("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 15)}),
         Create("UIPadding", {PaddingBottom = UDim.new(0, 20), PaddingRight = UDim.new(0, 10)})
@@ -242,10 +162,10 @@ function Library:AddTab(name)
     tab.Container = TabContent
 
     TabBtn.MouseButton1Click:Connect(function()
-        for _, child in pairs(self.ContentArea:GetChildren()) do
+        for _, child in pairs(self.Window.ContentArea:GetChildren()) do
             if child:IsA("ScrollingFrame") then child.Visible = false end
         end
-        for _, child in pairs(self.TabContainer:GetChildren()) do
+        for _, child in pairs(self.Window.Sidebar:GetChildren()) do
             if child:IsA("TextButton") then
                 Tween(child, {BackgroundColor3 = Color3.fromRGB(248, 249, 250), TextColor3 = Color3.fromRGB(120, 120, 125)})
                 if child:FindFirstChild("Frame") then child.Frame.Visible = false end
@@ -256,276 +176,18 @@ function Library:AddTab(name)
         Tween(TabBtn, {BackgroundColor3 = Color3.fromRGB(230, 232, 235), TextColor3 = Color3.fromRGB(15, 15, 15)})
     end)
 
-    if #self.TabContainer:GetChildren() == 2 then -- First added tab automatically opens
+    if #self.Window.Sidebar:GetChildren() == 3 then -- Initial tab selection
         TabContent.Visible = true
         ActiveIndicator.Visible = true
         TabBtn.BackgroundColor3 = Color3.fromRGB(230, 232, 235)
         TabBtn.TextColor3 = Color3.fromRGB(15, 15, 15)
     end
 
-    --------------------------------------------------------------------
-    -- EXTENDED COMPONENT SUITE
-    --------------------------------------------------------------------
-
-    -- 1. Script Grid Row (Matches the 3 Top Cards in Image 2)
-    function tab:AddScriptGrid(cardsData)
-        local GridFrame = Create("Frame", {
-            Size = UDim2.new(1, 0, 0, 185),
-            BackgroundTransparency = 1,
-            Parent = self.Container
-        }, {
-            Create("UIListLayout", {
-                FillDirection = Enum.FillDirection.Horizontal,
-                SortOrder = Enum.SortOrder.LayoutOrder,
-                Padding = UDim.new(0, 12)
-            })
-        })
-
-        for _, card in ipairs(cardsData or {}) do
-            local CardFrame = Create("Frame", {
-                Size = UDim2.new(0.32, 0, 1, 0),
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-                Parent = GridFrame
-            }, {
-                Create("UICorner", {CornerRadius = UDim.new(0, 14)}),
-                Create("UIStroke", {Color = Color3.fromRGB(230, 230, 235), Thickness = 1}),
-                
-                -- Black Icon Box
-                Create("Frame", {
-                    Size = UDim2.new(0, 42, 0, 42),
-                    Position = UDim2.new(0, 15, 0, 15),
-                    BackgroundColor3 = Color3.fromRGB(15, 15, 15),
-                    Parent = CardFrame
-                }, {Create("UICorner", {CornerRadius = UDim.new(0, 10)})}),
-
-                -- Title & Rating
-                Create("TextLabel", {
-                    Size = UDim2.new(1, -70, 0, 20),
-                    Position = UDim2.new(0, 65, 0, 16),
-                    BackgroundTransparency = 1,
-                    Text = card.Title or "SCRIPT TITLE",
-                    Font = Enum.Font.GothamBold,
-                    TextSize = 10,
-                    TextColor3 = Color3.fromRGB(15, 15, 15),
-                    TextXAlignment = Enum.TextXAlignment.Left
-                }),
-                Create("TextLabel", {
-                    Size = UDim2.new(1, -70, 0, 15),
-                    Position = UDim2.new(0, 65, 0, 36),
-                    BackgroundTransparency = 1,
-                    Text = "★ ★ ★ ★ ★ " .. tostring(card.Rating or "5.0"),
-                    Font = Enum.Font.Gotham,
-                    TextSize = 9,
-                    TextColor3 = Color3.fromRGB(30, 30, 30),
-                    TextXAlignment = Enum.TextXAlignment.Left
-                }),
-
-                -- Desc
-                Create("TextLabel", {
-                    Size = UDim2.new(1, -30, 0, 35),
-                    Position = UDim2.new(0, 15, 0, 70),
-                    BackgroundTransparency = 1,
-                    Text = card.Description or "",
-                    Font = Enum.Font.Gotham,
-                    TextSize = 10,
-                    TextColor3 = Color3.fromRGB(100, 100, 105),
-                    TextXAlignment = Enum.TextXAlignment.Left,
-                    TextYAlignment = Enum.TextYAlignment.Top,
-                    TextWrapped = true
-                }),
-
-                -- Action Buttons (RUN, EDIT, DELETE)
-                Create("TextButton", {
-                    Size = UDim2.new(0, 50, 0, 26),
-                    Position = UDim2.new(0, 15, 1, -38),
-                    BackgroundColor3 = Color3.fromRGB(15, 15, 15),
-                    Text = "RUN",
-                    Font = Enum.Font.GothamBold,
-                    TextSize = 10,
-                    TextColor3 = Color3.fromRGB(255, 255, 255),
-                    Parent = CardFrame
-                }, {Create("UICorner", {CornerRadius = UDim.new(0, 6)})}),
-
-                Create("TextButton", {
-                    Size = UDim2.new(0, 50, 0, 26),
-                    Position = UDim2.new(0, 72, 1, -38),
-                    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-                    Text = "EDIT",
-                    Font = Enum.Font.GothamSemibold,
-                    TextSize = 10,
-                    TextColor3 = Color3.fromRGB(60, 60, 60),
-                    Parent = CardFrame
-                }, {
-                    Create("UICorner", {CornerRadius = UDim.new(0, 6)}),
-                    Create("UIStroke", {Color = Color3.fromRGB(220, 220, 225), Thickness = 1})
-                }),
-
-                Create("TextButton", {
-                    Size = UDim2.new(0, 58, 0, 26),
-                    Position = UDim2.new(0, 129, 1, -38),
-                    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-                    Text = "DELETE",
-                    Font = Enum.Font.GothamSemibold,
-                    TextSize = 9,
-                    TextColor3 = Color3.fromRGB(220, 80, 80),
-                    Parent = CardFrame
-                }, {
-                    Create("UICorner", {CornerRadius = UDim.new(0, 6)}),
-                    Create("UIStroke", {Color = Color3.fromRGB(240, 210, 210), Thickness = 1})
-                })
-            })
-        end
-    end
-
-    -- 2. Dashboard Bottom Section (Recently Updated + Stats Block)
-    function tab:AddDashboardBottomSection(updateRows, statsData)
-        local BottomFrame = Create("Frame", {
-            Size = UDim2.new(1, 0, 0, 180),
-            BackgroundTransparency = 1,
-            Parent = self.Container
-        })
-
-        -- Left Card: RECENTLY UPDATED
-        local UpdatedCard = Create("Frame", {
-            Size = UDim2.new(0.65, 0, 1, 0),
-            BackgroundColor3 = Color3.fromRGB(242, 243, 245),
-            Parent = BottomFrame
-        }, {
-            Create("UICorner", {CornerRadius = UDim.new(0, 14)}),
-            Create("TextLabel", {
-                Size = UDim2.new(0, 200, 0, 30),
-                Position = UDim2.new(0, 15, 0, 10),
-                BackgroundTransparency = 1,
-                Text = "RECENTLY UPDATED",
-                Font = Enum.Font.GothamBold,
-                TextSize = 10,
-                TextColor3 = Color3.fromRGB(60, 60, 65),
-                TextXAlignment = Enum.TextXAlignment.Left
-            })
-        })
-
-        local RowList = Create("Frame", {
-            Size = UDim2.new(1, -30, 1, -45),
-            Position = UDim2.new(0, 15, 0, 40),
-            BackgroundTransparency = 1,
-            Parent = UpdatedCard
-        }, {
-            Create("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 10)})
-        })
-
-        for _, row in ipairs(updateRows or {}) do
-            local RowFrame = Create("Frame", {
-                Size = UDim2.new(1, 0, 0, 32),
-                BackgroundTransparency = 1,
-                Parent = RowList
-            })
-
-            -- Icon Box
-            Create("Frame", {
-                Size = UDim2.new(0, 28, 0, 28),
-                Position = UDim2.new(0, 0, 0, 2),
-                BackgroundColor3 = Color3.fromRGB(15, 15, 15),
-                Parent = RowFrame
-            }, {Create("UICorner", {CornerRadius = UDim.new(0, 6)})})
-
-            -- Name & Time
-            Create("TextLabel", {
-                Size = UDim2.new(0, 180, 0, 14),
-                Position = UDim2.new(0, 36, 0, 0),
-                BackgroundTransparency = 1,
-                Text = row.Name or "",
-                Font = Enum.Font.GothamBold,
-                TextSize = 10,
-                TextColor3 = Color3.fromRGB(30, 30, 30),
-                TextXAlignment = Enum.TextXAlignment.Left
-            })
-            Create("TextLabel", {
-                Size = UDim2.new(0, 180, 0, 14),
-                Position = UDim2.new(0, 36, 0, 14),
-                BackgroundTransparency = 1,
-                Text = row.Time or "",
-                Font = Enum.Font.Gotham,
-                TextSize = 9,
-                TextColor3 = Color3.fromRGB(120, 120, 125),
-                TextXAlignment = Enum.TextXAlignment.Left
-            })
-
-            -- Bar
-            Create("Frame", {
-                Size = UDim2.new(0, 80, 0, 6),
-                Position = UDim2.new(1, -95, 0.5, -3),
-                BackgroundColor3 = Color3.fromRGB(215, 218, 222),
-                Parent = RowFrame
-            }, {
-                Create("UICorner", {CornerRadius = UDim.new(1, 0)}),
-                Create("Frame", {
-                    Size = UDim2.new(row.Progress or 0.6, 0, 1, 0),
-                    BackgroundColor3 = Color3.fromRGB(15, 15, 15),
-                    Parent = RowFrame
-                }, {Create("UICorner", {CornerRadius = UDim.new(1, 0)})})
-            })
-
-            -- Switch
-            local SwitchOuter = Create("Frame", {
-                Size = UDim2.new(0, 32, 0, 18),
-                Position = UDim2.new(1, -32, 0.5, -9),
-                BackgroundColor3 = row.Active and Color3.fromRGB(15, 15, 15) or Color3.fromRGB(200, 202, 208),
-                Parent = RowFrame
-            }, {
-                Create("UICorner", {CornerRadius = UDim.new(1, 0)}),
-                Create("Frame", {
-                    Size = UDim2.new(0, 14, 0, 14),
-                    Position = UDim2.new(0, row.Active and 16 or 2, 0.5, -7),
-                    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-                    Parent = SwitchOuter
-                }, {Create("UICorner", {CornerRadius = UDim.new(1, 0)})})
-            })
-        end
-
-        -- Right Stats Frame
-        local StatsFrame = Create("Frame", {
-            Size = UDim2.new(0.32, 0, 1, 0),
-            Position = UDim2.new(0.68, 0, 0, 0),
-            BackgroundTransparency = 1,
-            Parent = BottomFrame
-        }, {
-            Create("UIListLayout", {
-                SortOrder = Enum.SortOrder.LayoutOrder,
-                Padding = UDim.new(0, 8),
-                HorizontalAlignment = Enum.HorizontalAlignment.Right,
-                VerticalAlignment = Enum.VerticalAlignment.Center
-            })
-        })
-
-        local function AddStatRow(label, value, isGreen)
-            local Frame = Create("Frame", {
-                Size = UDim2.new(1, 0, 0, 20),
-                BackgroundTransparency = 1,
-                Parent = StatsFrame
-            })
-            Create("TextLabel", {
-                Size = UDim2.new(1, 0, 1, 0),
-                BackgroundTransparency = 1,
-                Text = label .. "  <font color=\"" .. (isGreen and "#10B981" or "#0F0F0F") .. "\"><b>" .. tostring(value) .. "</b></font>",
-                Font = Enum.Font.Gotham,
-                TextSize = 11,
-                RichText = true,
-                TextColor3 = Color3.fromRGB(80, 80, 85),
-                TextXAlignment = Enum.TextXAlignment.Right,
-                Parent = Frame
-            })
-        end
-
-        statsData = statsData or {}
-        AddStatRow("TOTAL SCRIPTS:", statsData.Total or "45", false)
-        AddStatRow("RUNNING:", statsData.Running or "3", false)
-        AddStatRow("STATUS:", statsData.Status or "ONLINE", true)
-    end
-
-    -- 3. Standard UI Components (Toggle, Button, Slider, Dropdown, Input)
-    function tab:AddToggle(options)
-        local state = options.Default or false
-        local cb = options.Callback or function() end
+    -- Toggle Component (Title, Default, Callback)
+    function tab:AddToggle(opts)
+        opts = opts or {}
+        local state = opts.Default or false
+        local cb = opts.Callback or function() end
 
         local ToggleFrame = Create("Frame", {
             Size = UDim2.new(1, 0, 0, 45),
@@ -538,7 +200,7 @@ function Library:AddTab(name)
                 Size = UDim2.new(1, -80, 1, 0),
                 Position = UDim2.new(0, 15, 0, 0),
                 BackgroundTransparency = 1,
-                Text = options.Name or "Toggle",
+                Text = opts.Title or "Toggle",
                 Font = Enum.Font.GothamSemibold,
                 TextSize = 12,
                 TextColor3 = Color3.fromRGB(20, 20, 20),
@@ -571,8 +233,10 @@ function Library:AddTab(name)
         end)
     end
 
-    function tab:AddButton(options)
-        local cb = options.Callback or function() end
+    -- Button Component (Title, Callback)
+    function tab:AddButton(opts)
+        opts = opts or {}
+        local cb = opts.Callback or function() end
         local BtnFrame = Create("Frame", {
             Size = UDim2.new(1, 0, 0, 40),
             BackgroundTransparency = 1,
@@ -582,7 +246,7 @@ function Library:AddTab(name)
         local Btn = Create("TextButton", {
             Size = UDim2.new(1, 0, 1, 0),
             BackgroundColor3 = Color3.fromRGB(15, 15, 15),
-            Text = options.Name or "Button",
+            Text = opts.Title or "Button",
             Font = Enum.Font.GothamBold,
             TextSize = 12,
             TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -596,10 +260,12 @@ function Library:AddTab(name)
         end)
     end
 
-    function tab:AddSlider(options)
-        local min, max = options.Min or 0, options.Max or 100
-        local val = options.Default or min
-        local cb = options.Callback or function() end
+    -- Slider Component (Title, Min, Max, Default, Callback)
+    function tab:AddSlider(opts)
+        opts = opts or {}
+        local min, max = opts.Min or 0, opts.Max or 100
+        local val = opts.Default or min
+        local cb = opts.Callback or function() end
 
         local SliderFrame = Create("Frame", {
             Size = UDim2.new(1, 0, 0, 55),
@@ -612,7 +278,7 @@ function Library:AddTab(name)
                 Size = UDim2.new(1, -30, 0, 25),
                 Position = UDim2.new(0, 15, 0, 2),
                 BackgroundTransparency = 1,
-                Text = options.Name or "Slider",
+                Text = opts.Title or "Slider",
                 Font = Enum.Font.GothamSemibold,
                 TextSize = 12,
                 TextColor3 = Color3.fromRGB(20, 20, 20),
@@ -666,8 +332,10 @@ function Library:AddTab(name)
         end)
     end
 
-    function tab:AddInput(options)
-        local cb = options.Callback or function() end
+    -- Input Component (Title, Default, Callback)
+    function tab:AddInput(opts)
+        opts = opts or {}
+        local cb = opts.Callback or function() end
         local InputFrame = Create("Frame", {
             Size = UDim2.new(1, 0, 0, 45),
             BackgroundColor3 = Color3.fromRGB(255, 255, 255),
@@ -679,7 +347,7 @@ function Library:AddTab(name)
                 Size = UDim2.new(0.4, 0, 1, 0),
                 Position = UDim2.new(0, 15, 0, 0),
                 BackgroundTransparency = 1,
-                Text = options.Name or "Input",
+                Text = opts.Title or "Input",
                 Font = Enum.Font.GothamSemibold,
                 TextSize = 12,
                 TextColor3 = Color3.fromRGB(20, 20, 20),
@@ -691,7 +359,7 @@ function Library:AddTab(name)
             Size = UDim2.new(0.55, 0, 0.65, 0),
             Position = UDim2.new(0.42, 0, 0.175, 0),
             BackgroundColor3 = Color3.fromRGB(245, 246, 248),
-            PlaceholderText = options.Placeholder or "Enter text...",
+            PlaceholderText = opts.Default or "Enter text...",
             Text = "",
             Font = Enum.Font.Gotham,
             TextSize = 11,
@@ -707,5 +375,4 @@ function Library:AddTab(name)
     return tab
 end
 
--- Return library so loadstring never breaks
 return Library
