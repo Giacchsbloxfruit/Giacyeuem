@@ -1,194 +1,145 @@
---[[
-    AXIOM UI LIBRARY
-    Black / White Neon Edition
-    v3.0.0
-
-    USAGE:
-
-    local Axiom = loadstring(game:HttpGet("YOUR_RAW_LINK"))()
-
-    local Window = Axiom:CreateWindow({
-        Title = "Axiom UI Library",
-        Version = "v3.0.0"
-    })
-
-    local Main = Window:AddTabs("Main")
-    local Section = Main:AddSection("Example")
-
-    Section:AddToggle({
-        Name = "Auto Farm",
-        Description = "Automatically farms targets.",
-        Default = false,
-        Callback = function(Value)
-            print(Value)
-        end
-    })
-
-    Section:AddButton({
-        Name = "Execute",
-        Callback = function()
-            print("Clicked")
-        end
-    })
-
-    Section:AddDropdown({
-        Name = "Weapon",
-        Options = {"Sword", "Gun", "Bow"},
-        Default = "Sword",
-        Callback = function(Value)
-            print(Value)
-        end
-    })
-
-    Section:AddSlider({
-        Name = "Speed",
-        Min = 1,
-        Max = 100,
-        Default = 50,
-        Callback = function(Value)
-            print(Value)
-        end
-    })
-
-    Section:AddTextbox({
-        Name = "Player Name",
-        Placeholder = "Enter username...",
-        Callback = function(Value)
-            print(Value)
-        end
-    })
-
-    Section:AddKeybind({
-        Name = "Toggle UI",
-        Key = Enum.KeyCode.RightControl,
-        Callback = function()
-            Window:SetVisible(not Window.Visible)
-        end
-    })
-]]
+--============================================================
+-- AXIOM UI LIBRARY
+-- CLEAN BLACK / WHITE / SUBTLE NEON
+-- FIXED TAB OVERLAP + CLEANER BACKGROUND
+--============================================================
 
 local Axiom = {}
 Axiom.__index = Axiom
 
---//========================================================
---// SERVICES
---//========================================================
+--============================================================
+-- SERVICES
+--============================================================
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local Lighting = game:GetService("Lighting")
 
 local LocalPlayer = Players.LocalPlayer
 
---//========================================================
---// THEME
---//========================================================
+--============================================================
+-- THEME
+--============================================================
 
 local Theme = {
-    Background      = Color3.fromRGB(5, 5, 7),
-    Background2     = Color3.fromRGB(9, 9, 12),
-    Sidebar         = Color3.fromRGB(7, 7, 9),
 
-    Card            = Color3.fromRGB(12, 12, 15),
-    CardHover       = Color3.fromRGB(18, 18, 22),
+    Background = Color3.fromRGB(5, 5, 7),
+    Background2 = Color3.fromRGB(8, 8, 10),
 
-    Text            = Color3.fromRGB(245, 245, 248),
-    SubText         = Color3.fromRGB(145, 145, 152),
-    Muted           = Color3.fromRGB(90, 90, 98),
+    Sidebar = Color3.fromRGB(7, 7, 9),
 
-    White           = Color3.fromRGB(255, 255, 255),
-    Black           = Color3.fromRGB(0, 0, 0),
+    Card = Color3.fromRGB(11, 11, 14),
+    CardHover = Color3.fromRGB(16, 16, 19),
 
-    Border          = Color3.fromRGB(72, 72, 78),
-    BorderSoft      = Color3.fromRGB(35, 35, 40),
+    White = Color3.fromRGB(245, 245, 248),
+    SoftWhite = Color3.fromRGB(205, 205, 212),
 
-    Neon            = Color3.fromRGB(235, 235, 255),
-    NeonSoft        = Color3.fromRGB(170, 170, 190),
+    Text = Color3.fromRGB(235, 235, 240),
+    SubText = Color3.fromRGB(145, 145, 153),
+    Muted = Color3.fromRGB(90, 90, 97),
 
-    Success         = Color3.fromRGB(95, 255, 145),
-    Danger          = Color3.fromRGB(255, 90, 90),
-    Warning         = Color3.fromRGB(255, 202, 89),
+    Border = Color3.fromRGB(43, 43, 48),
+    BorderLight = Color3.fromRGB(64, 64, 70),
+
+    Neon = Color3.fromRGB(220, 220, 255),
+
+    Success = Color3.fromRGB(90, 255, 145),
+    Danger = Color3.fromRGB(255, 85, 85)
 }
 
---//========================================================
---// UTILITIES
---//========================================================
+--============================================================
+-- UTILITY
+--============================================================
 
-local function Create(Class, Properties)
+local function Create(Class, Props)
+
     local Object = Instance.new(Class)
 
-    for Property, Value in pairs(Properties or {}) do
+    for Property, Value in pairs(Props or {}) do
         Object[Property] = Value
     end
 
     return Object
 end
 
-local function Tween(Object, Properties, Duration, Style, Direction)
-    local Info = TweenInfo.new(
-        Duration or 0.2,
-        Style or Enum.EasingStyle.Quint,
-        Direction or Enum.EasingDirection.Out
+local function Tween(Object, Props, Time)
+
+    local Animation = TweenService:Create(
+        Object,
+
+        TweenInfo.new(
+            Time or 0.2,
+            Enum.EasingStyle.Quint,
+            Enum.EasingDirection.Out
+        ),
+
+        Props
     )
 
-    local TweenObject = TweenService:Create(Object, Info, Properties)
-    TweenObject:Play()
+    Animation:Play()
 
-    return TweenObject
+    return Animation
 end
 
 local function Corner(Object, Radius)
-    local UI = Instance.new("UICorner")
-    UI.CornerRadius = UDim.new(0, Radius or 8)
-    UI.Parent = Object
-    return UI
+
+    local C = Instance.new("UICorner")
+    C.CornerRadius = UDim.new(0, Radius or 8)
+    C.Parent = Object
+
+    return C
 end
 
 local function Stroke(Object, Color, Transparency, Thickness)
-    local UI = Instance.new("UIStroke")
-    UI.Color = Color or Theme.Border
-    UI.Transparency = Transparency or 0
-    UI.Thickness = Thickness or 1
-    UI.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    UI.Parent = Object
-    return UI
+
+    local S = Instance.new("UIStroke")
+
+    S.Color = Color or Theme.Border
+    S.Transparency = Transparency or 0
+    S.Thickness = Thickness or 1
+
+    S.ApplyStrokeMode =
+        Enum.ApplyStrokeMode.Border
+
+    S.Parent = Object
+
+    return S
 end
 
-local function Padding(Object, Left, Right, Top, Bottom)
-    local UI = Instance.new("UIPadding")
+local function Label(Parent, Text, TextSize, Color, Font)
 
-    UI.PaddingLeft = UDim.new(0, Left or 0)
-    UI.PaddingRight = UDim.new(0, Right or 0)
-    UI.PaddingTop = UDim.new(0, Top or 0)
-    UI.PaddingBottom = UDim.new(0, Bottom or 0)
-
-    UI.Parent = Object
-
-    return UI
-end
-
-local function Label(Parent, Text, Size, Color, Font)
     return Create("TextLabel", {
+
         Parent = Parent,
 
         BackgroundTransparency = 1,
 
         Text = Text or "",
-        TextSize = Size or 14,
-        TextColor3 = Color or Theme.Text,
-        Font = Font or Enum.Font.Gotham,
 
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextYAlignment = Enum.TextYAlignment.Center,
+        TextSize = TextSize or 14,
+
+        TextColor3 =
+            Color or Theme.Text,
+
+        Font =
+            Font or Enum.Font.Gotham,
+
+        TextXAlignment =
+            Enum.TextXAlignment.Left,
+
+        TextYAlignment =
+            Enum.TextYAlignment.Center,
 
         RichText = true
+
     })
+
 end
 
-local function Button(Parent)
+local function TextButton(Parent)
+
     return Create("TextButton", {
+
         Parent = Parent,
 
         BackgroundTransparency = 1,
@@ -198,172 +149,257 @@ local function Button(Parent)
         AutoButtonColor = false,
 
         BorderSizePixel = 0
+
     })
+
 end
 
---//========================================================
---// WINDOW
---//========================================================
+--============================================================
+-- WINDOW
+--============================================================
 
 function Axiom:CreateWindow(Settings)
 
     Settings = Settings or {}
 
     local Window = {}
+
     Window.__index = Window
 
-    Window.Visible = true
     Window.Tabs = {}
     Window.CurrentTab = nil
+    Window.Visible = true
 
-    --======================================================
+    --========================================================
     -- SCREEN GUI
-    --======================================================
+    --========================================================
 
     local ScreenGui = Create("ScreenGui", {
+
         Name = "AxiomUI",
-        Parent = LocalPlayer:WaitForChild("PlayerGui"),
+
+        Parent =
+            LocalPlayer:WaitForChild("PlayerGui"),
 
         IgnoreGuiInset = true,
+
         ResetOnSpawn = false,
 
-        ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+        ZIndexBehavior =
+            Enum.ZIndexBehavior.Sibling
+
     })
 
-    --======================================================
-    -- WINDOW
-    --======================================================
+    --========================================================
+    -- MAIN WINDOW
+    --========================================================
 
     local Main = Create("Frame", {
+
         Parent = ScreenGui,
 
-        AnchorPoint = Vector2.new(0.5, 0.5),
+        AnchorPoint =
+            Vector2.new(0.5, 0.5),
 
-        Position = UDim2.fromScale(0.5, 0.5),
+        Position =
+            UDim2.fromScale(0.5, 0.5),
 
-        Size = UDim2.fromOffset(900, 560),
+        Size =
+            UDim2.fromOffset(900, 560),
 
-        BackgroundColor3 = Theme.Background,
+        BackgroundColor3 =
+            Theme.Background,
 
         BorderSizePixel = 0,
 
         ClipsDescendants = true
+
     })
 
-    Corner(Main, 12)
+    -- FIX:
+    -- Rounded outer window
 
-    local WindowStroke = Stroke(
+    Corner(Main, 14)
+
+    Stroke(
         Main,
         Theme.White,
-        0.38,
+        0.72,
         1
     )
 
-    --======================================================
-    -- NEON BACKGROUND
-    --======================================================
+    --========================================================
+    -- SUBTLE BACKGROUND
+    --========================================================
 
-    local Neon1 = Create("Frame", {
+    -- Very soft vertical gradient.
+    -- Keeps it looking like a real interface instead
+    -- of a generated sci-fi wallpaper.
+
+    local BackgroundGradient =
+        Create("UIGradient", {
+
+            Parent = Main,
+
+            Rotation = 90,
+
+            Color = ColorSequence.new({
+
+                ColorSequenceKeypoint.new(
+                    0,
+                    Color3.fromRGB(12,12,15)
+                ),
+
+                ColorSequenceKeypoint.new(
+                    0.45,
+                    Theme.Background
+                ),
+
+                ColorSequenceKeypoint.new(
+                    1,
+                    Color3.fromRGB(4,4,6)
+                )
+
+            })
+
+        })
+
+    --========================================================
+    -- SMALL NEON GLOW
+    --========================================================
+
+    local Glow = Create("Frame", {
+
         Parent = Main,
 
-        Position = UDim2.new(-0.12, 0, -0.20, 0),
+        Position =
+            UDim2.new(-0.08,0,-0.05,0),
 
-        Size = UDim2.fromOffset(350, 350),
+        Size =
+            UDim2.fromOffset(240,240),
 
-        BackgroundColor3 = Color3.fromRGB(255,255,255),
+        BackgroundColor3 =
+            Color3.fromRGB(255,255,255),
 
-        BackgroundTransparency = 0.93,
+        BackgroundTransparency =
+            0.975,
 
-        BorderSizePixel = 0
+        BorderSizePixel = 0,
+
+        ZIndex = 0
+
     })
 
-    Corner(Neon1, 300)
-
-    local Neon1Stroke = Stroke(
-        Neon1,
-        Theme.White,
-        0.75,
-        2
-    )
-
-    local Neon2 = Create("Frame", {
-        Parent = Main,
-
-        Position = UDim2.new(0.72, 0, 0.63, 0),
-
-        Size = UDim2.fromOffset(300, 300),
-
-        BackgroundColor3 = Color3.fromRGB(255,255,255),
-
-        BackgroundTransparency = 0.95,
-
-        BorderSizePixel = 0
-    })
-
-    Corner(Neon2, 300)
+    Corner(Glow, 200)
 
     Stroke(
-        Neon2,
-        Theme.NeonSoft,
-        0.8,
+        Glow,
+        Theme.Neon,
+        0.88,
         2
     )
 
-    -- Moving neon particles
-    local ParticleHolder = Create("Frame", {
+    local Glow2 = Create("Frame", {
+
+        Parent = Main,
+
+        Position =
+            UDim2.new(0.78,0,0.75,0),
+
+        Size =
+            UDim2.fromOffset(200,200),
+
+        BackgroundColor3 =
+            Color3.fromRGB(230,230,255),
+
+        BackgroundTransparency =
+            0.982,
+
+        BorderSizePixel = 0,
+
+        ZIndex = 0
+
+    })
+
+    Corner(Glow2, 200)
+
+    Stroke(
+        Glow2,
+        Theme.Neon,
+        0.92,
+        2
+    )
+
+    --========================================================
+    -- SUBTLE PARTICLES
+    --========================================================
+
+    local ParticleLayer = Create("Frame", {
+
         Parent = Main,
 
         Size = UDim2.fromScale(1,1),
 
         BackgroundTransparency = 1,
 
-        ClipsDescendants = true
+        ClipsDescendants = true,
+
+        ZIndex = 1
+
     })
 
-    for i = 1, 12 do
+    math.randomseed(os.clock())
+
+    for i = 1, 10 do
 
         local Particle = Create("Frame", {
-            Parent = ParticleHolder,
 
-            Position = UDim2.fromScale(
-                math.random(),
-                math.random()
-            ),
+            Parent = ParticleLayer,
 
-            Size = UDim2.fromOffset(
-                math.random(2,4),
-                math.random(2,4)
-            ),
+            Position =
+                UDim2.fromScale(
+                    math.random(10,90)/100,
+                    math.random(10,90)/100
+                ),
 
-            BackgroundColor3 = Theme.White,
+            Size =
+                UDim2.fromOffset(
+                    math.random(1,2),
+                    math.random(1,2)
+                ),
 
-            BackgroundTransparency = math.random(35,75)/100,
+            BackgroundColor3 =
+                Theme.White,
+
+            BackgroundTransparency =
+                math.random(70,90)/100,
 
             BorderSizePixel = 0
+
         })
 
-        Corner(Particle, 10)
+        Corner(Particle, 5)
 
         task.spawn(function()
 
             while Particle.Parent do
 
-                local NewPosition = UDim2.fromScale(
-                    math.random(),
-                    math.random()
-                )
-
                 Tween(
+
                     Particle,
+
                     {
-                        Position = NewPosition,
                         BackgroundTransparency =
-                            math.random(30,80)/100
+                            math.random(65,92)/100
                     },
-                    math.random(20,40)/10
+
+                    math.random(15,30)/10
+
                 )
 
-                task.wait(math.random(20,40)/10)
+                task.wait(
+                    math.random(15,30)/10
+                )
 
             end
 
@@ -371,126 +407,160 @@ function Axiom:CreateWindow(Settings)
 
     end
 
-    --======================================================
+    --========================================================
     -- TOP BAR
-    --======================================================
+    --========================================================
 
     local TopBar = Create("Frame", {
+
         Parent = Main,
 
-        Size = UDim2.new(1,0,0,56),
+        Size =
+            UDim2.new(1,0,0,54),
 
-        BackgroundColor3 = Theme.Background,
+        BackgroundColor3 =
+            Theme.Background2,
 
-        BackgroundTransparency = 0.12,
+        BackgroundTransparency =
+            0.04,
 
         BorderSizePixel = 0,
 
         ZIndex = 10
+
     })
 
     local TopLine = Create("Frame", {
+
         Parent = TopBar,
 
-        Position = UDim2.new(0,0,1,-1),
+        Position =
+            UDim2.new(0,0,1,-1),
 
-        Size = UDim2.new(1,0,0,1),
+        Size =
+            UDim2.new(1,0,0,1),
 
-        BackgroundColor3 = Theme.BorderSoft,
+        BackgroundColor3 =
+            Theme.Border,
 
         BorderSizePixel = 0
+
     })
 
-    -- Logo dot
     local LogoDot = Create("Frame", {
+
         Parent = TopBar,
 
-        Position = UDim2.new(0,24,0.5,-5),
+        Position =
+            UDim2.new(0,22,0.5,-5),
 
-        Size = UDim2.fromOffset(10,10),
+        Size =
+            UDim2.fromOffset(10,10),
 
-        BackgroundColor3 = Theme.White,
+        BackgroundColor3 =
+            Theme.White,
 
         BorderSizePixel = 0
+
     })
 
-    Corner(LogoDot,10)
-
-    local LogoGlow = Create("UIGradient", {
-        Parent = LogoDot,
-
-        Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(
-                0,
-                Theme.White
-            ),
-            ColorSequenceKeypoint.new(
-                1,
-                Theme.NeonSoft
-            )
-        })
-    })
+    Corner(LogoDot, 10)
 
     local Title = Label(
+
         TopBar,
-        Settings.Title or "Axiom UI Library",
-        16,
+
+        Settings.Title or
+            "Axiom UI Library",
+
+        15,
+
         Theme.Text,
+
         Enum.Font.GothamMedium
+
     )
 
-    Title.Position = UDim2.new(0,48,0,0)
-    Title.Size = UDim2.fromOffset(180,56)
+    Title.Position =
+        UDim2.new(0,46,0,0)
+
+    Title.Size =
+        UDim2.fromOffset(200,54)
 
     local Divider = Create("Frame", {
+
         Parent = TopBar,
 
-        Position = UDim2.new(0,250,0.5,-11),
+        Position =
+            UDim2.new(0,250,0.5,-10),
 
-        Size = UDim2.fromOffset(1,22),
+        Size =
+            UDim2.fromOffset(1,20),
 
-        BackgroundColor3 = Theme.BorderSoft,
+        BackgroundColor3 =
+            Theme.Border,
 
         BorderSizePixel = 0
+
     })
 
     local Version = Label(
+
         TopBar,
-        Settings.Version or "v3.0.0",
-        11,
-        Theme.NeonSoft,
+
+        Settings.Version or "v3.1.0",
+
+        10,
+
+        Theme.SubText,
+
         Enum.Font.GothamMedium
+
     )
 
-    Version.Position = UDim2.new(0,270,0,0)
-    Version.Size = UDim2.fromOffset(70,56)
+    Version.Position =
+        UDim2.new(0,269,0,0)
+
+    Version.Size =
+        UDim2.fromOffset(70,54)
 
     -- Close
-    local Close = Button(TopBar)
 
-    Close.AnchorPoint = Vector2.new(1,0.5)
-    Close.Position = UDim2.new(1,-18,0.5,0)
+    local Close =
+        TextButton(TopBar)
 
-    Close.Size = UDim2.fromOffset(28,28)
+    Close.AnchorPoint =
+        Vector2.new(1,0.5)
+
+    Close.Position =
+        UDim2.new(1,-16,0.5,0)
+
+    Close.Size =
+        UDim2.fromOffset(28,28)
 
     local CloseText = Label(
         Close,
         "×",
-        21,
+        19,
         Theme.SubText,
         Enum.Font.Gotham
     )
 
-    CloseText.Size = UDim2.fromScale(1,1)
-    CloseText.TextXAlignment = Enum.TextXAlignment.Center
+    CloseText.Size =
+        UDim2.fromScale(1,1)
+
+    CloseText.TextXAlignment =
+        Enum.TextXAlignment.Center
 
     Close.MouseEnter:Connect(function()
 
         Tween(
             CloseText,
             {
-                TextColor3 = Theme.Danger
-            }
+                TextColor3 =
+                    Theme.Danger
+            },
+            0.15
         )
 
     end)
@@ -500,8 +570,10 @@ function Axiom:CreateWindow(Settings)
         Tween(
             CloseText,
             {
-                TextColor3 = Theme.SubText
-            }
+                TextColor3 =
+                    Theme.SubText
+            },
+            0.15
         )
 
     end)
@@ -512,69 +584,103 @@ function Axiom:CreateWindow(Settings)
 
     end)
 
-    --======================================================
+    --========================================================
     -- SIDEBAR
-    --======================================================
+    --========================================================
 
     local Sidebar = Create("Frame", {
+
         Parent = Main,
 
-        Position = UDim2.new(0,0,0,56),
+        Position =
+            UDim2.new(0,0,0,54),
 
-        Size = UDim2.new(0,220,1,-56),
+        Size =
+            UDim2.new(0,214,1,-54),
 
-        BackgroundColor3 = Theme.Sidebar,
+        BackgroundColor3 =
+            Theme.Sidebar,
 
         BorderSizePixel = 0,
 
         ZIndex = 5
+
     })
+
+    -- IMPORTANT:
+    -- Do NOT round sidebar itself.
+    -- Outer Main handles all four corners.
 
     local SidebarLine = Create("Frame", {
+
         Parent = Sidebar,
 
-        Position = UDim2.new(1,-1,0,0),
+        Position =
+            UDim2.new(1,-1,0,0),
 
-        Size = UDim2.new(0,1,1,0),
+        Size =
+            UDim2.new(0,1,1,0),
 
-        BackgroundColor3 = Theme.BorderSoft,
+        BackgroundColor3 =
+            Theme.Border,
 
         BorderSizePixel = 0
+
     })
 
-    -- Branding
     local Brand = Label(
+
         Sidebar,
+
         "AXIOM",
-        19,
+
+        18,
+
         Theme.White,
+
         Enum.Font.GothamBlack
+
     )
 
-    Brand.Position = UDim2.new(0,22,0,20)
-    Brand.Size = UDim2.fromOffset(170,25)
+    Brand.Position =
+        UDim2.new(0,20,0,18)
+
+    Brand.Size =
+        UDim2.fromOffset(150,24)
 
     local BrandSub = Label(
+
         Sidebar,
+
         "UI LIBRARY",
-        10,
+
+        9,
+
         Theme.Muted,
+
         Enum.Font.GothamMedium
+
     )
 
-    BrandSub.Position = UDim2.new(0,23,0,43)
-    BrandSub.Size = UDim2.fromOffset(170,18)
+    BrandSub.Position =
+        UDim2.new(0,21,0,39)
 
-    --======================================================
-    -- TAB HOLDER
-    --======================================================
+    BrandSub.Size =
+        UDim2.fromOffset(120,18)
+
+    --========================================================
+    -- TAB CONTAINER
+    --========================================================
 
     local TabHolder = Create("ScrollingFrame", {
+
         Parent = Sidebar,
 
-        Position = UDim2.new(0,12,0,78),
+        Position =
+            UDim2.new(0,12,0,73),
 
-        Size = UDim2.new(1,-24,1,-170),
+        Size =
+            UDim2.new(1,-24,1,-160),
 
         BackgroundTransparency = 1,
 
@@ -582,55 +688,80 @@ function Axiom:CreateWindow(Settings)
 
         ScrollBarThickness = 2,
 
-        ScrollBarImageColor3 = Theme.White,
+        ScrollBarImageColor3 =
+            Theme.White,
 
-        CanvasSize = UDim2.new(),
+        CanvasSize =
+            UDim2.new(0,0,0,0),
 
-        AutomaticCanvasSize = Enum.AutomaticSize.Y
+        AutomaticCanvasSize =
+            Enum.AutomaticSize.Y,
+
+        ScrollingDirection =
+            Enum.ScrollingDirection.Y
+
     })
 
     local TabLayout = Create("UIListLayout", {
+
         Parent = TabHolder,
 
-        Padding = UDim.new(0,4),
+        Padding =
+            UDim.new(0,5),
 
-        SortOrder = Enum.SortOrder.LayoutOrder
+        SortOrder =
+            Enum.SortOrder.LayoutOrder
+
     })
 
-    --======================================================
+    -- Prevent layout from collapsing / overlapping.
+
+    TabLayout.HorizontalAlignment =
+        Enum.HorizontalAlignment.Center
+
+    --========================================================
     -- USER CARD
-    --======================================================
+    --========================================================
 
     local UserCard = Create("Frame", {
+
         Parent = Sidebar,
 
-        AnchorPoint = Vector2.new(0.5,1),
+        AnchorPoint =
+            Vector2.new(0.5,1),
 
-        Position = UDim2.new(0.5,0,1,-14),
+        Position =
+            UDim2.new(0.5,0,1,-13),
 
-        Size = UDim2.new(1,-24,0,75),
+        Size =
+            UDim2.new(1,-24,0,72),
 
-        BackgroundColor3 = Theme.Card,
+        BackgroundColor3 =
+            Theme.Card,
 
         BorderSizePixel = 0
+
     })
 
     Corner(UserCard,9)
 
     Stroke(
         UserCard,
-        Theme.Border,
-        0.1
+        Theme.Border
     )
 
     local Avatar = Create("ImageLabel", {
+
         Parent = UserCard,
 
-        Position = UDim2.new(0,11,0,11),
+        Position =
+            UDim2.new(0,10,0,10),
 
-        Size = UDim2.fromOffset(43,43),
+        Size =
+            UDim2.fromOffset(42,42),
 
-        BackgroundColor3 = Theme.Background2,
+        BackgroundColor3 =
+            Theme.Background,
 
         BorderSizePixel = 0,
 
@@ -638,75 +769,111 @@ function Axiom:CreateWindow(Settings)
             "rbxthumb://type=AvatarHeadShot&id="
             .. tostring(LocalPlayer.UserId)
             .. "&w=150&h=150"
+
     })
 
-    Corner(Avatar,22)
+    Corner(Avatar,21)
 
     local PlayerName = Label(
+
         UserCard,
+
         LocalPlayer.DisplayName,
-        12,
+
+        11,
+
         Theme.Text,
+
         Enum.Font.GothamMedium
+
     )
 
-    PlayerName.Position = UDim2.new(0,64,0,12)
-    PlayerName.Size = UDim2.new(1,-74,0,20)
+    PlayerName.Position =
+        UDim2.new(0,61,0,10)
 
-    local PlayerUsername = Label(
+    PlayerName.Size =
+        UDim2.new(1,-70,0,18)
+
+    local Username = Label(
+
         UserCard,
+
         "@" .. LocalPlayer.Name,
-        10,
+
+        9,
+
         Theme.Muted
+
     )
 
-    PlayerUsername.Position = UDim2.new(0,64,0,32)
-    PlayerUsername.Size = UDim2.new(1,-74,0,16)
+    Username.Position =
+        UDim2.new(0,61,0,29)
 
-    local StatusDot = Create("Frame", {
+    Username.Size =
+        UDim2.new(1,-70,0,16)
+
+    local Dot = Create("Frame", {
+
         Parent = UserCard,
 
-        Position = UDim2.new(0,13,1,-16),
+        Position =
+            UDim2.new(0,12,1,-17),
 
-        Size = UDim2.fromOffset(7,7),
+        Size =
+            UDim2.fromOffset(6,6),
 
-        BackgroundColor3 = Theme.Success,
+        BackgroundColor3 =
+            Theme.Success,
 
         BorderSizePixel = 0
+
     })
 
-    Corner(StatusDot,7)
+    Corner(Dot,6)
 
-    local StatusText = Label(
+    local Ready = Label(
+
         UserCard,
+
         "Ready",
-        10,
+
+        9,
+
         Theme.Success,
+
         Enum.Font.GothamMedium
+
     )
 
-    StatusText.Position = UDim2.new(0,26,1,-24)
-    StatusText.Size = UDim2.fromOffset(70,20)
+    Ready.Position =
+        UDim2.new(0,24,1,-24)
 
-    --======================================================
+    Ready.Size =
+        UDim2.fromOffset(60,18)
+
+    --========================================================
     -- CONTENT
-    --======================================================
+    --========================================================
 
     local Content = Create("Frame", {
+
         Parent = Main,
 
-        Position = UDim2.new(0,220,0,56),
+        Position =
+            UDim2.new(0,214,0,54),
 
-        Size = UDim2.new(1,-220,1,-56),
+        Size =
+            UDim2.new(1,-214,1,-54),
 
         BackgroundTransparency = 1,
 
-        ZIndex = 2
+        ZIndex = 3
+
     })
 
-    --======================================================
+    --========================================================
     -- DRAGGING
-    --======================================================
+    --========================================================
 
     local Dragging = false
     local DragStart
@@ -719,19 +886,22 @@ function Axiom:CreateWindow(Settings)
 
             Dragging = true
 
-            DragStart = Input.Position
-            StartPosition = Main.Position
+            DragStart =
+                Input.Position
 
-            Input.Changed:Connect(function()
+            StartPosition =
+                Main.Position
 
-                if Input.UserInputState ==
-                    Enum.UserInputState.End then
+        end
 
-                    Dragging = false
+    end)
 
-                end
+    TopBar.InputEnded:Connect(function(Input)
 
-            end)
+        if Input.UserInputType ==
+            Enum.UserInputType.MouseButton1 then
+
+            Dragging = false
 
         end
 
@@ -751,60 +921,38 @@ function Axiom:CreateWindow(Settings)
         local Delta =
             Input.Position - DragStart
 
-        Main.Position = UDim2.new(
-            StartPosition.X.Scale,
-            StartPosition.X.Offset + Delta.X,
-            StartPosition.Y.Scale,
-            StartPosition.Y.Offset + Delta.Y
-        )
+        Main.Position =
+            UDim2.new(
+
+                StartPosition.X.Scale,
+
+                StartPosition.X.Offset +
+                    Delta.X,
+
+                StartPosition.Y.Scale,
+
+                StartPosition.Y.Offset +
+                    Delta.Y
+
+            )
 
     end)
 
-    --======================================================
-    -- SET VISIBLE
-    --======================================================
+    --========================================================
+    -- VISIBILITY
+    --========================================================
 
     function Window:SetVisible(Value)
 
         Window.Visible = Value
 
-        if Value then
-
-            Main.Visible = true
-
-            Tween(
-                Main,
-                {
-                    Size = UDim2.fromOffset(900,560)
-                },
-                0.25
-            )
-
-        else
-
-            Tween(
-                Main,
-                {
-                    Size = UDim2.fromOffset(820,500)
-                },
-                0.2
-            )
-
-            task.delay(0.2,function()
-
-                if not Window.Visible then
-                    Main.Visible = false
-                end
-
-            end)
-
-        end
+        Main.Visible = Value
 
     end
 
-    --======================================================
-    -- TAB SYSTEM
-    --======================================================
+    --========================================================
+    -- ADD TAB
+    --========================================================
 
     function Window:AddTabs(Name)
 
@@ -813,144 +961,196 @@ function Axiom:CreateWindow(Settings)
         Tab.Name = Name
         Tab.Sections = {}
 
-        --==================================================
+        --====================================================
         -- TAB BUTTON
-        --==================================================
+        --====================================================
 
-        local TabButton = Button(TabHolder)
+        local TabButton =
+            TextButton(TabHolder)
+
+        -- FIX #1
+        -- Explicit fixed height.
+        -- Never AutomaticSize.
 
         TabButton.Size =
-            UDim2.new(1,0,0,39)
+            UDim2.new(
+                1,0,
+                0,38
+            )
+
+        TabButton.LayoutOrder =
+            #Window.Tabs + 1
+
+        TabButton.BackgroundColor3 =
+            Theme.Card
+
+        TabButton.BackgroundTransparency =
+            1
 
         Corner(TabButton,7)
 
-        local TabIndicator = Create("Frame", {
+        local Indicator = Create("Frame", {
+
             Parent = TabButton,
 
-            Position = UDim2.new(0,0,0.5,-8),
+            Position =
+                UDim2.new(0,0,0.5,-8),
 
-            Size = UDim2.fromOffset(3,16),
+            Size =
+                UDim2.fromOffset(3,16),
 
-            BackgroundColor3 = Theme.White,
+            BackgroundColor3 =
+                Theme.White,
 
             BackgroundTransparency = 1,
 
             BorderSizePixel = 0
+
         })
 
-        Corner(TabIndicator,3)
+        Corner(Indicator,3)
 
-        local TabIcon = Label(
+        local Icon = Label(
+
             TabButton,
+
             "◆",
-            9,
+
+            7,
+
             Theme.Muted,
+
             Enum.Font.GothamBold
+
         )
 
-        TabIcon.Position = UDim2.new(0,13,0,0)
-        TabIcon.Size = UDim2.fromOffset(20,39)
+        Icon.Position =
+            UDim2.new(0,10,0,0)
 
-        TabIcon.TextXAlignment =
+        Icon.Size =
+            UDim2.fromOffset(22,38)
+
+        Icon.TextXAlignment =
             Enum.TextXAlignment.Center
 
         local TabText = Label(
+
             TabButton,
+
             Name,
-            12,
+
+            11,
+
             Theme.SubText,
+
             Enum.Font.GothamMedium
+
         )
 
-        TabText.Position = UDim2.new(0,40,0,0)
-        TabText.Size = UDim2.new(1,-45,1,0)
+        TabText.Position =
+            UDim2.new(0,40,0,0)
 
-        --==================================================
-        -- TAB PAGE
-        --==================================================
+        TabText.Size =
+            UDim2.new(1,-45,1,0)
+
+        --====================================================
+        -- PAGE
+        --====================================================
 
         local Page = Create("ScrollingFrame", {
+
             Parent = Content,
 
-            Position = UDim2.new(0,28,0,24),
+            Position =
+                UDim2.new(0,25,0,23),
 
-            Size = UDim2.new(1,-56,1,-48),
+            Size =
+                UDim2.new(1,-50,1,-46),
 
             BackgroundTransparency = 1,
 
             BorderSizePixel = 0,
 
-            ScrollBarThickness = 2,
-
-            ScrollBarImageColor3 = Theme.White,
-
             Visible = false,
 
-            CanvasSize = UDim2.new(),
+            ScrollBarThickness = 2,
+
+            ScrollBarImageColor3 =
+                Theme.White,
+
+            CanvasSize =
+                UDim2.new(0,0,0,0),
 
             AutomaticCanvasSize =
                 Enum.AutomaticSize.Y
+
         })
 
-        local PageLayout = Create("UIListLayout", {
-            Parent = Page,
+        local PageLayout =
+            Create("UIListLayout", {
 
-            Padding = UDim.new(0,14),
+                Parent = Page,
 
-            SortOrder = Enum.SortOrder.LayoutOrder
-        })
+                FillDirection =
+                    Enum.FillDirection.Vertical,
 
-        PageLayout:GetPropertyChangedSignal(
-            "AbsoluteContentSize"
-        ):Connect(function()
+                HorizontalAlignment =
+                    Enum.HorizontalAlignment.Center,
 
-            Page.CanvasSize = UDim2.new(
-                0,
-                0,
-                0,
-                PageLayout.AbsoluteContentSize.Y + 10
-            )
+                Padding =
+                    UDim.new(0,12),
 
-        end)
+                SortOrder =
+                    Enum.SortOrder.LayoutOrder
 
-        --==================================================
-        -- ACTIVATE TAB
-        --==================================================
+            })
+
+        --====================================================
+        -- ACTIVATE
+        --====================================================
 
         function Tab:Activate()
 
             for _,Other in pairs(Window.Tabs) do
 
-                if Other.Page then
+                if Other ~= Tab then
 
-                    Other.Page.Visible = false
+                    Other.Page.Visible =
+                        false
 
                     Tween(
                         Other.TabButton,
                         {
                             BackgroundTransparency = 1
-                        }
+                        },
+                        0.12
                     )
 
                     Tween(
                         Other.TabText,
                         {
-                            TextColor3 = Theme.SubText
-                        }
+                            TextColor3 =
+                                Theme.SubText
+                        },
+                        0.12
                     )
 
                     Tween(
-                        Other.TabIcon,
+                        Other.Icon,
                         {
-                            TextColor3 = Theme.Muted
-                        }
+                            TextColor3 =
+                                Theme.Muted
+                        },
+                        0.12
                     )
 
                     Tween(
-                        Other.TabIndicator,
+                        Other.Indicator,
                         {
-                            BackgroundTransparency = 1
-                        }
+                            BackgroundTransparency =
+                                1
+                        },
+                        0.12
                     )
 
                 end
@@ -967,163 +1167,207 @@ function Axiom:CreateWindow(Settings)
 
                     BackgroundTransparency =
                         0
-                }
+                },
+                0.12
             )
 
             Tween(
                 TabText,
                 {
-                    TextColor3 = Theme.White
-                }
+                    TextColor3 =
+                        Theme.White
+                },
+                0.12
             )
 
             Tween(
-                TabIcon,
+                Icon,
                 {
-                    TextColor3 = Theme.White
-                }
+                    TextColor3 =
+                        Theme.White
+                },
+                0.12
             )
 
             Tween(
-                TabIndicator,
+                Indicator,
                 {
-                    BackgroundTransparency = 0
-                }
+                    BackgroundTransparency =
+                        0
+                },
+                0.12
             )
 
             Window.CurrentTab = Tab
 
         end
 
-        TabButton.MouseButton1Click:Connect(function()
-            Tab:Activate()
-        end)
+        TabButton.MouseButton1Click:Connect(
+            function()
 
-        TabButton.MouseEnter:Connect(function()
-
-            if Window.CurrentTab ~= Tab then
-
-                Tween(
-                    TabButton,
-                    {
-                        BackgroundColor3 =
-                            Theme.Card,
-                        BackgroundTransparency =
-                            0.15
-                    }
-                )
+                Tab:Activate()
 
             end
+        )
 
-        end)
+        TabButton.MouseEnter:Connect(
+            function()
 
-        TabButton.MouseLeave:Connect(function()
+                if Window.CurrentTab ~= Tab then
 
-            if Window.CurrentTab ~= Tab then
+                    Tween(
+                        TabButton,
+                        {
+                            BackgroundColor3 =
+                                Theme.Card,
 
-                Tween(
-                    TabButton,
-                    {
-                        BackgroundTransparency = 1
-                    }
-                )
+                            BackgroundTransparency =
+                                0.1
+                        },
+                        0.12
+                    )
+
+                end
 
             end
+        )
 
-        end)
+        TabButton.MouseLeave:Connect(
+            function()
 
-        --==================================================
+                if Window.CurrentTab ~= Tab then
+
+                    Tween(
+                        TabButton,
+                        {
+                            BackgroundTransparency =
+                                1
+                        },
+                        0.12
+                    )
+
+                end
+
+            end
+        )
+
+        --====================================================
         -- SECTION
-        --==================================================
+        --====================================================
 
         function Tab:AddSection(Name)
 
             local Section = {}
 
-            local SectionFrame = Create("Frame", {
+            local Frame = Create("Frame", {
+
                 Parent = Page,
 
-                Size = UDim2.new(1,0,0,0),
+                Size =
+                    UDim2.new(1,0,0,0),
 
                 AutomaticSize =
                     Enum.AutomaticSize.Y,
 
-                BackgroundColor3 = Theme.Card,
+                BackgroundColor3 =
+                    Theme.Card,
 
                 BorderSizePixel = 0
+
             })
 
-            Corner(SectionFrame,10)
+            Corner(Frame,9)
 
             Stroke(
-                SectionFrame,
-                Theme.BorderSoft,
+                Frame,
+                Theme.Border,
                 0
             )
 
-            local SectionTop = Create("Frame", {
-                Parent = SectionFrame,
+            local Header = Create("Frame", {
 
-                Size = UDim2.new(1,0,0,46),
+                Parent = Frame,
 
-                BackgroundTransparency = 1
-            })
-
-            local SectionTitle = Label(
-                SectionTop,
-                Name,
-                13,
-                Theme.White,
-                Enum.Font.GothamMedium
-            )
-
-            SectionTitle.Position =
-                UDim2.new(0,15,0,0)
-
-            SectionTitle.Size =
-                UDim2.new(1,-30,1,0)
-
-            local SectionLine = Create("Frame", {
-                Parent = SectionFrame,
-
-                Position = UDim2.new(0,15,0,45),
-
-                Size = UDim2.new(1,-30,0,1),
-
-                BackgroundColor3 =
-                    Theme.BorderSoft,
-
-                BorderSizePixel = 0
-            })
-
-            local Container = Create("Frame", {
-                Parent = SectionFrame,
-
-                Position = UDim2.new(0,12,0,55),
-
-                Size = UDim2.new(1,-24,0,0),
-
-                AutomaticSize =
-                    Enum.AutomaticSize.Y,
+                Size =
+                    UDim2.new(1,0,0,44),
 
                 BackgroundTransparency = 1
+
             })
 
-            Padding(
-                SectionFrame,
-                0,
-                0,
-                0,
-                12
+            local HeaderText =
+                Label(
+
+                    Header,
+
+                    Name,
+
+                    12,
+
+                    Theme.Text,
+
+                    Enum.Font.GothamMedium
+
+                )
+
+            HeaderText.Position =
+                UDim2.new(0,14,0,0)
+
+            HeaderText.Size =
+                UDim2.new(1,-28,1,0)
+
+            local HeaderLine = Create(
+                "Frame",
+                {
+
+                    Parent = Frame,
+
+                    Position =
+                        UDim2.new(0,14,0,43),
+
+                    Size =
+                        UDim2.new(1,-28,0,1),
+
+                    BackgroundColor3 =
+                        Theme.Border,
+
+                    BorderSizePixel = 0
+
+                }
             )
 
-            local ContainerLayout = Create("UIListLayout", {
-                Parent = Container,
+            local Container = Create(
+                "Frame",
+                {
 
-                Padding = UDim.new(0,7),
+                    Parent = Frame,
 
-                SortOrder = Enum.SortOrder.LayoutOrder
-            })
+                    Position =
+                        UDim2.new(0,11,0,51),
+
+                    Size =
+                        UDim2.new(1,-22,0,0),
+
+                    AutomaticSize =
+                        Enum.AutomaticSize.Y,
+
+                    BackgroundTransparency = 1
+
+                }
+            )
+
+            local ContainerLayout =
+                Create("UIListLayout", {
+
+                    Parent = Container,
+
+                    Padding =
+                        UDim.new(0,6),
+
+                    SortOrder =
+                        Enum.SortOrder.LayoutOrder
+
+                })
 
             --================================================
             -- TOGGLE
@@ -1138,95 +1382,128 @@ function Axiom:CreateWindow(Settings)
                 Toggle.Value =
                     Config.Default or false
 
-                local Row = Button(Container)
+                local Row =
+                    TextButton(Container)
 
                 Row.Size =
-                    UDim2.new(1,0,0,53)
+                    UDim2.new(1,0,0,51)
 
                 Row.BackgroundColor3 =
                     Theme.Background2
 
                 Row.BackgroundTransparency = 0
 
-                Corner(Row,8)
+                Corner(Row,7)
 
-                local RowStroke =
-                    Stroke(
+                Stroke(
+                    Row,
+                    Theme.Border
+                )
+
+                local NameText =
+                    Label(
+
                         Row,
-                        Theme.BorderSoft,
-                        0
+
+                        Config.Name or "Toggle",
+
+                        11,
+
+                        Theme.Text,
+
+                        Enum.Font.GothamMedium
+
                     )
 
-                local NameLabel = Label(
-                    Row,
-                    Config.Name or "Toggle",
-                    12,
-                    Theme.Text,
-                    Enum.Font.GothamMedium
-                )
+                NameText.Position =
+                    UDim2.new(0,12,0,6)
 
-                NameLabel.Position =
-                    UDim2.new(0,13,0,6)
+                NameText.Size =
+                    UDim2.new(
+                        1,-90,
+                        0,18
+                    )
 
-                NameLabel.Size =
-                    UDim2.new(1,-90,0,18)
+                local Description =
+                    Label(
 
-                local Description = Label(
-                    Row,
-                    Config.Description or
-                        "Toggle description.",
-                    10,
-                    Theme.Muted
-                )
+                        Row,
+
+                        Config.Description
+                            or "Toggle",
+
+                        9,
+
+                        Theme.Muted
+
+                    )
 
                 Description.Position =
-                    UDim2.new(0,13,0,26)
+                    UDim2.new(0,12,0,26)
 
                 Description.Size =
-                    UDim2.new(1,-90,0,17)
+                    UDim2.new(
+                        1,-90,
+                        0,16
+                    )
 
-                -- Switch
-                local Switch = Create("Frame", {
-                    Parent = Row,
+                local Switch =
+                    Create("Frame", {
 
-                    AnchorPoint =
-                        Vector2.new(1,0.5),
+                        Parent = Row,
 
-                    Position =
-                        UDim2.new(1,-12,0.5,0),
+                        AnchorPoint =
+                            Vector2.new(1,0.5),
 
-                    Size =
-                        UDim2.fromOffset(42,22),
+                        Position =
+                            UDim2.new(
+                                1,-12,
+                                0.5,0
+                            ),
 
-                    BackgroundColor3 =
-                        Theme.Background,
+                        Size =
+                            UDim2.fromOffset(
+                                42,22
+                            ),
 
-                    BorderSizePixel = 0
-                })
+                        BackgroundColor3 =
+                            Theme.Background,
 
-                Corner(Switch,14)
+                        BorderSizePixel = 0
+
+                    })
+
+                Corner(Switch,11)
 
                 Stroke(
                     Switch,
                     Theme.Border
                 )
 
-                local Knob = Create("Frame", {
-                    Parent = Switch,
+                local Knob =
+                    Create("Frame", {
 
-                    Position =
-                        UDim2.new(0,4,0.5,-7),
+                        Parent = Switch,
 
-                    Size =
-                        UDim2.fromOffset(14,14),
+                        Position =
+                            UDim2.new(
+                                0,4,
+                                0.5,-7
+                            ),
 
-                    BackgroundColor3 =
-                        Theme.Muted,
+                        Size =
+                            UDim2.fromOffset(
+                                14,14
+                            ),
 
-                    BorderSizePixel = 0
-                })
+                        BackgroundColor3 =
+                            Theme.Muted,
 
-                Corner(Knob,14)
+                        BorderSizePixel = 0
+
+                    })
+
+                Corner(Knob,7)
 
                 function Toggle:Set(Value)
 
@@ -1240,7 +1517,7 @@ function Axiom:CreateWindow(Settings)
                                 BackgroundColor3 =
                                     Theme.White
                             },
-                            0.15
+                            0.13
                         )
 
                         Tween(
@@ -1255,7 +1532,7 @@ function Axiom:CreateWindow(Settings)
                                 BackgroundColor3 =
                                     Theme.Black
                             },
-                            0.15
+                            0.13
                         )
 
                     else
@@ -1266,7 +1543,7 @@ function Axiom:CreateWindow(Settings)
                                 BackgroundColor3 =
                                     Theme.Background
                             },
-                            0.15
+                            0.13
                         )
 
                         Tween(
@@ -1281,7 +1558,7 @@ function Axiom:CreateWindow(Settings)
                                 BackgroundColor3 =
                                     Theme.Muted
                             },
-                            0.15
+                            0.13
                         )
 
                     end
@@ -1297,15 +1574,21 @@ function Axiom:CreateWindow(Settings)
 
                 end
 
-                Row.MouseButton1Click:Connect(function()
+                Row.MouseButton1Click:Connect(
 
-                    Toggle:Set(
-                        not Toggle.Value
-                    )
+                    function()
 
-                end)
+                        Toggle:Set(
+                            not Toggle.Value
+                        )
 
-                Toggle:Set(Toggle.Value)
+                    end
+
+                )
+
+                Toggle:Set(
+                    Toggle.Value
+                )
 
                 return Toggle
 
@@ -1319,101 +1602,88 @@ function Axiom:CreateWindow(Settings)
 
                 Config = Config or {}
 
-                local ButtonObject = Button(Container)
+                local Object =
+                    TextButton(Container)
 
-                ButtonObject.Size =
-                    UDim2.new(1,0,0,43)
+                Object.Size =
+                    UDim2.new(1,0,0,40)
 
-                ButtonObject.BackgroundColor3 =
+                Object.BackgroundColor3 =
                     Theme.White
 
-                Corner(
-                    ButtonObject,
-                    8
-                )
+                Object.BorderSizePixel = 0
 
-                local ButtonLabel = Label(
-                    ButtonObject,
-                    Config.Name or "Execute",
-                    12,
-                    Theme.Black,
-                    Enum.Font.GothamMedium
-                )
+                Corner(Object,7)
 
-                ButtonLabel.Size =
+                local Text =
+                    Label(
+
+                        Object,
+
+                        Config.Name or
+                            "Execute",
+
+                        11,
+
+                        Theme.Black,
+
+                        Enum.Font.GothamMedium
+
+                    )
+
+                Text.Size =
                     UDim2.fromScale(1,1)
 
-                ButtonLabel.TextXAlignment =
+                Text.TextXAlignment =
                     Enum.TextXAlignment.Center
 
-                ButtonObject.MouseEnter:Connect(function()
+                Object.MouseEnter:Connect(
+                    function()
 
-                    Tween(
-                        ButtonObject,
-                        {
-                            BackgroundColor3 =
-                                Theme.NeonSoft
-                        },
-                        0.15
-                    )
+                        Tween(
+                            Object,
+                            {
+                                BackgroundColor3 =
+                                    Theme.SoftWhite
+                            },
+                            0.12
+                        )
 
-                end)
+                    end
+                )
 
-                ButtonObject.MouseLeave:Connect(function()
+                Object.MouseLeave:Connect(
+                    function()
 
-                    Tween(
-                        ButtonObject,
-                        {
-                            BackgroundColor3 =
-                                Theme.White
-                        },
-                        0.15
-                    )
+                        Tween(
+                            Object,
+                            {
+                                BackgroundColor3 =
+                                    Theme.White
+                            },
+                            0.12
+                        )
 
-                end)
+                    end
+                )
 
-                ButtonObject.MouseButton1Click:Connect(function()
+                Object.MouseButton1Click:Connect(
 
-                    Tween(
-                        ButtonObject,
-                        {
-                            Size =
-                                UDim2.new(
-                                    1,-5,
-                                    0,39
-                                )
-                        },
-                        0.08
-                    )
+                    function()
 
-                    task.delay(
-                        0.08,
-                        function()
+                        if Config.Callback then
 
-                            Tween(
-                                ButtonObject,
-                                {
-                                    Size =
-                                        UDim2.new(
-                                            1,0,
-                                            0,43
-                                        )
-                                },
-                                0.12
+                            task.spawn(
+                                Config.Callback
                             )
 
                         end
-                    )
 
-                    if Config.Callback then
-                        task.spawn(
-                            Config.Callback
-                        )
                     end
 
-                end)
+                )
 
-                return ButtonObject
+                return Object
 
             end
 
@@ -1430,144 +1700,185 @@ function Axiom:CreateWindow(Settings)
                 Dropdown.Value =
                     Config.Default or
                     (Config.Options and
-                    Config.Options[1])
+                        Config.Options[1])
 
                 local Open = false
 
-                local Holder = Create("Frame", {
-                    Parent = Container,
+                local Holder =
+                    Create("Frame", {
 
-                    Size = UDim2.new(1,0,0,43),
+                        Parent = Container,
 
-                    BackgroundColor3 =
-                        Theme.Background2,
+                        Size =
+                            UDim2.new(
+                                1,0,
+                                0,40
+                            ),
 
-                    BorderSizePixel = 0,
+                        BackgroundColor3 =
+                            Theme.Background2,
 
-                    ClipsDescendants = true
-                })
+                        BorderSizePixel = 0,
 
-                Corner(Holder,8)
+                        ClipsDescendants =
+                            true
+
+                    })
+
+                Corner(Holder,7)
 
                 Stroke(
                     Holder,
-                    Theme.BorderSoft
+                    Theme.Border
                 )
 
-                local Select = Button(Holder)
+                local Select =
+                    TextButton(Holder)
 
                 Select.Size =
-                    UDim2.new(1,0,0,43)
+                    UDim2.new(
+                        1,0,
+                        0,40
+                    )
 
-                local DropdownName = Label(
-                    Select,
-                    Config.Name or "Dropdown",
-                    12,
-                    Theme.Text,
-                    Enum.Font.GothamMedium
-                )
+                local NameText =
+                    Label(
 
-                DropdownName.Position =
-                    UDim2.new(0,13,0,0)
+                        Select,
 
-                DropdownName.Size =
+                        Config.Name
+                            or "Dropdown",
+
+                        11,
+
+                        Theme.Text,
+
+                        Enum.Font.GothamMedium
+
+                    )
+
+                NameText.Position =
+                    UDim2.new(
+                        0,12,
+                        0,0
+                    )
+
+                NameText.Size =
                     UDim2.new(
                         0.5,0,
                         1,0
                     )
 
-                local Current = Label(
-                    Select,
-                    tostring(Dropdown.Value),
-                    11,
-                    Theme.Muted
-                )
+                local Current =
+                    Label(
+
+                        Select,
+
+                        tostring(
+                            Dropdown.Value or
+                                "Select"
+                        ),
+
+                        10,
+
+                        Theme.SubText
+
+                    )
 
                 Current.AnchorPoint =
                     Vector2.new(1,0)
 
                 Current.Position =
-                    UDim2.new(1,-35,0,0)
+                    UDim2.new(
+                        1,-34,
+                        0,0
+                    )
 
                 Current.Size =
                     UDim2.new(
-                        0.4,0,
+                        0.35,0,
                         1,0
                     )
 
                 Current.TextXAlignment =
                     Enum.TextXAlignment.Right
 
-                local Arrow = Label(
-                    Select,
-                    "⌄",
-                    16,
-                    Theme.White
-                )
+                local Arrow =
+                    Label(
+                        Select,
+                        "⌄",
+                        14,
+                        Theme.White
+                    )
 
                 Arrow.AnchorPoint =
                     Vector2.new(1,0.5)
 
                 Arrow.Position =
-                    UDim2.new(1,-10,0.5,0)
+                    UDim2.new(
+                        1,-9,
+                        0.5,0
+                    )
 
                 Arrow.Size =
-                    UDim2.fromOffset(18,20)
+                    UDim2.fromOffset(
+                        14,18
+                    )
 
                 Arrow.TextXAlignment =
                     Enum.TextXAlignment.Center
 
-                local List = Create("ScrollingFrame", {
-                    Parent = Holder,
+                local List =
+                    Create("ScrollingFrame", {
 
-                    Position =
-                        UDim2.new(0,7,0,48),
+                        Parent = Holder,
 
-                    Size =
-                        UDim2.new(1,-14,0,130),
+                        Position =
+                            UDim2.new(
+                                0,7,
+                                0,45
+                            ),
 
-                    BackgroundTransparency = 1,
+                        Size =
+                            UDim2.new(
+                                1,-14,
+                                0,115
+                            ),
 
-                    BorderSizePixel = 0,
+                        BackgroundTransparency = 1,
 
-                    ScrollBarThickness = 2,
+                        BorderSizePixel = 0,
 
-                    ScrollBarImageColor3 =
-                        Theme.White,
+                        ScrollBarThickness = 2,
 
-                    CanvasSize = UDim2.new()
-                })
+                        ScrollBarImageColor3 =
+                            Theme.White
 
-                local ListLayout = Create("UIListLayout", {
-                    Parent = List,
+                    })
 
-                    Padding = UDim.new(0,4)
-                })
+                local ListLayout =
+                    Create("UIListLayout", {
 
-                ListLayout:GetPropertyChangedSignal(
-                    "AbsoluteContentSize"
-                ):Connect(function()
+                        Parent = List,
 
-                    List.CanvasSize =
-                        UDim2.new(
-                            0,0,0,
-                            ListLayout
-                                .AbsoluteContentSize.Y
-                        )
+                        Padding =
+                            UDim.new(
+                                0,4
+                            )
 
-                end)
+                    })
 
                 for _,Option in ipairs(
                     Config.Options or {}
                 ) do
 
                     local OptionButton =
-                        Button(List)
+                        TextButton(List)
 
                     OptionButton.Size =
                         UDim2.new(
-                            1,-3,
-                            0,34
+                            1,-2,
+                            0,32
                         )
 
                     OptionButton.BackgroundColor3 =
@@ -1578,162 +1889,187 @@ function Axiom:CreateWindow(Settings)
                         6
                     )
 
-                    local OptionText = Label(
-                        OptionButton,
-                        tostring(Option),
-                        11,
-                        Theme.SubText
-                    )
+                    local OptionText =
+                        Label(
+
+                            OptionButton,
+
+                            tostring(
+                                Option
+                            ),
+
+                            10,
+
+                            Theme.SubText
+
+                        )
 
                     OptionText.Size =
-                        UDim2.fromScale(1,1)
-
-                    Padding(
-                        OptionText,
-                        11,
-                        5,
-                        0,
-                        0
-                    )
-
-                    OptionButton.MouseEnter:Connect(function()
-
-                        Tween(
-                            OptionButton,
-                            {
-                                BackgroundColor3 =
-                                    Theme.White
-                            },
-                            0.12
+                        UDim2.fromScale(
+                            1,1
                         )
 
-                        Tween(
-                            OptionText,
-                            {
-                                TextColor3 =
-                                    Theme.Black
-                            },
-                            0.12
+                    OptionText.Position =
+                        UDim2.new(
+                            0,10,
+                            0,0
                         )
 
-                    end)
+                    OptionButton.MouseEnter:Connect(
+                        function()
 
-                    OptionButton.MouseLeave:Connect(function()
+                            Tween(
+                                OptionButton,
+                                {
+                                    BackgroundColor3 =
+                                        Theme.White
+                                },
+                                0.1
+                            )
 
-                        Tween(
-                            OptionButton,
-                            {
-                                BackgroundColor3 =
-                                    Theme.Card
-                            },
-                            0.12
-                        )
-
-                        Tween(
-                            OptionText,
-                            {
-                                TextColor3 =
-                                    Theme.SubText
-                            },
-                            0.12
-                        )
-
-                    end)
-
-                    OptionButton.MouseButton1Click:Connect(function()
-
-                        Dropdown.Value = Option
-                        Current.Text = tostring(Option)
-
-                        Open = false
-
-                        Tween(
-                            Holder,
-                            {
-                                Size =
-                                    UDim2.new(
-                                        1,0,
-                                        0,43
-                                    )
-                            }
-                        )
-
-                        Tween(
-                            Arrow,
-                            {
-                                Rotation = 0
-                            }
-                        )
-
-                        if Config.Callback then
-
-                            task.spawn(
-                                Config.Callback,
-                                Option
+                            Tween(
+                                OptionText,
+                                {
+                                    TextColor3 =
+                                        Theme.Black
+                                },
+                                0.1
                             )
 
                         end
+                    )
 
-                    end)
+                    OptionButton.MouseLeave:Connect(
+                        function()
+
+                            Tween(
+                                OptionButton,
+                                {
+                                    BackgroundColor3 =
+                                        Theme.Card
+                                },
+                                0.1
+                            )
+
+                            Tween(
+                                OptionText,
+                                {
+                                    TextColor3 =
+                                        Theme.SubText
+                                },
+                                0.1
+                            )
+
+                        end
+                    )
+
+                    OptionButton.MouseButton1Click:Connect(
+
+                        function()
+
+                            Dropdown.Value =
+                                Option
+
+                            Current.Text =
+                                tostring(
+                                    Option
+                                )
+
+                            Open = false
+
+                            Tween(
+                                Holder,
+                                {
+                                    Size =
+                                        UDim2.new(
+                                            1,0,
+                                            0,40
+                                        )
+                                },
+                                0.16
+                            )
+
+                            Arrow.Rotation = 0
+
+                            if Config.Callback then
+
+                                task.spawn(
+                                    Config.Callback,
+                                    Option
+                                )
+
+                            end
+
+                        end
+
+                    )
 
                 end
 
-                Select.MouseButton1Click:Connect(function()
+                Select.MouseButton1Click:Connect(
 
-                    Open = not Open
+                    function()
 
-                    if Open then
+                        Open = not Open
 
-                        Tween(
-                            Holder,
-                            {
-                                Size =
-                                    UDim2.new(
-                                        1,0,
-                                        0,187
-                                    )
-                            },
-                            0.2
-                        )
+                        if Open then
 
-                        Tween(
-                            Arrow,
-                            {
-                                Rotation = 180
-                            },
-                            0.2
-                        )
+                            local Count =
+                                math.min(
+                                    #(
+                                        Config.Options
+                                        or {}
+                                    ),
+                                    3
+                                )
 
-                    else
+                            local Height =
+                                45 +
+                                (Count * 36)
 
-                        Tween(
-                            Holder,
-                            {
-                                Size =
-                                    UDim2.new(
-                                        1,0,
-                                        0,43
-                                    )
-                            },
-                            0.2
-                        )
+                            Tween(
+                                Holder,
+                                {
+                                    Size =
+                                        UDim2.new(
+                                            1,0,
+                                            0,Height
+                                        )
+                                },
+                                0.18
+                            )
 
-                        Tween(
-                            Arrow,
-                            {
-                                Rotation = 0
-                            },
-                            0.2
-                        )
+                            Arrow.Rotation = 180
+
+                        else
+
+                            Tween(
+                                Holder,
+                                {
+                                    Size =
+                                        UDim2.new(
+                                            1,0,
+                                            0,40
+                                        )
+                                },
+                                0.18
+                            )
+
+                            Arrow.Rotation = 0
+
+                        end
 
                     end
 
-                end)
+                )
 
                 function Dropdown:Set(Value)
 
-                    Dropdown.Value = Value
-                    Current.Text = tostring(Value)
+                    Dropdown.Value =
+                        Value
+
+                    Current.Text =
+                        tostring(Value)
 
                     if Config.Callback then
 
@@ -1751,546 +2087,37 @@ function Axiom:CreateWindow(Settings)
             end
 
             --================================================
-            -- SLIDER
-            --================================================
-
-            function Section:AddSlider(Config)
-
-                Config = Config or {}
-
-                local Min =
-                    Config.Min or 0
-
-                local Max =
-                    Config.Max or 100
-
-                local Value =
-                    math.clamp(
-                        Config.Default or Min,
-                        Min,
-                        Max
-                    )
-
-                local SliderObject = {}
-
-                SliderObject.Value = Value
-
-                local Holder = Create("Frame", {
-                    Parent = Container,
-
-                    Size =
-                        UDim2.new(1,0,0,60),
-
-                    BackgroundColor3 =
-                        Theme.Background2,
-
-                    BorderSizePixel = 0
-                })
-
-                Corner(Holder,8)
-
-                Stroke(
-                    Holder,
-                    Theme.BorderSoft
-                )
-
-                local NameLabel = Label(
-                    Holder,
-                    Config.Name or "Slider",
-                    11,
-                    Theme.Text,
-                    Enum.Font.GothamMedium
-                )
-
-                NameLabel.Position =
-                    UDim2.new(0,12,0,7)
-
-                NameLabel.Size =
-                    UDim2.new(0.7,0,0,18)
-
-                local ValueLabel = Label(
-                    Holder,
-                    tostring(Value),
-                    11,
-                    Theme.White,
-                    Enum.Font.GothamMedium
-                )
-
-                ValueLabel.AnchorPoint =
-                    Vector2.new(1,0)
-
-                ValueLabel.Position =
-                    UDim2.new(1,-12,0,7)
-
-                ValueLabel.Size =
-                    UDim2.fromOffset(50,18)
-
-                ValueLabel.TextXAlignment =
-                    Enum.TextXAlignment.Right
-
-                local Bar = Create("Frame", {
-                    Parent = Holder,
-
-                    Position =
-                        UDim2.new(0,12,0,37),
-
-                    Size =
-                        UDim2.new(1,-24,0,5),
-
-                    BackgroundColor3 =
-                        Theme.BorderSoft,
-
-                    BorderSizePixel = 0
-                })
-
-                Corner(Bar,4)
-
-                local Fill = Create("Frame", {
-                    Parent = Bar,
-
-                    Size = UDim2.new(
-                        (Value-Min)/(Max-Min),
-                        0,
-                        1,
-                        0
-                    ),
-
-                    BackgroundColor3 =
-                        Theme.White,
-
-                    BorderSizePixel = 0
-                })
-
-                Corner(Fill,4)
-
-                local DraggingSlider = false
-
-                local function SetSliderFromX(X)
-
-                    local Percent =
-                        math.clamp(
-                            (X -
-                                Bar.AbsolutePosition.X)
-                            / Bar.AbsoluteSize.X,
-                            0,
-                            1
-                        )
-
-                    local NewValue =
-                        Min +
-                        ((Max-Min)*Percent)
-
-                    NewValue =
-                        math.floor(
-                            NewValue + 0.5
-                        )
-
-                    SliderObject.Value =
-                        NewValue
-
-                    ValueLabel.Text =
-                        tostring(NewValue)
-
-                    Tween(
-                        Fill,
-                        {
-                            Size =
-                                UDim2.new(
-                                    Percent,
-                                    0,
-                                    1,
-                                    0
-                                )
-                        },
-                        0.08
-                    )
-
-                    if Config.Callback then
-
-                        task.spawn(
-                            Config.Callback,
-                            NewValue
-                        )
-
-                    end
-
-                end
-
-                Bar.InputBegan:Connect(function(Input)
-
-                    if Input.UserInputType ==
-                        Enum.UserInputType.MouseButton1 then
-
-                        DraggingSlider = true
-
-                        SetSliderFromX(
-                            Input.Position.X
-                        )
-
-                    end
-
-                end)
-
-                UserInputService.InputChanged:Connect(
-                    function(Input)
-
-                        if DraggingSlider and
-                            Input.UserInputType ==
-                            Enum.UserInputType.MouseMovement then
-
-                            SetSliderFromX(
-                                Input.Position.X
-                            )
-
-                        end
-
-                    end
-                )
-
-                UserInputService.InputEnded:Connect(
-                    function(Input)
-
-                        if Input.UserInputType ==
-                            Enum.UserInputType.MouseButton1 then
-
-                            DraggingSlider = false
-
-                        end
-
-                    end
-                )
-
-                function SliderObject:Set(NewValue)
-
-                    NewValue =
-                        math.clamp(
-                            NewValue,
-                            Min,
-                            Max
-                        )
-
-                    local Percent =
-                        (NewValue-Min)/(Max-Min)
-
-                    SliderObject.Value =
-                        NewValue
-
-                    ValueLabel.Text =
-                        tostring(NewValue)
-
-                    Tween(
-                        Fill,
-                        {
-                            Size =
-                                UDim2.new(
-                                    Percent,
-                                    0,
-                                    1,
-                                    0
-                                )
-                        }
-                    )
-
-                    if Config.Callback then
-
-                        task.spawn(
-                            Config.Callback,
-                            NewValue
-                        )
-
-                    end
-
-                end
-
-                return SliderObject
-
-            end
-
-            --================================================
-            -- TEXTBOX
-            --================================================
-
-            function Section:AddTextbox(Config)
-
-                Config = Config or {}
-
-                local Holder = Create("Frame", {
-                    Parent = Container,
-
-                    Size =
-                        UDim2.new(1,0,0,48),
-
-                    BackgroundColor3 =
-                        Theme.Background2,
-
-                    BorderSizePixel = 0
-                })
-
-                Corner(Holder,8)
-
-                Stroke(
-                    Holder,
-                    Theme.BorderSoft
-                )
-
-                local NameLabel = Label(
-                    Holder,
-                    Config.Name or "Textbox",
-                    11,
-                    Theme.Text,
-                    Enum.Font.GothamMedium
-                )
-
-                NameLabel.Position =
-                    UDim2.new(0,12,0,0)
-
-                NameLabel.Size =
-                    UDim2.fromOffset(100,48)
-
-                local Input = Create("TextBox", {
-                    Parent = Holder,
-
-                    AnchorPoint =
-                        Vector2.new(1,0.5),
-
-                    Position =
-                        UDim2.new(1,-10,0.5,0),
-
-                    Size =
-                        UDim2.new(
-                            0.55,0,
-                            0,31
-                        ),
-
-                    BackgroundColor3 =
-                        Theme.Card,
-
-                    BorderSizePixel = 0,
-
-                    ClearTextOnFocus = false,
-
-                    PlaceholderText =
-                        Config.Placeholder
-                        or "Enter text...",
-
-                    PlaceholderColor3 =
-                        Theme.Muted,
-
-                    Text =
-                        Config.Default
-                        or "",
-
-                    TextColor3 =
-                        Theme.Text,
-
-                    TextSize = 11,
-
-                    Font = Enum.Font.Gotham,
-
-                    TextXAlignment =
-                        Enum.TextXAlignment.Left
-                })
-
-                Corner(Input,7)
-
-                Padding(
-                    Input,
-                    10,
-                    10,
-                    0,
-                    0
-                )
-
-                Input.FocusLost:Connect(
-                    function()
-
-                        if Config.Callback then
-
-                            task.spawn(
-                                Config.Callback,
-                                Input.Text
-                            )
-
-                        end
-
-                    end
-                )
-
-                return Input
-
-            end
-
-            --================================================
-            -- KEYBIND
-            --================================================
-
-            function Section:AddKeybind(Config)
-
-                Config = Config or {}
-
-                local Keybind = {}
-
-                Keybind.Key =
-                    Config.Key
-                    or Enum.KeyCode.RightControl
-
-                local Row = Create("Frame", {
-                    Parent = Container,
-
-                    Size =
-                        UDim2.new(1,0,0,44),
-
-                    BackgroundColor3 =
-                        Theme.Background2,
-
-                    BorderSizePixel = 0
-                })
-
-                Corner(Row,8)
-
-                Stroke(
-                    Row,
-                    Theme.BorderSoft
-                )
-
-                local Name = Label(
-                    Row,
-                    Config.Name or "Keybind",
-                    11,
-                    Theme.Text,
-                    Enum.Font.GothamMedium
-                )
-
-                Name.Position =
-                    UDim2.new(0,12,0,0)
-
-                Name.Size =
-                    UDim2.new(0.5,0,1,0)
-
-                local KeyButton = Button(Row)
-
-                KeyButton.AnchorPoint =
-                    Vector2.new(1,0.5)
-
-                KeyButton.Position =
-                    UDim2.new(1,-10,0.5,0)
-
-                KeyButton.Size =
-                    UDim2.fromOffset(100,28)
-
-                KeyButton.BackgroundColor3 =
-                    Theme.Card
-
-                Corner(KeyButton,6)
-
-                Stroke(
-                    KeyButton,
-                    Theme.Border
-                )
-
-                local KeyText = Label(
-                    KeyButton,
-                    Keybind.Key.Name,
-                    10,
-                    Theme.SubText,
-                    Enum.Font.GothamMedium
-                )
-
-                KeyText.Size =
-                    UDim2.fromScale(1,1)
-
-                KeyText.TextXAlignment =
-                    Enum.TextXAlignment.Center
-
-                local Listening = false
-
-                KeyButton.MouseButton1Click:Connect(
-                    function()
-
-                        if Listening then
-                            return
-                        end
-
-                        Listening = true
-
-                        KeyText.Text = "PRESS KEY"
-                        KeyText.TextColor3 =
-                            Theme.White
-
-                    end
-                )
-
-                UserInputService.InputBegan:Connect(
-                    function(Input,Processed)
-
-                        if Processed then
-                            return
-                        end
-
-                        if Listening then
-
-                            if Input.KeyCode ~=
-                                Enum.KeyCode.Unknown then
-
-                                Keybind.Key =
-                                    Input.KeyCode
-
-                                KeyText.Text =
-                                    Input.KeyCode.Name
-
-                                Listening = false
-
-                            end
-
-                            return
-                        end
-
-                        if Input.KeyCode ==
-                            Keybind.Key then
-
-                            if Config.Callback then
-
-                                task.spawn(
-                                    Config.Callback
-                                )
-
-                            end
-
-                        end
-
-                    end
-                )
-
-                function Keybind:Set(Key)
-
-                    Keybind.Key = Key
-                    KeyText.Text = Key.Name
-
-                end
-
-                return Keybind
-
-            end
-
-            --================================================
             -- LABEL
             --================================================
 
             function Section:AddLabel(Text)
 
-                local TextObject = Label(
-                    Container,
-                    Text or "",
-                    10,
-                    Theme.Muted
-                )
+                local Object =
+                    Label(
 
-                TextObject.Size =
-                    UDim2.new(1,0,0,26)
+                        Container,
 
-                return TextObject
+                        Text or "",
+
+                        10,
+
+                        Theme.Muted
+
+                    )
+
+                Object.Size =
+                    UDim2.new(
+                        1,0,
+                        0,26
+                    )
+
+                return Object
 
             end
+
+            --================================================
+            -- SAVE SECTION
+            --================================================
 
             table.insert(
                 Tab.Sections,
@@ -2301,41 +2128,47 @@ function Axiom:CreateWindow(Settings)
 
         end
 
-        Window.Tabs[Name] = Tab
+        --====================================================
+        -- SAVE TAB
+        --====================================================
+
+        Tab.Button =
+            TabButton
+
+        Tab.Page =
+            Page
+
+        Tab.Icon =
+            Icon
+
+        Tab.TabText =
+            TabText
+
+        Tab.Indicator =
+            Indicator
+
+        Window.Tabs[Name] =
+            Tab
+
+        -- First tab
 
         if not Window.CurrentTab then
-
             Tab:Activate()
-
         end
 
         return Tab
 
     end
 
-    --======================================================
-    -- ALIASES
-    --======================================================
+    Window.AddTab =
+        Window.AddTabs
 
-    Window.AddTab = Window.AddTabs
-
-    --======================================================
-    -- OPEN ANIMATION
-    --======================================================
-
-    Main.Size = UDim2.fromOffset(820,500)
-    Main.BackgroundTransparency = 1
-
-    Tween(
-        Main,
-        {
-            Size = UDim2.fromOffset(900,560),
-            BackgroundTransparency = 0
-        },
-        0.35
-    )
+    --========================================================
+    -- RETURN WINDOW
+    --========================================================
 
     return Window
+
 end
 
 return Axiom
