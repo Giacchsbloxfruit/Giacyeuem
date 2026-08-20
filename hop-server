@@ -1,0 +1,149 @@
+--======================================================--
+-- AUTO HOP SERVER 100% CÀO API & TỰ BLACKLIST (BLOX FRUITS)
+--======================================================--
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local GuiService = game:GetService("GuiService")
+
+local WebhookURL = "https://discord.com/api/webhooks/1539847889298391100/ErSC-6AsHyzeXaL2FeSGoqSNVCpSbCJegjlzFdfQhgUsdlhSGtDCZf9TvzD2iG9Pintw"
+local PlaceID = game.PlaceId
+local BlacklistFile = "AutoHopBlacklist.json"
+
+local AllIDs = {}
+local foundAnything = ""
+local isHopping = false
+local actualHour = os.date("!*t").hour
+
+-- Tương thích API HTTP của Executor
+local requestFunc = request or http_request or HttpPost or syn.request
+
+local function ShowNotification(title, text, duration)
+    pcall(function() StarterGui:SetCore("SendNotification", { Title = title, Text = text, Duration = duration or 3 }) end)
+end
+
+-- Đọc Blacklist cũ để né server lỗi
+pcall(function()
+    if isfile and isfile(BlacklistFile) then
+        local content = readfile(BlacklistFile)
+        if content ~= "" then AllIDs = HttpService:JSONDecode(content) end
+    end
+end)
+
+-- Reset Blacklist mỗi giờ đồng hồ để các server được làm mới
+local function CheckBlacklistReset()
+    if #AllIDs > 0 and AllIDs[1] ~= actualHour then
+        pcall(function()
+            delfile(BlacklistFile)
+            AllIDs = {actualHour}
+        end)
+    elseif #AllIDs == 0 then
+        table.insert(AllIDs, actualHour)
+    end
+end
+
+local function GetServerList()
+    local url
+    if foundAnything == "" then
+        url = 'https://games.roblox.com/v1/games/' .. PlaceID .. '/servers/Public?sortOrder=Asc&limit=100'
+    else
+        url = 'https://games.roblox.com/v1/games/' .. PlaceID .. '/servers/Public?sortOrder=Asc&limit=100&cursor=' .. foundAnything
+    end
+    
+    local success, result = pcall(function() return game:HttpGet(url) end)
+    if success then
+        local data = HttpService:JSONDecode(result)
+        if data and data.nextPageCursor then foundAnything = data.nextPageCursor end
+        return data.data or {}
+    end
+    return {}
+end
+
+-- Hàm thực thi Auto Hop
+local function StartAutoHop()
+    CheckBlacklistReset()
+    ShowNotification("Auto Hop", "Đang quét API tìm Server...", 2)
+    local servers = GetServerList()
+    
+    for _, serverInfo in pairs(servers) do
+        local targetJobId = tostring(serverInfo.id)
+        local isBlacklisted = false
+        
+        -- Điều kiện: Server chưa đầy và chưa bị đưa vào sổ đen
+        if serverInfo.playing and serverInfo.maxPlayers and tonumber(serverInfo.playing) < tonumber(serverInfo.maxPlayers) then
+            for _, existingID in pairs(AllIDs) do
+                if targetJobId == tostring(existingID) then
+                    isBlacklisted = true
+                    break
+                end
+            end
+            
+            if not isBlacklisted and targetJobId ~= game.JobId then
+                isHopping = true
+                
+                -- Ghi vào Blacklist ngay để không quay lại
+                table.insert(AllIDs, targetJobId)
+                pcall(function() writefile(BlacklistFile, HttpService:JSONEncode(AllIDs)) end)
+                
+                ShowNotification("Tiến Hành Hop", "Đang bay vào Server mới!", 3)
+                
+                -- Bắt lỗi màn hình 771/773
+                local errorConnection
+                errorConnection = GuiService.ErrorMessageChanged:Connect(function(errorMsg)
+                    if isHopping then
+                        isHopping = false
+                        errorConnection:Disconnect()
+                        
+                        -- Tự click OK đóng bảng lỗi
+                        pcall(function()
+                            local prompt = game:GetService("CoreGui").RobloxPromptGui.promptOverlay:FindFirstChild("ErrorPrompt")
+                            if prompt then prompt.MessageArea.ErrorFrame.ButtonArea.OkButton:Click() end
+                        end)
+                        
+                        -- Gửi Webhook báo lỗi
+                        if requestFunc then
+                            pcall(function()
+                                requestFunc({
+                                    Url = WebhookURL,
+                                    Method = "POST",
+                                    Headers = { ["Content-Type"] = "application/json" },
+                                    Body = HttpService:JSONEncode({["content"] = "🚨 **Auto Hop vấp lỗi!**\n- **Mã lỗi:** " .. tostring(errorMsg) .. "\n*(Đã lưu sổ đen, đang lật trang tìm ID mới)*"})
+                                })
+                            end)
+                        end
+                        
+                        task.wait(1.5)
+                        StartAutoHop() -- Lỗi thì tự động quét tiếp
+                    end
+                end)
+                
+                -- Teleport thẳng bằng Remote của game
+                task.spawn(function()
+                    pcall(function()
+                        ReplicatedStorage.__ServerBrowser:InvokeServer("teleport", targetJobId)
+                    end)
+                end)
+                
+                -- Timeout 15s nếu kẹt loading
+                task.delay(15, function()
+                    if isHopping then
+                        isHopping = false
+                        if errorConnection then errorConnection:Disconnect() end
+                        StartAutoHop()
+                    end
+                end)
+                
+                return -- Dừng hàm để chờ dịch chuyển
+            end
+        end
+    end
+    
+    -- Nếu trang API này toàn server lỏ hoặc blacklist hết rồi, tự lật sang trang tiếp theo
+    task.wait(1)
+    StartAutoHop()
+end
+
+-- Chạy thử
+StartAutoHop()
