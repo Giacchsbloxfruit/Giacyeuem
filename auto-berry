@@ -1,0 +1,491 @@
+--//======================================================--
+--// AXIOM MOVEMENT CORE[cite: 2]
+--// FIX: block no longer gets overwritten while tweening[cite: 2]
+--// Speed default = 200[cite: 2]
+--//======================================================--
+
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Player = Players.LocalPlayer
+
+--======================================================--
+-- AUTO JOIN TEAM (PIRATES)
+--======================================================--
+task.spawn(function()
+    pcall(function()
+        -- Gửi yêu cầu lên server để chọn team Hải Tặc (dùng chuẩn của Blox Fruits)
+        ReplicatedStorage:WaitForChild("Remotes", 5):WaitForChild("CommF_", 5):InvokeServer("SetTeam", "Pirates")
+    end)
+end)
+
+_G.TweenSpeed = 200
+
+shouldTween = false
+
+local block = workspace:FindFirstChild("Rip_Indra")
+
+if not block then
+    block = Instance.new("Part")
+    block.Name = "Rip_Indra"
+    block.Size = Vector3.new(1,1,1)
+    block.Anchored = true
+    block.CanCollide = false
+    block.CanTouch = false
+    block.Transparency = 1
+    block.Parent = workspace
+end
+
+local activeTween = nil
+local tweenToken = 0
+local isTravelling = false
+
+-- Hàm gửi thông báo trên màn hình Roblox
+local function ShowNotification(title, text, duration)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = title,
+            Text = text,
+            Duration = duration or 3
+        })
+    end)
+end
+
+
+--======================================================--
+-- CHARACTER
+--======================================================--
+
+local function GetCharacter()
+    local Character = Player.Character
+
+    if not Character or not Character.Parent then
+        return nil
+    end
+
+    return Character
+end
+
+
+local function GetRoot()
+    local Character = GetCharacter()
+
+    if not Character then
+        return nil
+    end
+
+    return Character:FindFirstChild("HumanoidRootPart")
+end
+
+
+--======================================================--
+-- UPDATE MOVEMENT STATE
+--======================================================--
+
+task.spawn(function()
+
+    while task.wait(0.03) do
+
+        local Character = GetCharacter()
+        local Root = GetRoot()
+
+        if not Character or not Root then
+            continue
+        end
+
+        if shouldTween then
+
+            -- Only synchronize block when NOT travelling.
+            -- THIS IS THE IMPORTANT FIX.
+            if not isTravelling then
+                block.CFrame = Root.CFrame
+            end
+
+            for _, Object in ipairs(
+                Character:GetDescendants()
+            ) do
+
+                if Object:IsA("BasePart") then
+                    Object.CanCollide = false
+                end
+
+            end
+
+        else
+
+            if not isTravelling then
+                block.CFrame = Root.CFrame
+            end
+
+            for _, Object in ipairs(
+                Character:GetDescendants()
+            ) do
+
+                if Object:IsA("BasePart") then
+                    Object.CanCollide = true
+                end
+
+            end
+
+        end
+
+    end
+
+end)
+
+
+--======================================================--
+-- TWEEN
+--======================================================--
+
+_tp = function(target, speed)
+
+    local Character = GetCharacter()
+    local Root = GetRoot()
+
+    if not Character or not Root then
+        return false
+    end
+
+    if typeof(target) ~= "CFrame" then
+        return false
+    end
+
+    speed = tonumber(speed) or _G.TweenSpeed
+
+    if speed <= 0 then
+        speed = 200
+    end
+
+    -- Cancel previous movement.
+    tweenToken += 1
+
+    local thisToken = tweenToken
+
+    if activeTween then
+        pcall(function()
+            activeTween:Cancel()
+        end)
+    end
+
+    local startPosition = Root.Position
+    local targetPosition = target.Position
+
+    local distance =
+        (targetPosition - startPosition).Magnitude
+
+    if distance <= 2 then
+        block.CFrame = target
+        return true
+    end
+
+    local duration =
+        math.max(distance / speed, 0.05)
+
+    -- Make sure movement controller is active.
+    shouldTween = true
+    isTravelling = true
+
+    -- Start from actual character position.
+    block.CFrame = Root.CFrame
+
+    local TweenInfoObject = TweenInfo.new(
+        duration,
+        Enum.EasingStyle.Linear,
+        Enum.EasingDirection.Out
+    )
+
+    local Success, TweenObject = pcall(function()
+
+        return TweenService:Create(
+            block,
+            TweenInfoObject,
+            {
+                CFrame = target
+            }
+        )
+
+    end)
+
+    if not Success or not TweenObject then
+        isTravelling = false
+        return false
+    end
+
+    activeTween = TweenObject
+
+    TweenObject:Play()
+
+    --================================================--
+    -- Follow tween
+    --================================================--
+
+    task.spawn(function()
+
+        while
+            _G.AutoBerry
+            and shouldTween
+            and thisToken == tweenToken
+            and TweenObject.PlaybackState
+                == Enum.PlaybackState.Playing
+        do
+
+            local CurrentRoot = GetRoot()
+
+            if not CurrentRoot then
+                break
+            end
+
+            -- Move actual character with the block.
+            CurrentRoot.CFrame =
+                block.CFrame
+
+            task.wait()
+
+        end
+
+        if thisToken == tweenToken then
+
+            pcall(function()
+                TweenObject:Cancel()
+            end)
+
+            activeTween = nil
+            isTravelling = false
+
+        end
+
+    end)
+
+    return true
+end
+
+
+--======================================================--
+-- STOP
+--======================================================--
+
+local function StopTween()
+
+    tweenToken += 1
+
+    if activeTween then
+
+        pcall(function()
+            activeTween:Cancel()
+        end)
+
+        activeTween = nil
+
+    end
+
+    isTravelling = false
+
+    local Root = GetRoot()
+
+    if Root then
+        block.CFrame = Root.CFrame
+    end
+
+end
+
+
+--======================================================--
+-- AUTO BERRY MOVEMENT TEST
+--======================================================--
+
+_G.AutoBerry = true
+local notifiedHasBerries = false
+local notifiedNoBerries = false
+
+task.spawn(function()
+
+    while _G.AutoBerry do
+
+        local Root = GetRoot()
+
+        if not Root then
+            task.wait(0.25)
+            continue
+        end
+
+        local CollectionService =
+            game:GetService("CollectionService")
+
+        local Bushes
+
+        local Success = pcall(function()
+
+            Bushes =
+                CollectionService:GetTagged(
+                    "BerryBush"
+                )
+
+        end)
+
+        if not Success or not Bushes then
+            task.wait(0.2)
+            continue
+        end
+
+        local Nearest = nil
+        local NearestDistance = math.huge
+
+        for _, Bush in ipairs(Bushes) do
+
+            if Bush and Bush.Parent then
+
+                local BushCF
+
+                pcall(function()
+                    BushCF =
+                        Bush.Parent:GetPivot()
+                end)
+
+                if BushCF then
+
+                    for _, BerryName in pairs(
+                        Bush:GetAttributes()
+                    ) do
+
+                        if
+                            not BerryArray
+                            or table.find(
+                                BerryArray,
+                                BerryName
+                            )
+                        then
+
+                            local Distance =
+                                (
+                                    Root.Position
+                                    - BushCF.Position
+                                ).Magnitude
+
+                            if Distance
+                                < NearestDistance
+                            then
+
+                                NearestDistance =
+                                    Distance
+
+                                Nearest = {
+                                    Bush = Bush,
+                                    CFrame = BushCF,
+                                    BerryName = BerryName
+                                }
+
+                            end
+
+                        end
+
+                    end
+
+                end
+
+            end
+
+        end
+
+        -- Kiểm tra trạng thái thông báo dựa trên việc có tìm thấy mục tiêu (Tween) hay không
+        if Nearest then
+            notifiedNoBerries = false
+            if not notifiedHasBerries then
+                notifiedHasBerries = true
+                ShowNotification("Auto Berry", "Phát hiện có trái! Đang tiến hành nhặt...", 3)
+            end
+
+            -- Travel at 200.
+            _tp(
+                Nearest.CFrame,
+                200
+            )
+
+            -- Wait until movement finishes.
+            repeat
+
+                task.wait()
+
+                Root = GetRoot()
+
+                if not Root then
+                    break
+                end
+
+            until
+                not _G.AutoBerry
+                or not isTravelling
+                or (
+                    Root.Position
+                    - Nearest.CFrame.Position
+                ).Magnitude <= 12
+
+            --================================================--
+            -- MULTI-RADIUS CIRCLE SWEEP (10, 20, 30 STUDS)
+            --================================================--
+
+            if _G.AutoBerry then
+
+                local Bush = Nearest.Bush
+
+                if Bush and Bush.Parent then
+                    
+                    local radii = {10, 20, 30, 40, 45}
+                    local numPoints = 12
+                    
+                    for _, radius in ipairs(radii) do
+                        if not _G.AutoBerry then break end
+                        
+                        for i = 1, numPoints do
+                            if not _G.AutoBerry then break end
+                            
+                            local angle = math.rad((i / numPoints) * 360)
+                            local offset = CFrame.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+                            local targetPoint = Nearest.CFrame * offset
+                            
+                            _tp(targetPoint, 175)
+                            
+                            repeat
+                                task.wait()
+                                Root = GetRoot()
+                                if not Root then break end
+                            until not _G.AutoBerry or not isTravelling or (Root.Position - targetPoint.Position).Magnitude <= 4
+                            
+                            for _, Object in ipairs(Bush:GetChildren()) do
+                                local Prompt = Object:FindFirstChild("ProximityPrompt", true)
+                                if Prompt and Prompt:IsA("ProximityPrompt") then
+                                    pcall(function()
+                                        fireproximityprompt(Prompt, math.huge)
+                                    end)
+                                    task.wait(0.03)
+                                end
+                            end
+                            
+                        end
+                    end
+
+                end
+
+            end
+
+        else
+            -- Không tìm thấy mục tiêu (hết trái / script dừng tween)
+            notifiedHasBerries = false
+            if not notifiedNoBerries then
+                notifiedNoBerries = true
+                ShowNotification("Auto Berry", "Đã hết trái!", 4)
+            end
+
+            task.wait(0.2)
+
+        end
+
+        task.wait(0.05)
+
+    end
+
+    StopTween()
+
+end)
