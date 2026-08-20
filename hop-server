@@ -1,5 +1,5 @@
 --======================================================--
--- AUTO HOP SERVER 100% CÀO API & TỰ BLACKLIST (BLOX FRUITS)
+-- AUTO HOP SERVER (CLEANED - NO WEBHOOK - 5S NOTIFICATION)
 --======================================================--
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
@@ -8,7 +8,6 @@ local StarterGui = game:GetService("StarterGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GuiService = game:GetService("GuiService")
 
-local WebhookURL = "https://discord.com/api/webhooks/1539847889298391100/ErSC-6AsHyzeXaL2FeSGoqSNVCpSbCJegjlzFdfQhgUsdlhSGtDCZf9TvzD2iG9Pintw"
 local PlaceID = game.PlaceId
 local BlacklistFile = "AutoHopBlacklist.json"
 
@@ -17,11 +16,11 @@ local foundAnything = ""
 local isHopping = false
 local actualHour = os.date("!*t").hour
 
--- Tương thích API HTTP của Executor
-local requestFunc = request or http_request or HttpPost or syn.request
-
+-- Hàm thông báo duy nhất trên màn hình
 local function ShowNotification(title, text, duration)
-    pcall(function() StarterGui:SetCore("SendNotification", { Title = title, Text = text, Duration = duration or 3 }) end)
+    pcall(function() 
+        StarterGui:SetCore("SendNotification", { Title = title, Text = text, Duration = duration or 5 }) 
+    end)
 end
 
 -- Đọc Blacklist cũ để né server lỗi
@@ -64,7 +63,6 @@ end
 -- Hàm thực thi Auto Hop
 local function StartAutoHop()
     CheckBlacklistReset()
-    ShowNotification("Auto Hop", "Đang quét API tìm Server...", 2)
     local servers = GetServerList()
     
     for _, serverInfo in pairs(servers) do
@@ -87,7 +85,9 @@ local function StartAutoHop()
                 table.insert(AllIDs, targetJobId)
                 pcall(function() writefile(BlacklistFile, HttpService:JSONEncode(AllIDs)) end)
                 
-                ShowNotification("Tiến Hành Hop", "Đang bay vào Server mới!", 3)
+                -- Hiển thị đúng 1 thông báo duy nhất đếm ngược/báo đổi server
+                ShowNotification("Auto Hop", "Đổi server trong 3 giây...", 3)
+                task.wait(3)
                 
                 -- Bắt lỗi màn hình 771/773
                 local errorConnection
@@ -102,20 +102,8 @@ local function StartAutoHop()
                             if prompt then prompt.MessageArea.ErrorFrame.ButtonArea.OkButton:Click() end
                         end)
                         
-                        -- Gửi Webhook báo lỗi
-                        if requestFunc then
-                            pcall(function()
-                                requestFunc({
-                                    Url = WebhookURL,
-                                    Method = "POST",
-                                    Headers = { ["Content-Type"] = "application/json" },
-                                    Body = HttpService:JSONEncode({["content"] = "🚨 **Auto Hop vấp lỗi!**\n- **Mã lỗi:** " .. tostring(errorMsg) .. "\n*(Đã lưu sổ đen, đang lật trang tìm ID mới)*"})
-                                })
-                            end)
-                        end
-                        
                         task.wait(1.5)
-                        StartAutoHop() -- Lỗi thì tự động quét tiếp
+                        StartAutoHop() -- Lỗi thì tự động quét tiếp server khác
                     end
                 end)
                 
