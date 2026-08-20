@@ -1,13 +1,15 @@
 --//======================================================--
---// AXIOM MOVEMENT CORE[cite: 2]
---// FIX: block no longer gets overwritten while tweening[cite: 2]
---// Speed default = 200[cite: 2]
+--// AXIOM MOVEMENT CORE
+--// FIX: block no longer gets overwritten while tweening
+--// Speed default = 200
 --//======================================================--
 
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
 
 local Player = Players.LocalPlayer
 
@@ -16,7 +18,7 @@ local Player = Players.LocalPlayer
 --======================================================--
 task.spawn(function()
     pcall(function()
-        -- Gửi yêu cầu lên server để chọn team Hải Tặc (dùng chuẩn của Blox Fruits)
+        -- Gửi yêu cầu lên server để chọn team Hải Tặc
         ReplicatedStorage:WaitForChild("Remotes", 5):WaitForChild("CommF_", 5):InvokeServer("SetTeam", "Pirates")
     end)
 end)
@@ -53,6 +55,32 @@ local function ShowNotification(title, text, duration)
     end)
 end
 
+--======================================================--
+-- HOP SERVER (TÌM SERVER ÍT NGƯỜI)
+--======================================================--
+local function HopServer()
+    pcall(function()
+        -- sortOrder=Asc giúp ưu tiên lấy danh sách các server có ít người nhất
+        local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+        local success, result = pcall(function()
+            return game:HttpGet(url)
+        end)
+        
+        if success and result then
+            local data = HttpService:JSONDecode(result)
+            if data and data.data then
+                for _, server in ipairs(data.data) do
+                    -- Tìm server không phải là server hiện tại và chưa đầy người
+                    if type(server) == "table" and server.id ~= game.JobId and server.playing and server.playing < server.maxPlayers then
+                        TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, Player)
+                        task.wait(3)
+                        break
+                    end
+                end
+            end
+        end
+    end)
+end
 
 --======================================================--
 -- CHARACTER
@@ -68,7 +96,6 @@ local function GetCharacter()
     return Character
 end
 
-
 local function GetRoot()
     local Character = GetCharacter()
 
@@ -78,7 +105,6 @@ local function GetRoot()
 
     return Character:FindFirstChild("HumanoidRootPart")
 end
-
 
 --======================================================--
 -- UPDATE MOVEMENT STATE
@@ -97,8 +123,6 @@ task.spawn(function()
 
         if shouldTween then
 
-            -- Only synchronize block when NOT travelling.
-            -- THIS IS THE IMPORTANT FIX.
             if not isTravelling then
                 block.CFrame = Root.CFrame
             end
@@ -135,7 +159,6 @@ task.spawn(function()
 
 end)
 
-
 --======================================================--
 -- TWEEN
 --======================================================--
@@ -159,9 +182,7 @@ _tp = function(target, speed)
         speed = 200
     end
 
-    -- Cancel previous movement.
     tweenToken += 1
-
     local thisToken = tweenToken
 
     if activeTween then
@@ -184,11 +205,9 @@ _tp = function(target, speed)
     local duration =
         math.max(distance / speed, 0.05)
 
-    -- Make sure movement controller is active.
     shouldTween = true
     isTravelling = true
 
-    -- Start from actual character position.
     block.CFrame = Root.CFrame
 
     local TweenInfoObject = TweenInfo.new(
@@ -198,7 +217,6 @@ _tp = function(target, speed)
     )
 
     local Success, TweenObject = pcall(function()
-
         return TweenService:Create(
             block,
             TweenInfoObject,
@@ -206,7 +224,6 @@ _tp = function(target, speed)
                 CFrame = target
             }
         )
-
     end)
 
     if not Success or not TweenObject then
@@ -215,12 +232,7 @@ _tp = function(target, speed)
     end
 
     activeTween = TweenObject
-
     TweenObject:Play()
-
-    --================================================--
-    -- Follow tween
-    --================================================--
 
     task.spawn(function()
 
@@ -238,7 +250,6 @@ _tp = function(target, speed)
                 break
             end
 
-            -- Move actual character with the block.
             CurrentRoot.CFrame =
                 block.CFrame
 
@@ -262,7 +273,6 @@ _tp = function(target, speed)
     return true
 end
 
-
 --======================================================--
 -- STOP
 --======================================================--
@@ -272,13 +282,10 @@ local function StopTween()
     tweenToken += 1
 
     if activeTween then
-
         pcall(function()
             activeTween:Cancel()
         end)
-
         activeTween = nil
-
     end
 
     isTravelling = false
@@ -290,7 +297,6 @@ local function StopTween()
     end
 
 end
-
 
 --======================================================--
 -- AUTO BERRY MOVEMENT TEST
@@ -311,18 +317,11 @@ task.spawn(function()
             continue
         end
 
-        local CollectionService =
-            game:GetService("CollectionService")
-
+        local CollectionService = game:GetService("CollectionService")
         local Bushes
 
         local Success = pcall(function()
-
-            Bushes =
-                CollectionService:GetTagged(
-                    "BerryBush"
-                )
-
+            Bushes = CollectionService:GetTagged("BerryBush")
         end)
 
         if not Success or not Bushes then
@@ -334,62 +333,30 @@ task.spawn(function()
         local NearestDistance = math.huge
 
         for _, Bush in ipairs(Bushes) do
-
             if Bush and Bush.Parent then
-
                 local BushCF
-
                 pcall(function()
-                    BushCF =
-                        Bush.Parent:GetPivot()
+                    BushCF = Bush.Parent:GetPivot()
                 end)
 
                 if BushCF then
-
-                    for _, BerryName in pairs(
-                        Bush:GetAttributes()
-                    ) do
-
-                        if
-                            not BerryArray
-                            or table.find(
-                                BerryArray,
-                                BerryName
-                            )
-                        then
-
-                            local Distance =
-                                (
-                                    Root.Position
-                                    - BushCF.Position
-                                ).Magnitude
-
-                            if Distance
-                                < NearestDistance
-                            then
-
-                                NearestDistance =
-                                    Distance
-
+                    for _, BerryName in pairs(Bush:GetAttributes()) do
+                        if not BerryArray or table.find(BerryArray, BerryName) then
+                            local Distance = (Root.Position - BushCF.Position).Magnitude
+                            if Distance < NearestDistance then
+                                NearestDistance = Distance
                                 Nearest = {
                                     Bush = Bush,
                                     CFrame = BushCF,
                                     BerryName = BerryName
                                 }
-
                             end
-
                         end
-
                     end
-
                 end
-
             end
-
         end
 
-        -- Kiểm tra trạng thái thông báo dựa trên việc có tìm thấy mục tiêu (Tween) hay không
         if Nearest then
             notifiedNoBerries = false
             if not notifiedHasBerries then
@@ -397,41 +364,20 @@ task.spawn(function()
                 ShowNotification("Auto Berry", "Phát hiện có trái! Đang tiến hành nhặt...", 3)
             end
 
-            -- Travel at 200.
-            _tp(
-                Nearest.CFrame,
-                200
-            )
+            _tp(Nearest.CFrame, 200)
 
-            -- Wait until movement finishes.
             repeat
-
                 task.wait()
-
                 Root = GetRoot()
-
-                if not Root then
-                    break
-                end
-
-            until
-                not _G.AutoBerry
-                or not isTravelling
-                or (
-                    Root.Position
-                    - Nearest.CFrame.Position
-                ).Magnitude <= 12
+                if not Root then break end
+            until not _G.AutoBerry or not isTravelling or (Root.Position - Nearest.CFrame.Position).Magnitude <= 12
 
             --================================================--
-            -- MULTI-RADIUS CIRCLE SWEEP (10, 20, 30 STUDS)
+            -- MULTI-RADIUS CIRCLE SWEEP (10, 20, 30, 40, 45 STUDS)
             --================================================--
-
             if _G.AutoBerry then
-
                 local Bush = Nearest.Bush
-
                 if Bush and Bush.Parent then
-                    
                     local radii = {10, 20, 30, 40, 45}
                     local numPoints = 12
                     
@@ -462,30 +408,33 @@ task.spawn(function()
                                     task.wait(0.03)
                                 end
                             end
-                            
                         end
                     end
-
                 end
-
             end
 
         else
-            -- Không tìm thấy mục tiêu (hết trái / script dừng tween)
+            -- Không tìm thấy mục tiêu (Hết trái)
             notifiedHasBerries = false
             if not notifiedNoBerries then
                 notifiedNoBerries = true
-                ShowNotification("Auto Berry", "Đã hết trái!", 4)
+                ShowNotification("Auto Berry", "Đã hết trái! Đổi server trong 5 giây...", 5)
+                
+                -- Đợi 5 giây
+                task.wait(5)
+                
+                -- Kiểm tra lại trạng thái trước khi hop phòng trường hợp người dùng đã tắt auto
+                if _G.AutoBerry then
+                    ShowNotification("Auto Berry", "Đang Hop sang server ít người...", 5)
+                    HopServer()
+                end
             end
 
             task.wait(0.2)
-
         end
 
         task.wait(0.05)
-
     end
 
     StopTween()
-
 end)
