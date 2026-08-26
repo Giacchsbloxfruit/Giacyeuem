@@ -1,0 +1,216 @@
+-- THAY LINK FIREBASE CỦA BẠN VÀO ĐÂY (KHÔNG có dấu / ở cuối)
+local FIREBASE_URL = "https://blox-tracker-default-rtdb.firebaseio.com"
+
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local request = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
+local localPlayer = Players.LocalPlayer
+
+-- QUAN TRỌNG: Đợi game nạp xong hoàn toàn
+repeat task.wait(1) until game:IsLoaded() and localPlayer.Character and localPlayer:FindFirstChild("Data")
+task.wait(8) -- Chờ đồng bộ Inventory
+
+-- =========================================================
+-- HÀM HỖ TRỢ ĐỌC INVENTORY CHUẨN XÁC BẰNG MODULE GAME
+-- =========================================================
+local function getItemName(itemId)
+    local ItemConfig
+    pcall(function() ItemConfig = require(ReplicatedStorage.ItemConfig) end)
+    if not ItemConfig then return "Unknown" end
+    
+    local success, result = pcall(function() return ItemConfig.match(itemId) end)
+    if not success or not result then return "Unknown" end
+    
+    local matchResult = result:isOk() and result or nil
+    if not matchResult then return "Unknown" end
+    
+    local itemData = matchResult:unwrap()
+    return itemData.Index.DebugLabel or itemData.Index.Name or "Unknown"
+end
+
+local function getAllTiles()
+    local controller
+    pcall(function() controller = require(ReplicatedStorage.Controllers.UI.Inventory) end)
+    if not controller then return {} end
+    
+    if controller.GetTiles then
+        local success, result = pcall(function() return controller.GetTiles() end)
+        if success and result then return result end
+    end
+    if controller._Tiles then
+        local tiles = {}
+        for _, tile in pairs(controller._Tiles) do
+            table.insert(tiles, tile)
+        end
+        return tiles
+    end
+    return {}
+end
+
+local function cleanItemName(rawName)
+    local clean = string.gsub(rawName, "%s*%[%w+%-?%d*%]", "")
+    clean = string.gsub(clean, "^(.-)%-%1$", "%1") -- Cắt gọn tên bị trùng lặp
+    return clean
+end
+
+-- =========================================================
+-- HÀM LỌC ĐỒ TRONG RƯƠNG (XÓA BỎ LỖI NHẦM LẪN ITEM)
+-- =========================================================
+local function getAccurateInventory()
+    local results = {
+        Valkyrie = "❌",
+        Mirror = "❌",
+        HakiColors = {},
+        RedFruits = {}
+    }
+
+    local redKeywords = {"venom", "spirit", "gravity", "kitsune", "dragon", "leopard", "dough", "t-rex", "mammoth", "gas", "yeti", "shadow"}
+    local tiles = getAllTiles()
+
+    for _, tile in ipairs(tiles) do
+        if tile.ItemId then
+            local itemName = getItemName(tile.ItemId)
+            local lowerName = string.lower(itemName)
+
+            -- [A] CHECK HAKI MÀU (Chỉ lấy tag Skin)
+            if string.find(itemName, "%[Skin%-") or string.find(itemName, "Skin") then
+                if not string.find(lowerName, "auraskindefault") then
+                    local cleanName = cleanItemName(itemName)
+                    if not table.find(results.HakiColors, cleanName) then
+                        table.insert(results.HakiColors, cleanName)
+                    end
+                end
+            end
+
+            -- [B] CHECK TRÁI ÁC QUỶ (Chỉ lấy tag PhysicalMoveset)
+            if string.find(itemName, "%[PhysicalMoveset%-") or string.find(itemName, "PhysicalMoveset") then
+                local cleanName = cleanItemName(itemName)
+                local cleanLower = string.lower(cleanName)
+                for _, kw in ipairs(redKeywords) do
+                    if string.find(cleanLower, kw) then
+                        if not table.find(results.RedFruits, cleanName) then
+                            table.insert(results.RedFruits, cleanName)
+                        end
+                        break
+                    end
+                end
+            end
+
+            -- [C] CHECK MŨ VALKYRIE (Chỉ lấy tag Accessory)
+            if (string.find(itemName, "%[Accessory%-") or string.find(itemName, "Accessory")) then
+                if string.find(lowerName, "valkyrie") or string.find(lowerName, "valk") then
+                    results.Valkyrie = "✅"
+                end
+            end
+
+            -- [D] CHECK MẢNH GƯƠNG (Chỉ lấy tag Material)
+            if (string.find(itemName, "%[Material%-") or string.find(itemName, "Material")) then
+                if string.find(lowerName, "mirror") or string.find(lowerName, "fractal") then
+                    results.Mirror = "✅"
+                end
+            end
+        end
+    end
+
+    return results.RedFruits, results.HakiColors, results.Valkyrie, results.Mirror
+end
+
+-- =========================================================
+-- HÀM CHECK TỘC VÀ TRANG BỊ
+-- =========================================================
+local function getRace()
+    local raceName = "Human"
+    pcall(function() raceName = localPlayer.Data.Race.Value end)
+    local stage = "v1"
+    
+    pcall(function()
+        if localPlayer.Character:FindFirstChild("RaceTransformed") or localPlayer.Backpack:FindFirstChild("Awakening") then
+            stage = "v4" return
+        end
+        local v3Quest = ReplicatedStorage.Remotes.CommF_:InvokeServer("Wenlocktoad", "1")
+        if v3Quest == -2 or v3Quest == 2 or v3Quest == "Completed" or (type(v3Quest) == "string" and string.find(v3Quest, "already")) then
+            stage = "v3" return
+        end
+        local v2Quest = ReplicatedStorage.Remotes.CommF_:InvokeServer("Alchemist", "1")
+        if v2Quest == -2 or v2Quest == 2 or v2Quest == "Completed" or (type(v2Quest) == "string" and string.find(v2Quest, "already")) then
+            stage = "v2" return
+        end
+    end)
+    
+    if stage == "v1" then
+        local v3Skills = {"Last Resort", "Agility", "Water Body", "Heavenly Blood", "Heightened Senses", "Energy Core"}
+        for _, s in pairs(v3Skills) do
+            if localPlayer.Backpack:FindFirstChild(s) or localPlayer.Character:FindFirstChild(s) then stage = "v3" break end
+        end
+    end
+
+    return raceName .. " (" .. stage .. ")"
+end
+
+local function getEquipped()
+    local melee, sword, gun = "None", "None", "None"
+    pcall(function()
+        local function checkContainer(container)
+            for _, item in pairs(container:GetChildren()) do
+                if item:IsA("Tool") then
+                    if item.ToolTip == "Melee" and melee == "None" then melee = item.Name
+                    elseif item.ToolTip == "Sword" and sword == "None" then sword = item.Name
+                    elseif item.ToolTip == "Gun" and gun == "None" then gun = item.Name
+                    end
+                end
+            end
+        end
+        if localPlayer.Character then checkContainer(localPlayer.Character) end
+        if localPlayer.Backpack then checkContainer(localPlayer.Backpack) end
+    end)
+    return melee, sword, gun
+end
+
+-- =========================================================
+-- GỬI TOÀN BỘ DỮ LIỆU LÊN FIREBASE WEB
+-- =========================================================
+local function sendData()
+    if not localPlayer:FindFirstChild("Data") then return end
+    
+    -- Lấy mảng dữ liệu chính xác từ rương
+    local redFruits, hakiColors, valkyrie, mirror = getAccurateInventory()
+    
+    local race = getRace()
+    local melee, sword, gun = getEquipped()
+    
+    local payload = {
+        username = localPlayer.Name,
+        level = localPlayer.Data.Level.Value,
+        beli = localPlayer.Data.Beli.Value,
+        fragments = localPlayer.Data.Fragments.Value,
+        fruit = localPlayer.Data.DevilFruit.Value or "None",
+        melee = melee,
+        sword = sword,
+        gun = gun,
+        race = race,
+        red_fruits = redFruits,     -- Đã là định dạng Mảng (Array) để web nhận Dropdown
+        haki_colors = hakiColors,   -- Đã là định dạng Mảng (Array) để web nhận Dropdown
+        valkyrie = valkyrie,
+        mirror = mirror,
+        last_seen = os.time()
+    }
+
+    request({
+        Url = FIREBASE_URL .. "/accounts/" .. localPlayer.Name .. ".json",
+        Method = "PUT",
+        Headers = {["Content-Type"] = "application/json"},
+        Body = HttpService:JSONEncode(payload)
+    })
+    print("✅ Đã cập nhật dữ liệu của " .. localPlayer.Name .. " lên Database!")
+end
+
+-- Chạy lần đầu tiên
+pcall(sendData)
+
+-- Lặp lại tự động mỗi 5 phút (300 giây)
+task.spawn(function()
+    while task.wait(300) do
+        pcall(sendData)
+    end
+end)
