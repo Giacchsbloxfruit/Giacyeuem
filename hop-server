@@ -1,5 +1,5 @@
 --======================================================--
--- AUTO HOP SERVER (CLEANED - NO WEBHOOK - 5S NOTIFICATION)
+-- AUTO HOP SERVER (OLDEST SERVER / LOWEST PLAYERS)
 --======================================================--
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
@@ -54,23 +54,35 @@ local function GetServerList()
     local success, result = pcall(function() return game:HttpGet(url) end)
     if success then
         local data = HttpService:JSONDecode(result)
-        if data and data.nextPageCursor then foundAnything = data.nextPageCursor end
+        if data and data.nextPageCursor then 
+            foundAnything = data.nextPageCursor 
+        else
+            foundAnything = "" -- Reset cursor khi hết trang để vòng lặp tiếp tục quét lại từ đầu
+        end
         return data.data or {}
     end
     return {}
 end
 
--- Hàm thực thi Auto Hop
+-- Hàm thực thi Auto Hop (Ưu tiên Server cũ nhất / Ít người nhất)
 local function StartAutoHop()
     CheckBlacklistReset()
     local servers = GetServerList()
     
+    -- Sắp xếp danh sách server theo số lượng người chơi từ ÍT NHẤT đến NHIỀU NHẤT
+    -- (Server ít người chơi nhất thường là các server đã chạy lâu đời)
+    table.sort(servers, function(a, b)
+        return (tonumber(a.playing) or 0) < (tonumber(b.playing) or 0)
+    end)
+    
     for _, serverInfo in pairs(servers) do
         local targetJobId = tostring(serverInfo.id)
         local isBlacklisted = false
+        local playingCount = tonumber(serverInfo.playing) or 0
+        local maxPlayers = tonumber(serverInfo.maxPlayers) or 0
         
-        -- Điều kiện: Server chưa đầy và chưa bị đưa vào sổ đen
-        if serverInfo.playing and serverInfo.maxPlayers and tonumber(serverInfo.playing) < tonumber(serverInfo.maxPlayers) then
+        -- Điều kiện: Server còn hoạt động (>0 người) và chưa bị đưa vào sổ đen
+        if playingCount > 0 and playingCount < maxPlayers then
             for _, existingID in pairs(AllIDs) do
                 if targetJobId == tostring(existingID) then
                     isBlacklisted = true
@@ -85,8 +97,8 @@ local function StartAutoHop()
                 table.insert(AllIDs, targetJobId)
                 pcall(function() writefile(BlacklistFile, HttpService:JSONEncode(AllIDs)) end)
                 
-                -- Hiển thị đúng 1 thông báo duy nhất đếm ngược/báo đổi server
-                ShowNotification("Auto Hop", "Đổi server trong 3 giây...", 3)
+                -- Hiển thị thông báo
+                ShowNotification("Auto Hop", "Đang chuyển sang server cũ...", 3)
                 task.wait(3)
                 
                 -- Bắt lỗi màn hình 771/773
@@ -94,7 +106,7 @@ local function StartAutoHop()
                 errorConnection = GuiService.ErrorMessageChanged:Connect(function(errorMsg)
                     if isHopping then
                         isHopping = false
-                        errorConnection:Disconnect()
+                        if errorConnection then errorConnection:Disconnect() end
                         
                         -- Tự click OK đóng bảng lỗi
                         pcall(function()
@@ -103,11 +115,11 @@ local function StartAutoHop()
                         end)
                         
                         task.wait(1.5)
-                        StartAutoHop() -- Lỗi thì tự động quét tiếp server khác
+                        StartAutoHop() -- Lỗi thì tiếp tục quét server tiếp theo
                     end
                 end)
                 
-                -- Teleport thẳng bằng Remote của game
+                -- Teleport bằng Remote của game
                 task.spawn(function()
                     pcall(function()
                         ReplicatedStorage.__ServerBrowser:InvokeServer("teleport", targetJobId)
@@ -128,10 +140,10 @@ local function StartAutoHop()
         end
     end
     
-    -- Nếu trang API này toàn server lỏ hoặc blacklist hết rồi, tự lật sang trang tiếp theo
+    -- Nếu danh sách server hiện tại đã duyệt hết hoặc bị trùng blacklist, quét tiếp trang sau
     task.wait(1)
     StartAutoHop()
 end
 
--- Chạy thử
+-- Chạy script
 StartAutoHop()
